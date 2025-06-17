@@ -1,0 +1,151 @@
+@startuml
+' hide the spot
+hide circle
+' avoid problems with angled crows feet
+'skinparam linetype ortho
+skinparam nodesep 40
+skinparam ranksep 40
+left to right direction
+legend
+	Modèle Objet métier ['APC']
+end legend
+
+
+entity note_resultat {
+	Objet Pegase : 
+	Résultat attaché à un objet objet_maquette
+	En général obtenu par un calcul
+	---
+	
+}
+
+entity note_resultat_controle {
+	Objet Pegase : 
+	Evaluation d'un controle
+	---
+	
+}
+
+entity objet_maquette {
+	Objet Pegase : 
+	Tout objet entrant dans la construction 
+	d'un arbre de formation
+	---
+}
+
+entity espace {
+	Objet Pegase : 
+	généralisation de la notion de périodes
+	---
+	
+}
+
+entity contexte {
+	Objet Pegase : 
+	Décrit la succession d'objets depuis\nla racine jusqu'à l'objet_maquette
+	ex chemin_pedagogique.
+	---
+	
+}
+
+entity apc_competence {
+	La compétence est « un savoir agir complexe
+	 reposant sur la mobilisation et la combinaison
+	 efficaces d’une variété de ressources internes 
+	 et externes à l’intérieur d’une famille de situations ».
+	---
+}
+
+entity apc_critere_qualite {
+	souvent formulées à l’aide d’un gérondif, 
+	elles permettent d’expliciter les attendus 
+	et constitueront les critères d’évaluation 
+	de la compétence. 
+	---
+}
+
+entity apc_famille_situation {
+	---
+}
+
+entity apc_niveau_competence {
+	niveau à atteindre dans une compétence 
+	à différents jalons de la formation 
+	(fin de 1ère année, de 2ème année, …). 
+	---
+}
+
+entity apc_composante_essentielle {
+	---
+}
+
+entity apc_apprentissage_critique {
+	---
+}
+
+entity apc_bc_rncp {
+	Bloc de compétence du référentiel RNCP
+	---
+}
+
+entity apc_rome4 {
+	Fiches métiers Rome4
+	---
+}
+
+entity apc_ressource {
+	savoir, savoir-faire ou un savoir-être 
+	qu’il peut être nécessaire de mobiliser 
+	pour exercer une compétence dans une situation donnée.  
+	---
+	attributs:\névalué (o/n)\névalué directement (o/n)
+}
+
+entity apc_sae_ams {
+ 	tâche authentique* consciemment organisée 
+	pour permettre le développement d’une 
+	ou plusieurs compétences visées par la formation.
+	---
+}
+
+entity apc_portfolio {
+	collection personnelle, organisée et cumulative de traces
+	commentée par l’apprenant pour rendre compte 
+	du développement de ses compétences. 
+	---
+}
+
+entity apc_bcc {
+	ensemble structurant de l’organisation d’une formation, 
+	il correspond à un regroupement d’éléments (enseignements, 
+	ressources, activités, etc.) concourant à l’acquisition 
+	d’une compétence sur une période donnée (un semestre, une année, …).  
+	---
+}
+
+'Les relations pour les entités du diagramme'
+espace ||--o{ objet_maquette
+objet_maquette ||--o{ contexte : objet_maquette
+objet_maquette }|--o{ contexte : chemin (liste d OM)
+objet_maquette ||--o{ objet_maquette : formation_porteuse
+contexte <|-- apc_ressource 
+contexte <|-- apc_bcc 
+apc_competence }o--o{ apc_bc_rncp 
+apc_competence |o--o{ apc_composante_essentielle 
+apc_competence |o--o{ apc_famille_situation 
+apc_competence |o--o{ apc_niveau_competence : ok
+apc_niveau_competence |o--o{ apc_apprentissage_critique 
+apc_apprentissage_critique }o--o{ apc_ressource : N - N
+apc_competence }o--o{ contexte : parcours
+apc_bcc |o--o{ note_resultat
+apc_ressource |o--o| note_resultat_controle
+apc_niveau_competence }o--o{ contexte : semestre
+apc_competence }o--o{ apc_rome4
+apc_critere_qualite ||--o{ apc_composante_essentielle
+apc_ressource }o--o{ apc_bcc
+apc_competence |o--o{ apc_bcc
+apc_famille_situation }o--o{ apc_sae_ams
+apc_sae_ams --|> apc_ressource : sae est un type de ressource
+apc_portfolio --|> apc_ressource : portfolio est un type de ressource
+
+@enduml

@@ -1,0 +1,211 @@
+services:
+  ora_service:
+    build:
+      context: .
+      dockerfile: ./deployment-configuration/docker/DockerfileApache
+    container_name: ora_service
+    env_file: .env
+    user: root
+    environment:
+      DEPLOYMENT_MODE: ${DEPLOYMENT_MODE:-development}
+      SERVER_NAME: ${SERVER_NAME:-localhost}
+      BACKEND_URL: ${BACKEND_URL:-ora_backend}
+      BACKEND_PORT: ${BACKEND_PORT:-1111}
+      FRONTEND_URL: ${FRONTEND_URL:-ora_frontend}
+      FRONTEND_PORT: ${FRONTEND_PORT:-5173}
+    entrypoint: ["/bin/sh", "-c"]
+    command: 
+      - |
+
+        apt-get update && apt-get install -y ssl-cert &&
+        a2enmod ssl &&
+
+        chmod -R 777 /var/www/html/ora-project &&
+        chown -R www-data:www-data /var/www/html/ora-project &&
+
+        a2disconf ports &&        
+        apachectl configtest &&
+
+        a2dismod shib &&
+        a2disconf shib &&
+        a2dissite default-ssl &&
+
+        /usr/bin/supervisord -n -c /supervisord.conf
+
+    networks:
+      - ora-service-back-front-network
+      - ora-back-service-network
+    ports:
+      - 817:80 
+    volumes:
+      - ./deployment-configuration/service/local-supervisord.conf:/supervisord.conf
+      - ./deployment-configuration/service/local-000-default.conf:/etc/apache2/sites-available/000-default.conf
+      - ./deployment-configuration/service/local-default-ssl.conf:/etc/apache2/sites-available/default-ssl.conf
+      - ./deployment-configuration/service/conf-apache2/httpd.conf:/etc/apache2/httpd.conf
+      # - ./application-data/localhost-src:/var/www/html/ora-project/
+
+  
+  ora_database:
+    build:
+      context: ./deployment-configuration/
+      dockerfile: ./docker/DockerfileDatabase
+    container_name: ora_database
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_SUPERADMIN_USERNAME:-admin} -d ${IAM_DATABASE_NAME:-keycloak_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - ora-iam-db-network
+      - ora-back-db-network
+    env_file: .env
+    environment:
+      POSTGRES_USER: ${DATABASE_SUPERADMIN_USERNAME:-admin}
+      POSTGRES_PASSWORD: ${DATABASE_SUPERADMIN_PASSWORD:-admin}
+      POSTGRES_DB: ${ORA_DATABASE_NAME:-demo}
+      PGDATA: /ora-database-data
+    ports:
+      - 5432:5432
+    volumes:
+      - ./application-data/ora-database-data:/ora-database-data
+      - ./deployment-configuration/database/utilities-scripts:/do-not-execute/ # TMP do not push in production
+      - ./deployment-configuration/database/initialization-scripts:/initialization-scripts/
+      - ./deployment-configuration/database/autoload-sql.sh:/docker-entrypoint-initdb.d/autoload-sql.sh
+      
+  ora-frontend:
+    build:
+      context: .
+      dockerfile: ./deployment-configuration/docker/DockerfileFrontend
+    container_name: ora-frontend
+    command: bash -c '/generate-env.sh && npm install && npm run dev -- --host 0.0.0.0'
+    environment:
+      - CHOKIDAR_USEPOLLING=true
+    networks:
+      - ora-service-back-front-network
+      - ora-front-back-network
+    ports:
+      - 5173:5173
+    volumes:
+      # - ./application-data/localhost-src:/localhostsrc
+      - ./ora-frontend:/app
+      - ./.env:/.env
+
+  ora-backend:
+    build:
+      context: .
+      dockerfile: ./deployment-configuration/docker/DockerfileBackend
+    container_name: ora-backend
+    restart: always
+    depends_on:
+      ora_database:
+        condition: service_healthy
+    networks: 
+      - ora-front-back-network
+      - ora-back-db-network
+      - ora-back-iam-network
+      - ora-back-service-network
+    command: bash -c '/generate-env.sh && npm install && npm cache clean --force && npm run dev'
+    environment:
+      NODE_ENV: ${DEPLOYMENT_MODE:-development}
+      CHOKIDAR_USEPOLLING: true
+    ports:
+      - 1111:1111
+      - 5555:5555
+    volumes:
+      - ./ora-backend:/app
+      - ./.env:/.env
+  
+  ora-auth-iam:
+    build:
+      context: ./deployment-configuration/
+      dockerfile: ./docker/DockerfileIAM
+    container_name: ora-auth-iam
+    env_file: .env
+    command: start-dev --import-realm --debug
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://${DATABASE_HOST:-db_database}/${IAM_DATABASE_NAME:-keycloak_db}
+      KC_DB_USERNAME: ${IAM_DATABASE_USER:-admin_kc}
+      KC_DB_PASSWORD: ${IAM_DATABASE_PSWD:-admin}
+      KC_HTTP_PORT: 8080
+      KC_HOSTNAME_STRICT: "false"
+      KC_HOSTNAME_STRICT_HTTPS: "false"
+      KC_HTTP_ENABLED: "true"
+      KC_HEALTH_ENABLED: true
+      KC_METRICS_ENABLED: true
+      KC_PROXY: edge
+      KEYCLOAK_ADMIN: ${KEYCLOAK_ADMIN:-adminkc}
+      KEYCLOAK_ADMIN_PASSWORD: ${KEYCLOAK_PASSWORD:-adminkc}
+      KEYCLOAK_LOGLEVEL: DEBUG
+      JAVA_OPTS: >-
+        -Dkeycloak.profile.feature.upload_scripts=enabled
+        -Djboss.modules.system.pkgs=org.jboss.byteman
+        -Djava.util.logging.ConsoleHandler.level=ALL
+        -Dorg.jboss.logging.provider=jdk
+        -Xlog:gc*:file=/opt/keycloak/log/gc.log:time,level,tags
+        -Dkeycloak.logging.console.format=JSON
+        -Dkeycloak.logging.console.output=DEFAULT
+        -Dkeycloak.logging.console.color=false
+    ports:
+      - "8080:8080"
+    depends_on:
+      ora_database:
+        condition: service_healthy
+    networks:
+      - ora-iam-db-network
+      - ora-back-iam-network
+    volumes:
+      - ./deployment-configuration/keycloak/configuration-realm-ora.json:/opt/keycloak/data/import/001-import-config-ora.json
+      - ./application-data/keycloak_data:/opt/keycloak/data
+      - ./application-data/keycloak_logs:/opt/keycloak/log
+      - ./tmp/:/tmp/export-realms/
+
+
+  ## Abandon de la gestion des permissions, des rôles et des privilèges via keycloak 
+  ## En effet, les permissions peuvent être gérées via keycloak mais ça ne répond pas exactement à notre besoin
+  # ora_init_keycloak:
+  #   build:
+  #     context: ./deployment-configuration/
+  #     dockerfile: ./docker/DockerfileInitKeycloak
+  #   container_name: ora_init_keycloak
+  #   env_file: .env
+  #   entrypoint: ["/bin/sh", "-c"]
+  #   user: root
+  #   command: 
+  #     - |
+  #       chmod +x /startup.sh &&
+  #       /startup.sh
+  #   depends_on:
+  #     - ora-auth-iam
+  #   networks:
+  #     - ora-iam-db-network
+  #   volumes: 
+  #     - ./deployment-configuration/keycloak/generate-privileges-prisma.sh:/generate-privileges-prisma.sh
+  #     - ./deployment-configuration/keycloak/inject-configuration.sh:/inject-configuration.sh
+  #     - ./deployment-configuration/keycloak/imports-files:/imports-files
+  #     - ./deployment-configuration/keycloak/startup.sh:/startup.sh
+
+networks:
+  ora-service-back-front-network:
+    driver: bridge
+  ora-iam-db-network:
+    driver: bridge
+  ora-back-db-network:
+    driver: bridge
+  ora-back-iam-network:
+    driver: bridge
+  ora-front-back-network:
+    driver: bridge
+  ora-back-service-network:
+    driver: bridge
+
+
+volumes:
+  ora-database-data:
+  keycloak_data:
+  keycloak_logs:
+  ora-frontend:
+  ora-backend:
+  tmp:

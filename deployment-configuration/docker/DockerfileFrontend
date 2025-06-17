@@ -1,0 +1,46 @@
+FROM node:20.17.0 AS build
+
+RUN if [ -f ./deployment-configuration/proxy/.env_proxy ]; then \
+    COPY ./deployment-configuration/proxy/.env_proxy /; \
+fi
+COPY ./deployment-configuration/proxy/proxy.sh /
+RUN chmod +x /proxy.sh
+
+RUN sh /proxy.sh
+
+ARG HTTP_PROXY_CI 
+ENV http_proxy=$HTTP_PROXY_CI
+ENV https_proxy=$HTTP_PROXY_CI
+ENV HTTP_PROXY=$HTTP_PROXY_CI
+ENV HTTPS_PROXY=$HTTP_PROXY_CI
+
+# Vérifiez si la variable d'environnement http_proxy est définie
+RUN if [ -n "$http_proxy" ]; then \
+    # Si elle est définie, exécutez les commandes pour configurer le proxy
+    touch /etc/apt/apt.conf.d/05proxy; \
+    echo 'Acquire::HTTP::Proxy "'$http_proxy'";' >> /etc/apt/apt.conf.d/05proxy; \
+    echo 'Acquire::HTTPS::Prox "'$http_proxy'";' >> /etc/apt/apt.conf.d/05proxy; \
+    echo 'Acquire::ftp::Proxy "'$http_proxy'";' >> /etc/apt/apt.conf.d/05proxy; \
+    echo "Proxy configuré dans le système de packages avec la valeur $http_proxy" && true; \
+    npm config set proxy $http_proxy; \
+    npm config set https-proxy $https_proxy; \
+fi
+
+WORKDIR /app
+COPY ./ora-frontend .
+RUN rm -f /app/package-lock.json
+RUN npm install
+
+COPY ./deployment-configuration/backend/generate-env.sh /
+RUN chmod u+x /generate-env.sh
+
+ENV HTTP_PROXY ""
+ENV HTTPS_PROXY ""
+ENV http_proxy ""
+ENV https_proxy ""
+RUN rm -f /etc/apt/apt.conf.d/05proxy
+RUN npm config delete proxy
+RUN npm config delete https-proxy
+
+
+EXPOSE 5173

@@ -1,0 +1,465 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("ORA_DATABASE_URL")
+}
+
+model users_socket_connected {
+  id        Int        @id @default(autoincrement())
+  user_id   String     @db.VarChar(255)
+  socket_id String     @db.VarChar(255)
+  refresh_asked Boolean @default(false)
+}
+
+model application_screens {
+  id        Int        @id @default(autoincrement())
+  libelle   String     @db.VarChar(255)
+}
+
+model competence {
+  id        Int        @id @default(autoincrement())
+  libelle   String     @db.VarChar(255)
+  famille_de_situations famille_de_situation[]
+  rncp      rncp?       @relation(fields: [rncp_id], references: [id])
+  rncp_id   Int?
+  rome4     rome4?      @relation(fields: [rome4_id], references: [id])
+  rome4_id  Int?
+  caractere_evaluables caractere_evaluable[]
+  critere_exigences critere_exigence[]
+  contexte_evaluation contexte_evaluation[]
+  element_constitutif element_constitutif?
+  bloc_de_competence bloc_de_competence[]
+  version  version   @relation(fields: [version_id], references: [id])
+  version_id Int
+  niveau niveau[]
+  competence_contextualisee String? @db.VarChar(255)
+  created_at DateTime   @default(now())
+  updated_at DateTime   @updatedAt
+  deleted_at DateTime?
+}
+
+model caractere_evaluable {
+  id        Int        @id @default(autoincrement())
+  caractere_evaluable_type caractere_evaluable_type @relation(fields: [caractere_evaluable_type_id], references: [id])
+  caractere_evaluable_type_id Int
+  active Boolean @default(true)
+  competence competence @relation(fields: [competence_id], references: [id])
+  competence_id Int
+}
+
+model caractere_evaluable_type {
+  id        Int        @id @default(autoincrement())
+  libelle   String     @db.VarChar(255)
+  caractere_evaluables caractere_evaluable[]
+}
+
+model contexte_evaluation {
+  id        Int        @id @default(autoincrement())
+  libelle   String     @db.VarChar(255)
+  ordre Int
+  element_constitutif element_constitutif[]
+  competence competence @relation(fields: [competence_id], references: [id])
+  competence_id Int
+}
+
+model critere_exigence {
+  id        Int        @id @default(autoincrement())
+  libelle   String     @db.VarChar(255)
+  competence competence @relation(fields: [competence_id], references: [id])
+  competence_id Int
+  type_critere_exigences type_critere_exigence[]
+  etiquettes etiquette[]
+}
+
+model type_critere_exigence {
+  id        Int        @id @default(autoincrement())
+  libelle   String     @db.VarChar(255)
+  critere_exigences critere_exigence[]
+}
+model competence_contextualisee {
+  id        Int        @id @default(autoincrement())
+  libelle   String     @db.VarChar(255)
+  // competence competence @relation(fields: [competence_id], references: [id])
+  // competence_id Int
+}
+
+model ensemble_apprentissage_critique {
+  id        Int        @id @default(autoincrement())
+  libelle   String     @db.VarChar(255)
+  apprentissage_critiques apprentissage_critique[]
+}
+
+model apprentissage_critique {
+  id        Int        @id @default(autoincrement())
+  libelle   String     @db.VarChar(255)
+  ordre Int
+  ensemble_apprentissage_critique ensemble_apprentissage_critique? @relation(fields: [ensemble_apprentissage_critique_id], references: [id])
+  ensemble_apprentissage_critique_id Int?
+  enseignements enseignement[]  
+  bloc_de_competences bloc_de_competence[]
+  niveau niveau @relation(fields: [niveau_id], references: [id])
+  niveau_id Int
+}
+
+model niveau {
+  id        Int        @id @default(autoincrement())
+  libelle   String     @db.VarChar(255)
+  description String? @db.Text
+  apprentissage_critique apprentissage_critique[]
+  competence competence @relation(fields: [competence_id], references: [id])
+  competence_id Int
+}
+
+model famille_de_situation {
+  id        Int        @id @default(autoincrement())
+  libelle   String     @db.VarChar(255)
+  saes      sae[]
+  competence competence @relation(fields: [competence_id], references: [id])
+  competence_id Int
+}
+
+model sae {
+  id        Int        @id @default(autoincrement())
+  libelle   String     @db.VarChar(255)
+  famille_de_situation famille_de_situation @relation(fields: [famille_de_situation_id], references: [id])
+  famille_de_situation_id Int
+  element_constitutifs element_constitutif[]
+}
+
+model stage {
+  id        Int        @id @default(autoincrement())
+  element_constitutifs element_constitutif[]
+}
+
+model element_constitutif {
+  id        Int        @id @default(autoincrement())
+  libelle   String     @db.VarChar(255)
+  competence competence? @relation(fields: [competence_id], references: [id])
+  competence_id Int? @unique
+  bloc_de_competence bloc_de_competence? @relation(fields: [bloc_de_competence_id], references: [id])
+  bloc_de_competence_id Int?
+  version  version?   @relation(fields: [version_id], references: [id])
+  version_id Int?
+  importation importation[]
+  evaluation evaluation?
+  render_order Int?
+  saes sae[]
+  stages stage[]
+  tags tags[]
+  est_mutualisable Boolean? @default(false)
+  importation_mutualisation bloc_de_competence[] @relation("ImportationMutualisation")
+  type String @db.VarChar(255) @default("Enseignement")
+  enseignement enseignement? @relation(fields: [enseignement_id], references: [id])
+  enseignement_id Int?
+  volume_horaire_tp Int?
+  volume_horaire_td Int?
+  volume_horaire_cm Int?
+  volume_horaire_pt Int?
+  volume_horaire_etudiant Int?
+  contextes_evaluations contexte_evaluation[]
+  credits_ects Int?
+  travail_personnel Int?
+  nb_etudiant_min Int?
+  nb_etudiant_max Int?
+  presentiel Int @default(0)
+  obligatoire Boolean @default(false)
+  est_ouvert_etudiants_internationaux Boolean @default(false)
+  
+  groupe_ec groupe_ec? @relation(fields: [groupe_ec_id], references: [id])
+  groupe_ec_id Int?
+  description String? @db.Text
+  commentaire String? @db.Text
+}
+
+model evaluation {
+  id        Int        @id @default(autoincrement())
+  libelle   String     @db.VarChar(255)
+  element_constitutif element_constitutif @relation(fields: [element_constitutif_id], references: [id])
+  element_constitutif_id Int @unique
+  type_evaluation type_evaluation @relation(fields: [type_evaluation_id], references: [id])
+  type_evaluation_id Int
+}
+
+model type_evaluation {
+  id        Int        @id @default(autoincrement())
+  libelle   String     @db.VarChar(255)
+  evaluations evaluation[]
+}
+
+model enseignement {
+  id        Int        @id @default(autoincrement())
+  libelle   String     @db.VarChar(255)
+  periode periodes? @relation(fields: [periode_id], references: [id])
+  periode_id Int?
+  formation formation  @relation(fields: [formation_id], references: [id])
+  formation_id Int
+  element_constitutif element_constitutif[]
+  type_enseignement type_enseignement? @relation(fields: [type_enseignement_id], references: [id])
+  type_enseignement_id Int?
+  est_evaluation_directe Boolean?
+  est_evaluation_indirecte Boolean?
+  apprentissages_critiques apprentissage_critique[]
+  tags tags[]
+  volume_horaire_tp Int?
+  volume_horaire_td Int?
+  volume_horaire_cm Int?
+  est_presentiel Boolean?
+  est_distanciel Boolean?
+  est_obligatoire Boolean?
+  est_optionnel Boolean?
+  mode_option_for_differentes_courses Boolean?
+  est_ouvert_etudiants_internationaux Boolean?
+  description String? @db.Text
+}
+
+model tags {
+  id Int @id @default(autoincrement())
+  libelle String @db.VarChar(255)
+  enseignement enseignement[]
+  parametre parametre[]
+  element_constitutif element_constitutif[]
+  deleted_at DateTime?
+}
+
+model periodes {
+  id        Int        @id @default(autoincrement())
+  libelle   String     @db.VarChar(255)
+  enseignements enseignement[]
+  version  version   @relation(fields: [version_id], references: [id])
+  version_id Int
+}
+
+model type_enseignement {
+  id        Int        @id @default(autoincrement())
+  libelle   String     @db.VarChar(255)
+  enseignements enseignement[]
+}
+
+model etiquette {
+  id        Int        @id @default(autoincrement())
+  libelle   String     @db.VarChar(255)
+  critere_exigence critere_exigence @relation(fields: [critere_exigence_id], references: [id])
+  critere_exigence_id Int
+}
+
+model bloc_de_competence {
+  id        Int        @id @default(autoincrement())
+  libelle   String     @db.VarChar(255)
+  description String? @db.Text
+  credits Int? @db.Integer
+  version version   @relation(fields: [version_id], references: [id])
+  version_id Int
+  parcours parcours[]
+  importation importation[]
+  est_mutualisable Boolean? @default(false)
+  importation_mutualisation_bcc version[] @relation("ImportationMutualisation") // à tester
+  importation_mutualisation element_constitutif[] @relation("ImportationMutualisation") // à tester
+  est_tronc_commun Boolean @default(true)
+
+  competences competence[]
+  apprentissage_critiques apprentissage_critique[]
+  element_constitutif element_constitutif[]
+  groupe_ec groupe_ec[]
+}
+
+model groupe_ec {
+  id        Int        @id @default(autoincrement())
+  libelle   String     @db.VarChar(255)
+  bloc_de_competence bloc_de_competence @relation(fields: [bloc_de_competence_id], references: [id])
+  bloc_de_competence_id Int
+  element_constitutif element_constitutif[]
+}
+
+model importation {
+  id        Int        @id @default(autoincrement())
+
+  bloc_de_competence bloc_de_competence @relation(fields: [bloc_de_competence_id], references: [id])
+  bloc_de_competence_id Int
+
+  element_constitutif element_constitutif @relation(fields: [element_constitutif_id], references: [id])
+  element_constitutif_id Int
+}
+
+model rncp {
+  id          Int          @id @default(autoincrement())
+  code        String       @db.VarChar(255)
+  libelle     String       @db.VarChar(255)
+  url         String       @db.VarChar(255)
+  competences competence[]
+}
+
+model rome4 {
+  id          Int          @id @default(autoincrement())
+  code        String       @db.VarChar(255)
+  libelle     String       @db.VarChar(255)
+  url         String       @db.VarChar(255)
+  competences competence[]
+}
+
+model version {
+  id           Int        @id @default(autoincrement())
+  libelle      String     @db.VarChar(255)
+  competences   competence[]
+  element_constitutifs element_constitutif[]
+  bloc_de_competences bloc_de_competence[]
+  importation_mutualisation_bcc bloc_de_competence[] @relation("ImportationMutualisation") // à tester
+  periodes periodes[]
+  rncp String? @db.VarChar(255)
+  rome4 String? @db.VarChar(255)
+  formation formation  @relation(fields: [formation_id], references: [id])
+  formation_id Int
+}
+
+model parcours {
+  id        Int        @id @default(autoincrement())
+  libelle   String     @db.VarChar(255)
+  description String?   @db.Text
+  formation formation  @relation(fields: [formation_id], references: [id])
+  formation_id Int
+  effectif_theorique Int? @db.Integer
+  bloc_de_competences bloc_de_competence[]
+}
+
+model formation {
+  id        Int        @id @default(autoincrement())
+  libelle   String     @db.VarChar(255)
+  duree    Int?       @db.Integer
+  duree_unite String?   @db.VarChar(255)
+  nb_credits Int?       @db.Integer
+  nb_heures_enseignement Int? @db.Integer
+  regime String?   @db.VarChar(255)
+  parcours  parcours[]
+  nombre_de_niveaux Int?
+  enseignements enseignement[]
+  composante composante @relation(fields: [composante_id], references: [id])
+  composante_id Int
+  version version[]
+  diplome  diplome?    @relation(fields: [diplome_id], references: [id])
+  diplome_id Int?
+  type_diplome type_diplome? @relation(fields: [type_diplome_id], references: [id])
+  type_diplome_id Int?
+  parametres parametre[]
+  created_at DateTime   @default(now())
+  created_by String?
+  updated_at DateTime?   @updatedAt
+  updated_by String?
+  deleted_at DateTime?
+  deleted_by String?
+}
+
+model diplome {
+  id        Int        @id @default(autoincrement())
+  libelle   String     @db.VarChar(255)
+  formations formation[]
+}
+
+model type_formation {
+  id        Int        @id @default(autoincrement())
+  libelle   String     @db.VarChar(255)
+}
+
+model composante {
+  id        Int        @id @default(autoincrement())
+  code      String?    @unique @db.VarChar(255)
+  libelle   String     @db.VarChar(255)
+  formations formation[]
+  parametre parametre? @relation(fields: [parametre_id], references: [id])
+  parametre_id Int?
+  etablissement etablissement @relation(fields: [etablissement_id], references: [id])
+  etablissement_id Int
+}
+
+model etablissement {
+  id        Int        @id @default(autoincrement())
+  code      String?    @unique @db.VarChar(255)
+  libelle   String     @db.VarChar(255)
+  parametre parametre? @relation(fields: [parametre_id], references: [id])
+  parametre_id Int?
+  composantes composante[]
+}
+
+model parametre {
+  id        Int        @id @default(autoincrement())
+  libelle   String     @db.VarChar(255)
+  description String?   @db.Text
+  duree_formation Int? @db.Integer
+  duree_formation_unite String? @db.VarChar(255)
+  semantique_competence String? @db.VarChar(100)
+  semantique_apprentissage String? @db.VarChar(100)
+  semantique_famille String? @db.VarChar(100)
+  semantique_critere String? @db.VarChar(100)
+  semantique_bcc String? @db.VarChar(100)
+  semantique_ue String? @db.VarChar(100)
+  semantique_ec String? @db.VarChar(100)
+  type_diplomes type_diplome[]
+  tags tags[]
+  formations formation[]
+  composantes composante[]
+  etablissements etablissement[]
+  deleted_at DateTime?
+}
+
+model type_diplome {
+  id        Int        @id @default(autoincrement())
+  libelle   String     @db.VarChar(255)
+  heures Int? @db.Integer
+  credits Int? @db.Integer
+  formations formation[]
+  parametres parametre[]
+  deleted_at DateTime?
+}
+
+model role {
+  id            Int     @id @default(autoincrement())
+  name          String  @unique
+  code          String  @db.VarChar(255)
+  privilege_links privilege_role_linker[]  
+  user_roles      role_user_linker[]           
+}
+
+model privilege {
+  id         Int        @id @default(autoincrement())
+  libelle    String     @db.VarChar(255)
+  code       String     @db.VarChar(255)
+  ordre      Int
+  categorie  categorie  @relation(fields: [categorie_id], references: [id])
+  categorie_id Int
+  role_links privilege_role_linker[]  
+}
+
+model categorie {
+  id         Int        @id @default(autoincrement())
+  libelle    String     @db.VarChar(255)
+  code       String     @db.VarChar(255)
+  ordre      Int
+  namespace  namespaces  @relation(fields: [namespace_id], references: [id])
+  namespace_id Int
+  privileges privilege[]  
+}
+
+model namespaces {
+  id        Int        @id @default(autoincrement())
+  libelle   String     @db.VarChar(255)
+
+  categories categorie[]  
+}
+
+model privilege_role_linker {
+  role_id       Int
+  role         role      @relation(fields: [role_id], references: [id])
+  privilege    privilege @relation(fields: [privilege_id], references: [id])
+  privilege_id  Int
+
+  @@id([role_id, privilege_id]) 
+}
+
+model role_user_linker {
+  id_user_keycloak  String @db.VarChar(255)
+  role            role   @relation(fields: [role_id], references: [id])
+  role_id          Int
+
+  @@id([id_user_keycloak, role_id])
+}
