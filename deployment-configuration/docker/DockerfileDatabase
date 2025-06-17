@@ -1,0 +1,53 @@
+FROM postgres:13.7
+
+RUN if [ -f ./proxy/.env_proxy ]; then \
+    # Si le fichier source existe, copiez-le
+    COPY ./proxy/.env_proxy /; \
+fi
+COPY ./proxy/proxy.sh /
+RUN chmod +x /proxy.sh
+
+RUN sh /proxy.sh
+
+ARG HTTP_PROXY_CI 
+ENV http_proxy=$HTTP_PROXY_CI
+ENV https_proxy=$HTTP_PROXY_CI
+ENV HTTP_PROXY=$HTTP_PROXY_CI
+ENV HTTPS_PROXY=$HTTP_PROXY_CI
+
+
+# Vérifiez si la variable d'environnement http_proxy est définie
+RUN if [ -n "$http_proxy" ]; then \
+    # Si elle est définie, exécutez les commandes pour configurer le proxy
+    touch /etc/apt/apt.conf.d/05proxy; \
+    echo 'Acquire::HTTP::Proxy "'$http_proxy'";' >> /etc/apt/apt.conf.d/05proxy; \
+    echo 'Acquire::HTTPS::Prox "'$http_proxy'";' >> /etc/apt/apt.conf.d/05proxy; \
+    echo 'Acquire::ftp::Proxy "'$http_proxy'";' >> /etc/apt/apt.conf.d/05proxy; \
+    echo "Proxy configuré dans le système de packages avec la valeur $http_proxy" && true; \
+fi
+
+RUN apt-get update
+RUN apt-get install -y python3-full python3-pip
+RUN apt-get install -y python3-boto3
+
+COPY ./timemachine/download-dump-database-s3.py /
+RUN chmod u+x /download-dump-database-s3.py
+
+RUN mkdir /initialization-scripts
+COPY ./database/initialization-scripts/ /initialization-scripts
+RUN chmod -R 777 /initialization-scripts
+RUN mkdir /ora-database-data
+RUN chmod -R 700 /ora-database-data
+COPY ./database/autoload-sql.sh /docker-entrypoint-initdb.d/
+RUN chmod u+x /docker-entrypoint-initdb.d/autoload-sql.sh
+
+RUN apt-get update && apt-get install -y unzip
+
+
+ENV HTTP_PROXY ""
+ENV HTTPS_PROXY ""
+ENV http_proxy ""
+ENV https_proxy ""
+RUN rm -f /etc/apt/apt.conf.d/05proxy
+
+EXPOSE 5432

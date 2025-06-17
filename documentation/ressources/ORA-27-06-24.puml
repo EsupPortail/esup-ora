@@ -1,0 +1,278 @@
+@startuml ORA
+
+hide circle
+' avoid problems with angled crows feet
+'skinparam linetype ortho
+skinparam nodesep 40
+skinparam ranksep 40
+left to right direction
+legend
+	Modèle Objet métier ['ORA]
+end legend
+
+entity Competence {
+  * id: Int
+  * libelle: String
+  * rncp: Rncp
+  * rncpId: Int
+  * rome4: Rome4
+  * rome4Id: Int
+  * critereExigence: CritereExigence[]
+  * versions: Version[]
+  * ApprentissageCritiques : ApprentissageCritique[]
+  * createdAt: DateTime
+  * updatedAt: DateTime
+  deletedAt: DateTime?
+}
+
+entity EnsembleApprentissageCritique {
+  * id: Int
+  * libelle: String
+  * apprentissageCritique: ApprentissageCritique[]
+}
+
+entity ApprentissageCritique {
+  * id: Int
+  * libelle: String
+  * ensembleApprentissageCritique: EnsembleApprentissageCritique
+  * ensembleApprentissageCritiqueId: Int
+  * blocDeCompetences: BlocDeCompetence[]
+  * niveaux: Niveau[]
+}
+
+entity Niveau {
+  * id: Int
+  * libelle: String
+  * apprentissageCritique: ApprentissageCritique
+  * apprentissageCritiqueId: Int
+}
+
+entity Periode {
+  * id: Int
+  * libelle: String
+}
+
+entity FamilleDeSituation {
+  * id: Int
+  * libelle: String
+  * Sae: Sae[]
+  * competence: Competence
+  * competenceId: Int
+}
+
+entity Sae {
+  * id: Int
+  * libelle: String
+  * familleDeSituation: FamilleDeSituation
+  * familleDeSituationId: Int
+  * elementConstitutifs: ElementConstitutif[]
+}
+
+entity ElementConstitutif {
+  * id: Int
+  * libelle: String
+  * blocDeCompetences: BlocDeCompetence[]
+  * evaluations: Evaluation[]
+  * saes: Sae[]
+  * enseignements: Enseignement[]
+  * portfolios: Portfolio[]
+}
+
+entity Evaluation {
+    * id: Int
+    * libelle: String
+    * elementConstitutif: ElementConstitutif
+    * elementConstitutifId: Int
+    * typeEvaluation: TypeEvaluation
+    * typeEvaluationId: Int
+}
+
+entity TypeEvaluation {
+    * id: Int
+    * libelle: String
+    * evaluations: Evaluation[]
+}
+
+entity CritereExigence {
+  * id: Int
+  * libelle: String
+  * competence: Competence
+  * competenceId: Int
+  * TypeCritereExigences: TypeCritereExigence[]
+  * etiquettes: Etiquette[]
+}
+
+entity TypeCritereExigence {
+  * id: Int
+  * libelle: String
+  * critereExigences: CritereExigence[]
+}
+
+entity Enseignement {
+  * id: Int
+  * libelle: String
+  * semestres: Semestre[]
+  * elementConstitutifs: ElementConstitutif[]
+  * typeEnseignement: TypeEnseignement
+  * typeEnseignementId: Int
+}
+
+entity Semestre {
+  * id: Int
+  * libelle: String
+  * enseignement: Enseignement
+  * enseignementId: Int
+}
+
+entity TypeEnseignement {
+  * id: Int
+  * libelle: String
+  * enseignements: Enseignement[]
+}
+
+entity Etiquette {
+  * id: Int
+  * libelle: String
+  * criteereExigence: CritereExigence
+  * critereExigenceId: Int
+}
+
+entity BlocDeCompetence {
+  * id: Int
+  * libelle: String
+  * elementConstitutifs: ElementConstitutif[]
+  * apprentissageCritiques: ApprentissageCritique[]
+}
+
+entity Rncp {
+  * id: Int
+  * code: String
+  * libelle: String
+  * url: String
+  * competences: Competence[]
+}
+
+entity Rome4 {
+  * id: Int
+  * code: String
+  * libelle: String
+  * url: String
+  * competences: Competence[]
+}
+
+entity Version {
+  * id: Int
+  * libelle: String
+  * competence: Competence
+  * competenceId: Int
+  * parcours: Parcours
+  * parcoursId: Int
+}
+
+entity Parcours {
+  * id: Int
+  * libelle: String
+  * versions: Version[]
+  * formation: Formation
+  * formationId: Int
+}
+
+entity Formation {
+  * id: Int
+  * libelle: String
+  * description: String
+  * parcours: Parcours[]
+  * composante: Composante
+  * composanteId: Int
+  * diplome: Diplome
+  * diplomeId: Int
+  * parametre: Parametre
+  * parametreId: Int
+}
+
+entity Parametre {
+  * id: Int
+  * libelle: String
+  * description: String
+  * Formations: Formation[]
+  * parametreElements: ParametreElement[]
+}
+
+entity ParametreElement {
+  * id: Int
+  * libelle: String
+  * value: String
+  * description: String
+  * parametres : Parametre[]
+}
+
+entity Diplome {
+  * id: Int
+  * libelle: String
+  * description: String
+  * heures: Int
+  * credits: Int
+  * formations: Formation[]
+}
+
+entity Composante {
+  * id: Int
+  * libelle: String
+  * formations: Formation[]
+}
+
+entity Portfolio {
+  * id: Int
+  * libelle: String
+  * ElementConstitutifs: ElementConstitutif[]
+}
+
+entity User {
+  * id: Int
+  * email: String
+  password: String?
+  name: String?
+  * role: Role
+  * roleId: Int
+}
+
+entity Role {
+  * id: Int
+  * name: String
+  * users: User[]
+}
+
+' Type Symbol
+' Zero or One |o--
+' Exactly One ||--
+' Zero or Many }o--
+' One or Many }|--
+
+Competence }|..|| Rncp
+Competence }|..|| Rome4
+Competence ||..|{ Version
+Competence ||..o{ ApprentissageCritique
+BlocDeCompetence }|..|| ElementConstitutif
+ElementConstitutif }|..|{ ApprentissageCritique
+EnsembleApprentissageCritique ||..|{ ApprentissageCritique
+ApprentissageCritique ||..|{ Niveau
+FamilleDeSituation }|..|| Sae
+BlocDeCompetence ||..|| Sae
+BlocDeCompetence ||..|| Evaluation
+BlocDeCompetence ||..|| Enseignement
+BlocDeCompetence ||..|| Portfolio
+Evaluation }|..|| TypeEvaluation
+Competence ||..|{ CritereExigence
+CritereExigence }|..|{ TypeCritereExigence
+Enseignement ||..|{ Semestre
+Enseignement }|..|| TypeEnseignement
+CritereExigence ||..|{ Etiquette
+Version }|..|| Parcours
+Parcours }|..|| Formation
+Formation }|..|| Composante
+Formation }|..|| Diplome
+Formation }|..|| Parametre
+Parametre }|..|{ ParametreElement
+User }|..|| Role
+
+@enduml

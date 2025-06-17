@@ -1,0 +1,210 @@
+FROM ubuntu:20.04
+
+ARG NODE_VERSION=20.14.0
+ENV NODE_VERSION=$NODE_VERSION
+
+RUN if [ -f ./deployment-configuration/proxy/.env_proxy ]; then \
+    COPY ./deployment-configuration/proxy/.env_proxy /; \
+fi
+COPY ./deployment-configuration/proxy/proxy.sh /
+RUN chmod +x /proxy.sh
+
+RUN sh /proxy.sh
+
+ARG HTTP_PROXY_CI 
+ENV http_proxy=$HTTP_PROXY_CI
+ENV https_proxy=$HTTP_PROXY_CI
+ENV HTTP_PROXY=$HTTP_PROXY_CI
+ENV HTTPS_PROXY=$HTTP_PROXY_CI
+
+
+# Vérifiez si la variable d'environnement http_proxy est définie
+RUN if [ -n "$http_proxy" ]; then \
+    # Si elle est définie, exécutez les commandes pour configurer le proxy
+    touch /etc/apt/apt.conf.d/05proxy; \
+    echo 'Acquire::HTTP::Proxy "'$http_proxy'";' >> /etc/apt/apt.conf.d/05proxy; \
+    echo 'Acquire::HTTPS::Prox "'$http_proxy'";' >> /etc/apt/apt.conf.d/05proxy; \
+    echo 'Acquire::ftp::Proxy "'$http_proxy'";' >> /etc/apt/apt.conf.d/05proxy; \
+    echo "Proxy configuré dans le système de packages avec la valeur $http_proxy" && true; \
+fi
+
+# Install Nodejs
+
+WORKDIR /opt
+RUN apt-get update && apt-get install -y \
+    curl \
+    gnupg2 \
+    tar \
+    xz-utils \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN curl -fsSL https://nodejs.org/dist/v$NODE_VERSION/node-v$NODE_VERSION-linux-x64.tar.xz -o node.tar.xz \
+    && tar -xJf /opt/node.tar.xz -C /usr/local --strip-components=1 --no-same-owner \
+    && rm node.tar.xz \
+    && ln -s /usr/local/bin/node /usr/bin/node \
+    && ln -s /usr/local/bin/npm /usr/bin/npm \
+    && ln -s /usr/local/bin/npx /usr/bin/npx
+
+# Configure & build app
+
+RUN mkdir /app
+WORKDIR /app
+COPY ./ora-backend/package.json ./
+RUN rm -f /app/package-lock.json
+
+RUN npm install
+COPY ./ora-backend/ ./
+
+COPY ./deployment-configuration/backend/generate-env.sh /
+RUN chmod u+x /generate-env.sh
+
+
+
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    apache2 apache2-bin libapache2-mod-fcgid
+
+COPY ./deployment-configuration/shibboleth/packages.sh /
+RUN chmod u+x /packages.sh
+RUN apt-get install -y expect
+
+RUN sh /packages.sh
+RUN apt-get install -y apache2
+RUN apt-get install -y libapache2-mod-shib2
+RUN apt-get install -y supervisor
+
+COPY ./deployment-configuration/service/conf-apache2/apache2-tmp.conf /etc/apache2/
+
+COPY ./deployment-configuration/service/template-000-default.conf /
+COPY ./deployment-configuration/service/template-default-ssl.conf /
+
+COPY ./deployment-configuration/service/run-conf-and-launch.sh /
+
+COPY ./deployment-configuration/service/ports.conf /etc/apache2/conf-available/
+RUN a2enconf ports
+
+
+###### Configuration Shibboleth
+
+### Configuration WayF
+
+#Php for wayf
+RUN apt-get install -y php7.4-fpm php7.4-common php7.4-xml php7.4-mbstring libapache2-mod-php
+
+RUN a2enmod proxy_fcgi setenvif rewrite ssl proxy proxy_http
+
+# Files for the configuration
+COPY ./deployment-configuration/shibboleth/wayf.conf /etc/apache2/conf-available/
+COPY ./deployment-configuration/shibboleth/shib.conf /etc/apache2/conf-available/
+COPY ./deployment-configuration/shibboleth/security.conf /etc/apache2/conf-available/
+
+RUN a2enmod proxy_wstunnel
+
+RUN a2enconf wayf
+RUN a2enconf shib
+RUN a2enconf security
+
+# Packages for switchwayf
+RUN apt-get install -y imagemagick
+RUN apt-get install -y python3 python3-pip
+RUN pip3 install lxml
+RUN apt-get install -y libxml2-utils
+RUN apt-get install -y unzip
+RUN apt-get install -y wget
+
+# Integration of switchwayf
+RUN mkdir -p /var/www/html/switchwayf
+COPY ./deployment-configuration/shibboleth/switchwayf /var/www/html/switchwayf
+RUN chmod -R go=u-w /var/www/html/switchwayf
+
+
+### Fin Configuration WayF
+
+### Configuration Shibboleth
+
+RUN mkdir -p /var/cache/shibboleth
+RUN chown -R www-data:www-data /var/cache/shibboleth
+RUN chmod -R 755 /var/cache/shibboleth
+
+RUN a2enmod shib
+
+
+### Fin Configuration Shibboleth
+
+###### FIn Configuration Shibboleth
+
+# Cron
+RUN apt-get install -y cron
+RUN touch /var/log/crontab.logs 
+RUN chown www-data:www-data /var/log/crontab.logs
+RUN chmod 644 /var/log/crontab.logs
+
+
+# Supervisor
+RUN apt-get install -y supervisor
+RUN apt-get install -y gettext-base
+RUN touch /var/log/supervisor/supervisord.log
+RUN chown www-data:www-data /var/log/supervisor/supervisord.log
+RUN chmod 644 /var/log/supervisor/supervisord.log
+
+COPY ./deployment-configuration/service/supervisord.conf /
+
+## Install libraries puppeteer for pdf generation
+RUN apt-get update && apt-get install -y \
+    libnss3 \
+    libxss1 \
+    libatk-bridge2.0-0 \
+    libatk1.0-0 \
+    libgtk-3-0 \
+    libdrm2 \
+    libgbm1 \
+    libasound2 \
+    libxshmfence1 \
+    libxcomposite1 \
+    libxrandr2 \
+    libxdamage1 \
+    libpango-1.0-0 \
+    libpangocairo-1.0-0 \
+    libcups2 \
+    libx11-xcb1 \
+    --no-install-recommends && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+
+
+RUN mkdir -p /var/run/supervisor/
+RUN chmod -R 777 /var/run/supervisor/
+RUN touch /var/run/supervisor/supervisor.sock
+RUN chown -R root:root /var/run/supervisor/supervisor.sock
+RUN chmod -R 777 /var/run/supervisor/supervisor.sock
+
+
+WORKDIR /
+
+
+RUN a2enmod rewrite actions proxy proxy_fcgi setenvif
+
+RUN a2ensite 000-default
+RUN a2ensite default-ssl
+
+
+RUN chmod -R 777 /var/log/
+RUN chmod -R 777 /etc/apache2/
+
+# Launch script 
+COPY ./deployment-configuration/service/run-conf-and-launch.sh /
+RUN chown www-data:www-data /run-conf-and-launch.sh
+RUN chmod u+x /run-conf-and-launch.sh
+
+
+ENV HTTP_PROXY ""
+ENV HTTPS_PROXY ""
+ENV http_proxy ""
+ENV https_proxy ""
+RUN rm -f /etc/apt/apt.conf.d/05proxy
+
+USER root
+
+EXPOSE 80
+EXPOSE 443

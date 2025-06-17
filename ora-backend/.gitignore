@@ -1,0 +1,7 @@
+node_modules/
+.env
+logs/*
+package-lock.json
+dist/
+packed-project/
+src/models/migrations/

@@ -1,0 +1,58 @@
+{
+  "realm": "RealmORA",
+  "enabled": true,
+  "roles": {
+    "realm": [
+      {
+        "name": "observateur",
+        "description": "Observateur, lecture seule",
+        "clientRole": false,
+        "composite": false,
+        "attributes": {
+          "display_name": ["Observateur"],
+          "ora-roles": ["true"]
+        }
+      },
+      {
+        "name": "enseignant",
+        "description": "Rôle associé à un enseignant pour définir son offre de formation",
+        "clientRole": false,
+        "composite": false,
+        "attributes": {
+          "display_name": ["Enseignant"],
+          "ora-roles": ["true"]
+        }
+      },
+      {
+        "name": "ingenieur_pedagogique",
+        "description": "Équivalent à administrateur fonctionnel",
+        "clientRole": false,
+        "composite": false,
+        "attributes": {
+          "display_name": ["Ingénieur pédagogique"],
+          "ora-roles": ["true"]
+        }
+      },
+      {
+        "name": "administrateur_fonctionnel",
+        "description": "Entre l'ingénieur pédagogique et l'administrateur technique.",
+        "clientRole": false,
+        "composite": false,
+        "attributes": {
+          "display_name": ["Administrateur fonctionnel"],
+          "ora-roles": ["true"]
+        }
+      },
+      {
+        "name": "administrateur_technique",
+        "description": "Tous les droits sur l'application",
+        "clientRole": false,
+        "composite": false,
+        "attributes": {
+          "display_name": ["Administrateur technique"],
+          "ora-roles": ["true"]
+        }
+      }
+    ]
+  }
+}

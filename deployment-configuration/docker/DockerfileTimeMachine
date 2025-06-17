@@ -1,0 +1,63 @@
+FROM debian:bookworm-20240311
+
+RUN if [ -f ./deployment-configuration/proxy/.env_proxy ]; then \
+    # Si le fichier source existe, copiez-le
+    COPY ./deployment-configuration/proxy/.env_proxy /; \
+fi
+COPY ./deployment-configuration/proxy/proxy.sh /
+RUN chmod +x /proxy.sh
+
+RUN sh /proxy.sh
+
+ARG HTTP_PROXY_CI 
+ENV http_proxy=$HTTP_PROXY_CI
+ENV https_proxy=$HTTP_PROXY_CI
+ENV HTTP_PROXY=$HTTP_PROXY_CI
+ENV HTTPS_PROXY=$HTTP_PROXY_CI
+
+
+# Vérifiez si la variable d'environnement http_proxy est définie
+RUN if [ -n "$http_proxy" ]; then \
+    # Si elle est définie, exécutez les commandes pour configurer le proxy
+    touch /etc/apt/apt.conf.d/05proxy; \
+    echo 'Acquire::HTTP::Proxy "'$http_proxy'";' >> /etc/apt/apt.conf.d/05proxy; \
+    echo 'Acquire::HTTPS::Prox "'$http_proxy'";' >> /etc/apt/apt.conf.d/05proxy; \
+    echo 'Acquire::ftp::Proxy "'$http_proxy'";' >> /etc/apt/apt.conf.d/05proxy; \
+    echo "Proxy configuré dans le système de packages avec la valeur $http_proxy" && true; \
+fi
+
+
+RUN mkdir /timemachine
+RUN chmod 755 /timemachine
+
+RUN apt-get update && apt-get install -y cron postgresql-client
+
+RUN apt-get install -y python3-full python3-pip
+RUN apt-get install -y python3-boto3
+
+ADD ./deployment-configuration/timemachine/timemachine.sh /
+ADD ./deployment-configuration/timemachine/upload-dump-database-s3.py /
+RUN chmod u+x /upload-dump-database-s3.py
+
+RUN chmod +x /timemachine.sh
+
+
+RUN apt-get update
+RUN apt-get install -y curl
+RUN curl https://dl.min.io/client/mc/release/linux-arm64/mc \
+  --create-dirs \
+  -o ~/minio-binaries/mc
+RUN apt-get install -y s3cmd
+
+# Toutes les 6 heures
+# RUN echo "0 */6 * * * /etc/cron.daily/timemachine.sh" > /etc/crontab
+
+RUN echo "0 */3 * * * root . /etc/environment; /bin/bash /timemachine.sh >> /var/log/crontab.logs" > /etc/crontab
+
+ENV HTTP_PROXY ""
+ENV HTTPS_PROXY ""
+ENV http_proxy ""
+ENV https_proxy ""
+RUN rm -f /etc/apt/apt.conf.d/05proxy
+
+CMD ["cron", "-f"]

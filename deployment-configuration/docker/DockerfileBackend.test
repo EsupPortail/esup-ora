@@ -1,0 +1,11 @@
+FROM ora-apc-ora_backend
+
+ENV NODE_ENV=dev
+
+COPY tests tests
+
+RUN npm update && \
+    npm install -D supertest \
+    npm install -g mocha
+
+CMD ["mocha", "tests/", "--recursive", "--reporter", "spec"]

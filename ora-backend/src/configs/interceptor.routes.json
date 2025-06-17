@@ -1,0 +1,14 @@
+{
+    "routes": [        
+        "/wayf",
+        "/Shibboleth.sso",
+        "/authentication-return",
+        "/src/",
+        "/node_modules/",
+        "/@id/",
+        "/@vite/",
+        "/login",
+        "/home",
+        "/favicon.ico"
+    ]
+}
