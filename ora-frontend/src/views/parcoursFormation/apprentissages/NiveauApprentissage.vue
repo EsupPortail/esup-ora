@@ -3,22 +3,9 @@
     <v-card-title style="text-align: center">
       <v-row>
         <v-col>
-          <h3 v-if="!enableEditLibelle">{{ refNiveau?.libelle ?? 'Débutant' }}</h3>
-          <v-text-field
-            v-else
-            v-model="refNiveau.libelle"
-            @keyup.enter="updateNiveauLibelle"
-            variant="outlined"
-            density="compact"
-          ></v-text-field>
+          <h3>{{ refNiveau?.libelle ?? 'Débutant' }}</h3>
         </v-col>
         <v-col cols="2">
-          <v-btn
-            size="x-small"
-            :icon="enableEditLibelle ? 'mdi-check' : 'mdi-pencil'"
-            :color="enableEditLibelle ? 'success' : ''"
-            @click="enableEditLibelle ? updateNiveauLibelle() : (enableEditLibelle = true)"
-          ></v-btn>
         </v-col>
       </v-row>
       <v-row>
@@ -38,6 +25,8 @@
           <v-text-field
             v-else
             v-model="refNiveau.description"
+            label="Description niveau"
+            placeholder="Saisir la description du niveau"
             @keyup.enter="updateNiveauDescription"
             variant="outlined"
             density="compact"
@@ -54,13 +43,33 @@
           ></v-btn>
         </v-col>
       </v-row>
+      <v-row class="align-center" style="margin-top: 16px;">
+        <v-col cols="2">
+          <span style="color: #707070; font-size: 15px;">Parcours</span>
+        </v-col>
+        <v-col>
+            <v-select
+            v-model="selectedParcoursIds"
+            :items="refParcours"
+            item-title="libelle"
+            item-value="id"
+            label="Sélectionner des parcours"
+            multiple
+            @update:menu="updateNiveau"
+            chips
+            clearable
+            variant="outlined"
+            density="compact"
+            ></v-select>
+        </v-col>
+      </v-row>
     </v-card-title>
     <v-card-text>
       <v-data-table :items="refNiveau.apprentissage_critique" :headers="headers" hide-default-footer>
         <template v-slot:body>
           <tr
             v-for="(n, index) in nLines"
-            style="padding-top: 10px; padding-bottom: 10px"
+            style="padding-top: 10px; padding-bottom: 10px; height: 80px !important; "
             :key="n"
             :class="{ dragging: isDragging && draggedItemIndex === n }"
             draggable="true"
@@ -101,12 +110,13 @@
           </tr>
         </template>
       </v-data-table>
-      <v-row>
+      <v-row style="margin-top: 6px;">
         <v-col style="text-align: center">
           <v-text-field
             class="mt-1"
             v-model="apprentissageLibelleToAdd"
             variant="outlined"
+            label="Ajouter un apprentissage"
             density="compact"
             @keyup.enter="addApprentissage"
           ></v-text-field>
@@ -120,9 +130,14 @@
 </template>
 
 <script setup>
-import { ref, defineProps, nextTick, watch, onMounted, onBeforeMount } from 'vue'
+import { ref, defineProps, nextTick, watch, onMounted, onBeforeMount, computed } from 'vue'
 import { useApprentissageStore } from '@/stores/apprentissageStore'
+import { useFormationStore } from '@/stores/formationStore';
+import { useParcoursStore } from '@/stores/parcoursStore';
+import { data } from '@/mocks/data';
 const apprentissageStore = useApprentissageStore();
+const formationStore = useFormationStore();
+const parcoursStore = useParcoursStore();
 
 const headers = ref([
   { text: 'Nom', value: 'name' },
@@ -138,16 +153,26 @@ const props = defineProps({
   nLinesHandler: Function
 })
 
+const refParcours = ref([...formationStore.formationSelected.parcours])
 const refNiveau = ref(null)
 const init = async () => {
   await apprentissageStore.fetchNiveauById( props.niveau.id ).then(d => {
     refNiveau.value = d;
   })
+  console.log( refNiveau.value );
 }
 onBeforeMount( async () => {
   await init()
 });
 
+const selectedParcoursIds = computed({
+  get() {
+    return refNiveau.value.parcours.map(p => p.id)
+  },
+  set(ids) {
+    refNiveau.value.parcours = ids.map(id => ({ id }))
+  }
+})
 const enableEditLibelle = ref(false)
 const updateNiveauLibelle = async () => {
   if( refNiveau.value === null ) {
@@ -284,6 +309,38 @@ const deleteItem = async (ordre) => {
 
 }
 
+const updateNiveau = async (open) => {
+  if( !refNiveau.value ) {
+    return
+  }
+
+  if( open ) {
+    return;
+  }
+
+  const niveau = refNiveau.value;
+  console.log(refNiveau.value);
+  let parcours = [];
+  await apprentissageStore.fetchNiveauById(refNiveau.value.id).then((data) => {
+    console.log(data)
+    parcours = data.parcours.map(p => { return { id: p.id } });
+
+  });
+  console.log(parcours);
+  const parcoursToConnect = refNiveau.value.parcours.map(p => { return { id: p.id } });
+  const parcoursToDisconnect = parcours.filter(p1 =>
+    !parcoursToConnect.some(p2 => p2.id === p1.id)
+  );
+
+  await apprentissageStore.updateNiveau({
+    id: niveau.id,
+    libelle: niveau.libelle,
+    description: niveau.description,
+    parcoursToConnect: parcoursToConnect,
+    parcoursToDisconnect: parcoursToDisconnect
+  });
+}
+
 watch(
   () => apprentissageStore.apprentissages,
   async (newVal, oldVal) => {
@@ -294,6 +351,8 @@ watch(
   },
   { deep: true }
 );
+
+
 
 </script>
 

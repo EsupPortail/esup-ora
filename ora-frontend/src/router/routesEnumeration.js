@@ -28,13 +28,15 @@ import ParcoursVersion from '@/views/parcoursFormation/ParcoursVersion.vue';
 import ParcoursGlobalData from '@/views/parcoursFormation/ParcoursGlobalData.vue';
 import ParcoursCompetences from '@/views/parcoursFormation/ParcoursCompetences.vue';
 import ParcoursApprentissagesCritiques from '@/views/parcoursFormation/ParcoursApprentissagesCritiques.vue';
-import ParcoursElementsConstitutifs from '@/views/parcoursFormation/ParcoursElementsConstitutifs.vue';
+import ParcoursElementsConstitutifs from '@/views/parcoursFormation/ParcoursElementsConstitutifsNew.vue';
 import path from 'path';
 import TagView from '@/views/Backoffice/TagView.vue';
 import TypeDiplomeView from '@/views/Backoffice/TypeDiplomeView.vue';
 import ConfEquivalentTD from '@/views/Backoffice/ConfEquivalentTD.vue'
 import ExportScreen from '@/views/ExportScreen.vue';
-
+import BCC from '@/views/bcc/BCC.vue';
+import ParcoursElementsConstitutifsNew from '@/views/parcoursFormation/ParcoursElementsConstitutifsNew.vue';
+import ParcoursMaquette from '@/views/parcoursFormation/ParcoursMaquette.vue';
 // Énumération des routes de l'app
 export const paths = {
     root: "/home",
@@ -87,6 +89,14 @@ export const paths = {
 
 // Cet élément permet de linker une route à une vue
 export const routes = [
+    {
+        path: '/',
+        redirect: paths.root,
+        meta: {
+            isProtectedRoute: false,
+            titlePage: 'Redirection vers la page d\'accueil'
+        }
+    },
     {
         name: 'Home',
         path: paths.root,
@@ -166,26 +176,30 @@ export const routes = [
         component: ParcoursCompetences,
         meta: {
             ariane: {
+                icon: "mdi-bullseye",
                 code: 'competence',
                 label: 'Compétences',
                 param: 'idVersion',
                 order: 2
             },
             isProtectedRoute: false,
+            showAriane: true,
             titlePage: 'Compétences du parcours'
         }
     },
     {
         name: "elementsConstitutifsParcours",
         path: paths.elementsConstitutifsParcours,
-        component: ParcoursElementsConstitutifs,
+        component: ParcoursElementsConstitutifsNew,
         meta: {
             ariane: {
+                icon: "mdi-school-outline",
                 code: 'elementsConstitutifs',
                 label: 'Éléments constitutifs',
                 order: 4
             },
             isProtectedRoute: false,
+            showAriane: true,
             titlePage: 'Éléments constitutifs du parcours'
         }
     },
@@ -195,11 +209,13 @@ export const routes = [
         component: ParcoursApprentissagesCritiques,
         meta: {
             ariane: {
+                icon: "mdi-book-open-variant-outline",
                 code: 'apprentissageCritiques',
                 label: 'Apprentissages',
                 order: 3
             },
             isProtectedRoute: false,
+            showAriane: true,
             titlePage: 'Apprentissages critiques du parcours'
         }
     },
@@ -209,11 +225,13 @@ export const routes = [
         component: ParcoursGlobalData,
         meta: {
             ariane: {
+                icon: "mdi-sigma",
                 code: 'donnees',
-                label: 'Données globales',
+                label: 'Tableau de bord',
                 order: 6
             },
             isProtectedRoute: false,
+            showAriane: true,
             titlePage: 'Données globales du parcours'
         }
     },
@@ -224,11 +242,13 @@ export const routes = [
 
         meta: {
             ariane: {
+                icon: "mdi-file-document-multiple-outline",
                 code: 'versions',
                 label: 'Versions',
                 order: 1,
                 param: 'idFormation'
             },
+            showAriane: true,
             isProtectedRoute: false,
             titlePage: 'Liste des versions par parcours pour cette formation'
         }
@@ -282,14 +302,16 @@ export const routes = [
     {
         name: 'blocDeCompetences',
         path: paths.blocDeCompetences,
-        component: RecapitulatifBCC,
+        component: ParcoursMaquette,
         meta: {
             ariane: {
+                icon: "mdi-chart-box-outline",
                 code: 'maquette',
                 label: 'Maquette',
                 order: 5
             },
             isProtectedRoute: false,
+            showAriane: true,
             titlePage: 'Blocs de connaissances et de compétences'
         }
     },

@@ -1,9 +1,6 @@
 <template>
     <v-row>
-        <ArianeParcoursPath />
-    </v-row>
-    <v-row >
-        <v-col cols="8">
+        <v-col cols="12">
             <v-card class="formation-creation">
                 <v-form>
                     <v-row>
@@ -28,11 +25,6 @@
                     </v-row>
                 </v-form>
             </v-card>
-        </v-col>
-        <v-col cols="4">
-            <InformationBubble>
-                <p>Ici vous pouvez créer autant de versions que vous souhaitez pour façonner un des parcours de votre formation !</p>
-            </InformationBubble>
         </v-col>
     </v-row>
 </template>

@@ -1,74 +1,66 @@
 <template>
   <v-card class="">
-    <v-row style="margin-top: 10px; padding-left: 16px;">
-      <v-col cols="6">
-        <h4 style="font-weight: bold">Ajouter des enseignements</h4>
-      </v-col>
-      <v-col cols="4">
-        <h4 style="font-weight: bold; text-align: center;">Types d'évaluation</h4>
-      </v-col>
-      <v-col cols="2">
-        <h4 style="font-weight: bold;">Actions</h4>
-      </v-col>
-    </v-row>
-    <v-row style="margin-top: 0px">
-      <v-col cols="6">
-        <h4 style="padding-left: 16px;">{{ props.periode.libelle }}</h4>
-      </v-col>
-      <v-col cols="2" style="text-align: center;">
-        <h4>Isolé</h4>
-      </v-col>
-      <v-col cols="2" style="text-align: center;">
-        <h4>Associé</h4>
-      </v-col>
-      <v-col cols="2" style="text-align: center;">
-      </v-col>
-    </v-row>
+    <v-card-title style="text-align: center">
+      <span>
+        <v-icon left>mdi-calendar-blank-outline</v-icon>
+        {{ props.periode.libelle }}
+      </span>
+    </v-card-title>
     <v-card-text>
       <v-row
         align="center"
         v-for="(enseignement, index) in enseignementsList"
         :key="index"
-        style="height: 40px; margin-bottom: 10px; margin-top: 10px;"
+        style="height: 40px; margin-bottom: 10px; margin-top: 10px"
         class="d-flex align-center"
       >
-        <v-col cols="6" style="padding-top: 0px; padding-bottom: 0px; height: 40px;">
+        <v-col cols="6" style="padding-top: 0px; padding-bottom: 0px; height: 40px">
           <span v-if="idOfEnseignementLibelleIsEdited !== enseignement.id">
             {{ enseignement.libelle }}
           </span>
           <v-text-field
             v-else
-            @blur="() =>updateLibelleOfEnseignement(enseignement)"
-             @keyup.enter="updateLibelleOfEnseignement(enseignement)"
+            @blur="() => updateLibelleOfEnseignement(enseignement)"
+            @keyup.enter="updateLibelleOfEnseignement(enseignement)"
             v-model="enseignementLibelleEdited"
             variant="outlined"
-            density="compact" />
-        </v-col>
-        <v-col cols="2" style="padding-top: 0px; padding-bottom: 0px; height: 40px; display: flex; align-items: center; justify-content: center;">
-          <v-checkbox
             density="compact"
-            v-model="enseignement.est_evaluation_directe"
-            @click="handleCheckboxClick('direct', enseignement)"
           />
         </v-col>
-        <v-col cols="2" style="padding-top: 0px; padding-bottom: 0px; height: 40px;  display: flex; align-items: center; justify-content: center;">
-          <v-checkbox
-            density="compact"
-            v-model="enseignement.est_evaluation_indirecte"
-            @click="handleCheckboxClick('indirect', enseignement)"
-          />
-        </v-col>
-        <v-col cols="2" style="padding-top: 0px; padding-bottom: 0px; height: 40px;  display: flex; align-items: center; justify-content: center;">
-          <v-btn icon="mdi-pencil" size="x-small" @click="startEditLibelleOfEnseignement(enseignement)"> </v-btn>
-          <v-btn style="margin-left: 8px;" icon="mdi-delete" size="x-small" @click="deleteEnseignement(enseignement)"> </v-btn>
+        <v-col
+          cols="2"
+          offset="4"
+          style="
+            padding-top: 0px;
+            padding-bottom: 0px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+          "
+        >
+          <v-btn
+            icon="mdi-pencil"
+            size="x-small"
+            @click="startEditLibelleOfEnseignement(enseignement)"
+          >
+          </v-btn>
+          <v-btn
+            style="margin-left: 8px"
+            icon="mdi-delete"
+            size="x-small"
+            @click="deleteEnseignement(enseignement)"
+          >
+          </v-btn>
         </v-col>
         <v-divider />
       </v-row>
-      <v-row style="margin-top: 10px;">
+      <v-row style="margin-top: 10px">
         <v-col style="text-align: center">
           <v-text-field
             class="mt-1"
             v-model="enseignementLibelleToAdd"
+            label="Ajouter un enseignement"
             variant="outlined"
             density="compact"
             @keyup.enter="addEnseignement"
@@ -85,7 +77,6 @@
 <script setup>
 import { defineProps, computed, ref, watch } from 'vue'
 
-
 import { useEnseignementStore } from '@/stores/enseignementStore'
 import { usePeriodeStore } from '@/stores/periodeStore'
 import { useFormationStore } from '@/stores/formationStore'
@@ -93,7 +84,7 @@ import { useFormationStore } from '@/stores/formationStore'
 const props = defineProps({
   periode: Object,
   version: Object,
-  parcours: Object,
+  parcours: Object
 })
 const emit = defineEmits(['refresh-enseignements'])
 
@@ -104,6 +95,7 @@ const enseignementsStore = useEnseignementStore()
 const enseignementsList = ref([])
 const formationStore = useFormationStore()
 // Get enseignements of parcours with version
+
 const fetchEnseignements = () => {
   // console.log('fetchEnseignements', props.periode)
   enseignementsStore.fetchEnseignementsOfVersion(props.periode.id).then((d) => {
@@ -136,17 +128,17 @@ const handleCheckboxClick = async (type, enseignement) => {
 
 const enseignementLibelleEdited = ref('')
 const updateLibelleOfEnseignement = (enseignement) => {
-  idOfEnseignementLibelleIsEdited.value = null;
+  idOfEnseignementLibelleIsEdited.value = null
   const enseignementUpdated = { ...enseignement, libelle: enseignementLibelleEdited.value }
-  enseignementsStore.updateEnseignement(enseignementUpdated);
-  fetchEnseignements();
+  enseignementsStore.updateEnseignement(enseignementUpdated)
+  fetchEnseignements()
   emit('refresh-enseignements')
 }
 const startEditLibelleOfEnseignement = (enseignement) => {
-  idOfEnseignementLibelleIsEdited.value = enseignement.id;
-  enseignementLibelleEdited.value = enseignement.libelle;
+  idOfEnseignementLibelleIsEdited.value = enseignement.id
+  enseignementLibelleEdited.value = enseignement.libelle
 }
-const idOfEnseignementLibelleIsEdited = ref(null);
+const idOfEnseignementLibelleIsEdited = ref(null)
 const deleteEnseignement = async (enseignement) => {
   // console.log(enseignement)
   await enseignementsStore.removeEnseignement(enseignement)
@@ -155,9 +147,12 @@ const deleteEnseignement = async (enseignement) => {
 }
 
 // watch if periode change
-watch(() => props.periode, () => {
-  fetchEnseignements()
-})
+watch(
+  () => props.periode,
+  () => {
+    fetchEnseignements()
+  }
+)
 // watch(() => enseignementsStore.enseignements, () => {
 //   fetchEnseignements()
 // })

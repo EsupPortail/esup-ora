@@ -1,30 +1,5 @@
 <template>
   <v-row>
-    <ArianeParcoursPath />
-  </v-row>
-  <v-row>
-        <v-col offset="11" cols="1">
-            <UsersConnectedInfo />
-        </v-col>
-    </v-row>
-
-  <v-row>
-    <InformationBubble>
-      <p>
-        Indiquez les éléments constitutifs pour votre version de formation, ajoutez des
-        enseignements, proposez un type d'évalution et passez à la suite !
-      </p>
-    </InformationBubble>
-  </v-row>
-  <v-row>
-    <v-col cols="8">
-      <h1>{{ parametre.semantique_ec || "Éléments Constitutifs" }}</h1>
-    </v-col>
-    <v-col cols="4" justify="end">
-      <v-btn @click="nextStep" color="primary">Etape suivante</v-btn>
-    </v-col>
-  </v-row>
-  <v-row>
     <v-col cols="4">
       <v-select
         v-model="periodeSelected"
@@ -91,7 +66,7 @@
 </template>
 
 <script setup>
-import { ref, nextTick } from 'vue'
+import { ref, watch, nextTick } from 'vue'
 import router from '@/router/router'
 
 import UsersConnectedInfo from '@/components/UsersConnectedInfo.vue';

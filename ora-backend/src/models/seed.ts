@@ -203,6 +203,7 @@ async function main() {
   const competenceDevAppli = await prisma.competence.create({
     data: {
       libelle: "Réaliser un développement d'application",
+      color_hexadecimal: '#B2C453',
       version: {
         connect: { id: version10.id },
       },
@@ -300,6 +301,7 @@ async function main() {
   const competenceOptiAppli = await prisma.competence.create({
     data: {
       libelle: "Optimiser des applications informatiques",
+      color_hexadecimal: '#287A8F',
       version: {
         connect: { id: version10.id },
       },
@@ -375,6 +377,7 @@ async function main() {
   const competenceAdministrerSystemes = await prisma.competence.create({
     data: {
       libelle: "Administrer des systèmes informatiques communicants",
+      color_hexadecimal: '#A5A0A0',
       version: {
         connect: { id: version10.id },
       },
