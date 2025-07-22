@@ -18,8 +18,10 @@ export const useSocketStore = defineStore('socket', {
   getters: {},
   actions: {
     async connect(formationId: string, firstname: string, lastName: string) {
-      //   const socketUrl = `ws://${config.backend.socket}`
-      this.socket = io(config.backend.protocole + '://' + config.backend.socket, {
+      const protocol = location.protocol === 'https:' ? 'wss' : 'ws'
+      const socketUrl = `${protocol}://${config.backend.socket}`
+
+      this.socket = io(socketUrl, {
         path: config.backend.pathSocket + '/',
         transports: ['websocket']
       })

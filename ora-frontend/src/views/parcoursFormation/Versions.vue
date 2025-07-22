@@ -1,12 +1,9 @@
 <template>
-  <v-row>
-    <ArianeParcoursPath />
+  <v-row style="margin-top: 12px; margin-bottom: 12px">
+    <h2>Les versions de la formation : {{ formation?.libelle }}</h2>
   </v-row>
   <v-row>
-    <h2 style="margin-left: 16px;">Les versions de la formation : {{ formation?.libelle }}</h2>
-  </v-row>
-  <v-row>
-    <v-col cols="8">
+    <v-col cols="12">
       <v-card class="formation-creation">
         <v-row>
           <v-col class="d-flex align-center">
@@ -51,14 +48,6 @@
         </v-row>
       </v-card>
     </v-col>
-    <v-col cols="4">
-      <InformationBubble>
-        <p>
-          Ici vous pouvez créer autant de versions que vous souhaitez pour façonner un des parcours
-          de votre formation !
-        </p>
-      </InformationBubble>
-    </v-col>
   </v-row>
 </template>
 
@@ -92,7 +81,8 @@ const newVersion = ref('')
 
 const fetchingFormation = async () => {
   formation.value = await formationStore.fetchOneFormationFromId(
-    router.currentRoute.value.params.idFormation
+    formationStore.formationSelected.id
+
   )
   versionList.value = formation.value.version
 }

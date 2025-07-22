@@ -11,6 +11,9 @@ import vueJsx from '@vitejs/plugin-vue-jsx'
 // https://vitejs.dev/config/
 export default defineConfig({
   base: '/',
+  server: {
+    allowedHosts: ['ora-frontend']
+  },
   build: {
     chunkSizeWarningLimit: 1000, //1Mo,
     minify: false
@@ -26,14 +29,13 @@ export default defineConfig({
       '@': fileURLToPath(new URL('./src', import.meta.url)),
     }
   },
-  css: {
-    preprocessorOptions: {
-      scss: {
-        sassOptions: {
-          indentedSyntax: false,
-          // Si vous utilisez la syntaxe indentée (.sass) plutôt que SCSS (.scss), réglez cette option sur true
-        }
-      }
+css: {
+  preprocessorOptions: {
+    scss: {
+      // ici tu peux mettre des variables globales, des includePaths, etc.
+      // Vite ne prend pas en charge "sassOptions", donc on retire ça
+      additionalData: '', // facultatif
     }
+  }
   }
 })

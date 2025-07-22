@@ -1,19 +1,30 @@
 <template>
+  <v-row style="margin-top: 12px;">
+    <v-col cols="3">
+      <h2>
+        <v-icon style="vertical-align: middle; margin-right: 8px;">mdi-home-outline</v-icon>
+        Accueil
+      </h2>
+    </v-col>
+    <v-col cols="9" class="d-flex justify-end">
+      <span style="color: #878787; font-size: 20px;">Un outil d'aide à la conception d'une offre de formation en approche par compétences</span>
+    </v-col>
+  </v-row>
   <v-row>
-    <v-col cols="8">
+    <v-col cols="12">
       <v-card>
         <v-card-title>
-          <h2>Liste des formations</h2>
+          <h3 style="color: #12255B; font-weight: normal;">Liste des formations</h3>
         </v-card-title>
         <v-card-text>
-          <v-table>
+          <v-table style="color: #878787" class="formation-table">
             <thead>
               <tr>
                 <th>Composante</th>
                 <th>Formation</th>
                 <th>Version</th>
-                <th>Parcours</th>
-                <th>Actions</th>
+                <th style="text-align: center">Parcours</th>
+                <th style="text-align: center">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -35,7 +46,7 @@
                   </v-chip-group>
                 </td>
                 <td>
-                  <v-table>
+                  <v-table class="parcours-table" style="color: #878787">
                     <tbody>
                       <tr v-for="parcours in formation.parcours" :key="parcours.id">
                         <td>{{ parcours.libelle }}</td>
@@ -43,10 +54,15 @@
                     </tbody>
                   </v-table>
                 </td>
-                <td>
+                <td style="vertical-align: middle; text-align: center;">
                   <v-menu>
                     <template v-slot:activator="{ props }">
-                      <v-btn icon="mdi-dots-vertical" variant="text" v-bind="props"></v-btn>
+                      <v-btn
+                        style="color: #000000"
+                        icon="mdi-dots-vertical"
+                        variant="text"
+                        v-bind="props"
+                      ></v-btn>
                     </template>
 
                     <v-list>
@@ -94,9 +110,21 @@
                       </v-dialog>
                     </v-list>
                   </v-menu>
+                    <v-chip
+                    class="ma-2"
+                    :style="{
+                      backgroundColor: formation.state === 'Terminé' ? '#E2F1B8' : '#B8C2F1',
+                      borderRadius: '12px',
+                      cursor: 'pointer',
+                      opacity: 1
+                    }"
+                    >
+                    <span style="color: black">{{ formation.state }}</span>
+                    </v-chip>
                   <v-btn
                     icon="mdi-arrow-right-circle"
                     variant="text"
+                    style="color: #000000"
                     @click="toFormation(formation)"
                   ></v-btn>
                 </td>
@@ -113,6 +141,7 @@
             @click="toggleFormationCard"
             :color="showFormationCard ? 'error' : 'success'"
             :text="showFormationCard ? 'Annuler' : 'Ajouter une formation'"
+            :prepend-icon="showFormationCard ? '' : 'mdi-plus'"
           >
           </v-btn>
         </v-card-text>
@@ -121,7 +150,8 @@
         <v-card style="margin-top: 12px" v-show="showFormationCard" class="formation-creation">
           <h3>Création d'une nouvelle formation</h3>
           <v-form>
-            <v-divider class="dividerForm" />
+            <div class="dividerForm" style="border-top: 1px dashed #707070" />
+
             <v-row class="uniformRow">
               <v-col cols="4" class="d-flex align-center">
                 <span>Saisir le nom de la formation</span>
@@ -171,7 +201,7 @@
                 ></v-select>
               </v-col>
             </v-row>
-            <v-divider style="margin-top: 22px" class="dividerForm" />
+            <div class="dividerForm" style="border-top: 1px dashed #707070; margin-top: 22px" />
             <v-row style="padding-top: 10px; margin-top: 20px">
               <v-col cols="2" style="flex: 0 0 0 0 !important">
                 <span>Saisir le(s) parcours :</span>
@@ -214,7 +244,7 @@
                   </v-row>
                 </template>
                 <v-row style="margin-top: 0px">
-                  <v-col cols="11">
+                  <v-col cols="9">
                     <v-text-field
                       density="compact"
                       variant="outlined"
@@ -223,15 +253,15 @@
                       @keyup.enter="addParcours"
                     ></v-text-field>
                   </v-col>
-                  <v-col cols="1">
+                  <v-col cols="3">
                     <v-btn @click="addParcours" style="background-color: green; color: white"
-                      ><v-icon left>mdi-plus</v-icon></v-btn
+                      ><v-icon left>mdi-plus</v-icon>Ajouter un parcours</v-btn
                     >
                   </v-col>
                 </v-row>
               </v-col>
             </v-row>
-            <v-divider class="dividerForm" />
+            <div class="dividerForm" style="border-top: 1px dashed #707070" />
 
             <v-row style="padding: 6px 0">
               <h4 style="padding-left: 10px">
@@ -241,15 +271,34 @@
             </v-row>
             <v-row class="align-center">
               <v-col cols="4">
-                <span style="padding-left: 10px">Régime</span>
-                <v-radio-group v-model="currentFormation.regime" inline>
-                  <v-radio label="FC" value="fc"></v-radio>
-                  <v-radio label="FI" value="fi"></v-radio>
-                  <v-radio label="FA" value="fa"></v-radio>
-                </v-radio-group>
+              <span style="padding-left: 10px">Régime</span>
+              <div style="display: flex; align-items: center; gap: 16px;">
+                <v-checkbox
+                v-model="currentFormation.is_regime_fc"
+                label="FC"
+                class="rounded-checkbox"
+                hide-details
+                inline
+                />
+                <v-checkbox
+                v-model="currentFormation.is_regime_fi"
+                label="FI"
+                class="rounded-checkbox"
+                hide-details
+                inline
+                />
+                <v-checkbox
+                v-model="currentFormation.is_regime_fa"
+                label="FA"
+                class="rounded-checkbox"
+                hide-details
+                inline
+                />
+              </div>
+
               </v-col>
               <v-col cols="4">
-                <span style="padding-left: 10px">Durée de la formation</span>
+                <span style="padding-left: 10px">Type de période de la formation</span>
                 <v-radio-group
                   v-model="currentFormation.duree_unite"
                   :disabled="formMode === 'update'"
@@ -265,7 +314,7 @@
                   density="compact"
                   variant="outlined"
                   v-model.number="currentFormation.duree"
-                  label="Durée"
+                  label="Nombre de périodes de formation"
                   :disabled="formMode === 'update'"
                   type="number"
                 />
@@ -293,20 +342,65 @@
                 />
               </v-col>
             </v-row>
-            <v-divider class="dividerForm" />
+            <div class="dividerForm" style="border-top: 1px dashed #707070" />
             <v-row>
-              <v-col>
-                <v-text-field
-                  density="compact"
-                  variant="outlined"
-                  :disabled="formMode === 'update'"
-                  v-model.number="currentFormation.nombre_de_niveaux"
-                  label="Nombre de niveaux pour catégoriser les compétences"
-                  type="number"
-                />
+              <v-col cols="12">
+                <h4 style="padding-left: 10px">
+                  Paramétrer les niveaux pour catégoriser les compétences
+                </h4>
+                <h4 style="padding-left: 10px">
+                  Attention, les libellés ne seront plus modifiables :
+                </h4>
               </v-col>
             </v-row>
-            <v-divider class="dividerForm" />
+            <v-row
+              v-for="(niveau, index) in currentFormation.noms_des_niveaux"
+              :key="index"
+              class="align-center"
+              style="margin-bottom: 8px"
+            >
+              <v-col
+                cols="5"
+                class="d-flex align-center"
+                style="padding-top: 0px; padding-bottom: 0px"
+              >
+                <v-text-field
+                  density="compact"
+                  :disabled="formMode === 'update'"
+                  variant="outlined"
+                  v-model="currentFormation.noms_des_niveaux[index]"
+                  :label="`Libellé du niveau ${index + 1}`"
+                  style="flex: 1"
+                />
+              </v-col>
+              <v-col cols="1" class="d-flex align-center" style="padding-top: 0px">
+                <v-btn
+                  icon="mdi-delete"
+                  color="error"
+                  variant="text"
+                  @click="currentFormation.noms_des_niveaux.splice(index, 1)"
+                  style="margin-left: 8px"
+                  :disabled="formMode === 'update'"
+                ></v-btn>
+              </v-col>
+            </v-row>
+            <v-row>
+              <v-col cols="4" style="padding-top: 0px; padding-bottom: 0px">
+                <v-btn
+                  style="background-color: green; color: white"
+                  variant="outlined"
+                  prepend-icon="mdi-plus"
+                    @click="currentFormation.noms_des_niveaux.push('')"
+                  :disabled="formMode === 'update'"
+                >
+                  Ajouter un niveau
+                </v-btn>
+              </v-col>
+            </v-row>
+            <div
+              class="dividerForm"
+              style="border-top: 1px dashed #707070; margin-top: 36px !important"
+            />
             <v-row>
               <v-col cols="6">
                 <SearchEngine
@@ -329,22 +423,6 @@
           </v-row>
         </v-card>
       </v-expand-transition>
-    </v-col>
-    <v-col cols="4">
-      <InformationBubble>
-        <!-- <p>
-          Si vous souhaitez des informations pour créer votre offre de formation en approche par
-          compétences, veuillez cliquer ici.
-        </p> -->
-        <p>
-          Ce point d'entrée de l'application vous permet de créer des formations et des parcours
-          pour pouvoir passer à la suite.
-        </p>
-        <p>
-          Des paramètres globaux à l'établissement, la composante peuvent être appliqués rendant
-          certains champs non modifiables.
-        </p>
-      </InformationBubble>
     </v-col>
   </v-row>
 </template>
@@ -379,9 +457,7 @@ const diplomeStore = useDiplomeStore()
 const parcoursStore = useParcoursStore()
 const etablissementStore = useEtablissementStore()
 
-
-const socketStore = useSocketStore();
-
+const socketStore = useSocketStore()
 
 const users = ref([])
 const fetchUsers = async () => {
@@ -406,20 +482,22 @@ const init = async () => {
   await etablissementStore.fetchEtablissements()
   await composanteStore.fetchComposanteByEtablissement(etablissementStore.etablissementSelected.id)
   await formationStore.fetchFormation()
+
   await typeFormationStore.fetchTypeFormation()
   await diplomeStore.fetchDiplome()
   await parcoursStore.fetchParcours()
   await fetchUsers()
 }
 init()
-
 const formMode = ref('create')
 const currentFormation = ref({
   libelle: '',
+  state: '',
   nb_heures_enseignement: null,
   nb_credits: null,
   duree: null,
   duree_unite: null,
+  noms_des_niveaux: [],
   type_diplome_id: null,
   composante_id: null,
   nombre_de_niveaux: null,
@@ -438,14 +516,18 @@ const toggleFormationCard = () => {
   if (showFormationCard.value) {
     currentFormation.value = {
       libelle: '',
+      state: '',
       nb_heures_enseignement: null,
       nb_credits: null,
       duree: null,
       duree_unite: null,
+      noms_des_niveaux: [],
       type_diplome_id: null,
       composante_id: null,
+      is_regime_fa: false,
+      is_regime_fi: false,
+      is_regime_fc: false,
       nombre_de_niveaux: null,
-      regime: null,
       parcours: []
     }
     formMode.value = 'create'
@@ -477,12 +559,16 @@ const deleteParcours = (parcours) => {
 }
 
 const toFormation = (formation) => {
-  if( formationStore.formationSelected.id !== localStorage.getItem('roomId') ) {
+  if (formationStore.formationSelected.id !== localStorage.getItem('roomId')) {
     console.log('disconnecting old room')
-    socketStore.disconnect(localStorage.getItem('roomId'), connectionStore.user.givenname, connectionStore.user.sn);
+    socketStore.disconnect(
+      localStorage.getItem('roomId'),
+      connectionStore.user.givenname,
+      connectionStore.user.sn
+    )
   }
   formationStore.formationSelected = formation
-  socketStore.connect( formation.id, connectionStore.user.givenname, connectionStore.user.sn );
+  socketStore.connect(formation.id, connectionStore.user.givenname, connectionStore.user.sn)
   router.push({ name: 'version-list', params: { idFormation: formation.id } })
 }
 
@@ -492,11 +578,22 @@ const toVersion = (formation, version) => {
   console.log(formation)
   console.log('toVersion', formationStore.formationSelected.id)
   console.log(localStorage.getItem('roomId'))
-  socketStore.disconnect(localStorage.getItem('roomId'), connectionStore.user.givenname, connectionStore.user.sn);
+  socketStore.disconnect(
+    localStorage.getItem('roomId'),
+    connectionStore.user.givenname,
+    connectionStore.user.sn
+  )
   console.log('ask websocket connection')
-  socketStore.connect( formationStore.formationSelected.id, connectionStore.user.givenname, connectionStore.user.sn );
+  socketStore.connect(
+    formationStore.formationSelected.id,
+    connectionStore.user.givenname,
+    connectionStore.user.sn
+  )
   console.log('clear')
-  router.push({ name: 'parcours-competences', params: { idVersion: version.id, idFormation: formationStore.formationSelected.id } })
+  router.push({
+    name: 'parcours-competences',
+    params: { idVersion: version.id, idFormation: formationStore.formationSelected.id }
+  })
 }
 
 const deleteFormation = (formation) => {
@@ -508,18 +605,19 @@ const deleteFormation = (formation) => {
 
 const updateFormation = async () => {
   // Logique pour modifier une formation
-  const oldFormation = await formationStore.fetchOneFormationFromId
-    (currentFormation.value.id).then( d => {
-    return d;
-  })
+  const oldFormation = await formationStore
+    .fetchOneFormationFromId(currentFormation.value.id)
+    .then((d) => {
+      return d
+    })
 
   const parcoursToDelete = oldFormation.parcours.filter(
     (oldParcours) =>
       !currentFormation.value.parcours.some(
         (currentParcours) => currentParcours.id === oldParcours.id
       )
-  );
-  parcoursToDelete.forEach( p => {
+  )
+  parcoursToDelete.forEach((p) => {
     parcoursStore.deleteParcours(p)
   })
 
@@ -530,44 +628,46 @@ const updateFormation = async () => {
         (oldParcours.libelle !== currentParcours.libelle ||
           oldParcours.effectif_theorique !== currentParcours.effectif_theorique)
     )
-  );
+  )
 
   parcoursToUpdate.forEach((parcours) => {
-    parcoursStore.updateParcours(parcours);
-  });
-  
+    parcoursStore.updateParcours(parcours)
+  })
+
   const parcoursToCreate = currentFormation.value.parcours.filter(
     (currentParcours) =>
-      !oldFormation.parcours.some(
-        (oldParcours) => oldParcours.libelle === currentParcours.libelle
-      )
-  );
+      !oldFormation.parcours.some((oldParcours) => oldParcours.libelle === currentParcours.libelle)
+  )
 
   const formationToUpdateForCreationParcours = {
     ...currentFormation.value,
     parcours: {
       createMany: {
-          data: parcoursToCreate.map((p) => ({
-            libelle: p.libelle,
-            effectif_theorique: p.effectif_theorique
-          }))
+        data: parcoursToCreate.map((p) => ({
+          libelle: p.libelle,
+          effectif_theorique: p.effectif_theorique
+        }))
       }
     }
   }
 
-  await formationStore.updateFormation(formationToUpdateForCreationParcours);
-  currentFormation.value.parcours;
-  await formationStore.fetchOneFormationFromId
-    (currentFormation.value.id).then( d => {
-      currentFormation.value.parcours = d.parcours;
-    })
+  await formationStore.updateFormation(formationToUpdateForCreationParcours)
+  currentFormation.value.parcours
+  await formationStore.fetchOneFormationFromId(currentFormation.value.id).then((d) => {
+    currentFormation.value.parcours = d.parcours
+  })
 
   const formationToUpdate = {
     id: currentFormation.value.id,
     libelle: currentFormation.value.libelle,
+    state: currentFormation.value.state,
     nb_heures_enseignement: currentFormation.value.nb_heures_enseignement,
     nb_credits: currentFormation.value.nb_credits,
     duree: currentFormation.value.duree,
+    noms_des_niveaux: currentFormation.value.noms_des_niveaux,
+    is_regime_fa: currentFormation.value.is_regime_fa,
+    is_regime_fi: currentFormation.value.is_regime_fi,
+    is_regime_fc: currentFormation.value.is_regime_fc,
     duree_unite: currentFormation.value.duree_unite,
     nombre_de_niveaux: currentFormation.value.nombre_de_niveaux,
     regime: currentFormation.value.regime,
@@ -580,7 +680,7 @@ const updateFormation = async () => {
       connect: {
         id: currentFormation.value.type_diplome_id
       }
-    }    // ,
+    } // ,
     // parcours: {
     //     createMany: {
     //         data: parcoursData.parcoursToCreate
@@ -620,13 +720,15 @@ const createFormation = () => {
   const formationToCreate = {
     libelle: currentFormation.value.libelle,
     nb_heures_enseignement: currentFormation.value.nb_heures_enseignement,
-    nb_credits: typesDiplomes.value.find(
-      (t) => t.id === currentFormation.value.type_diplome_id
-    ).credits,
+    nb_credits: typesDiplomes.value.find((t) => t.id === currentFormation.value.type_diplome_id)
+      .credits,
     duree: currentFormation.value.duree,
     duree_unite: currentFormation.value.duree_unite,
-    nombre_de_niveaux: currentFormation.value.nombre_de_niveaux,
-    regime: currentFormation.value.regime,
+    is_regime_fa: currentFormation.value.is_regime_fa,
+    noms_des_niveaux: currentFormation.value.noms_des_niveaux,
+    is_regime_fi: currentFormation.value.is_regime_fi,
+    is_regime_fc: currentFormation.value.is_regime_fc,
+    noms_des_niveaux: currentFormation.value.noms_des_niveaux ? [...currentFormation.value.noms_des_niveaux] : [],
     composante: {
       connect: {
         id: currentFormation.value.composante_id
@@ -679,18 +781,38 @@ const getTypeDiplome = async () => {
 }
 getTypeDiplome()
 
-const changeCreditAndHours = () => {
+const changeCreditAndHours = () => {
   currentFormation.value.nb_credits = typesDiplomes.value.find(
     (t) => t.id === currentFormation.value.type_diplome_id
   ).credits
   currentFormation.value.nb_heures_enseignement = typesDiplomes.value.find(
     (t) => t.id === currentFormation.value.type_diplome_id
   ).heures
-  console.log(currentFormation.value);
+  console.log(currentFormation.value)
 }
 </script>
 
 <style scoped>
+.formation-table tr td {
+  border-top: 1px dashed #707070;
+  border-bottom: none !important;
+}
+
+.formation-table tr th {
+  border-top: none !important;
+  border-bottom: none !important;
+}
+
+.parcours-table tr:first-child td {
+  border-top: none !important;
+  border-bottom: none !important;
+}
+
+.formation-table tr {
+  border-top: none !important;
+  border-bottom: none !important;
+}
+
 .dividerForm {
   margin-top: 12px;
   margin-bottom: 12px;

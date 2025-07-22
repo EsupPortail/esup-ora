@@ -17,7 +17,8 @@ export const useNiveauxApprentissagesStore = defineStore('niveau', {
             return new Promise((resolve, reject) => {
                 this.get('niveau', niveauId, {
                     include: {
-                        apprentissage_critique: true
+                        apprentissage_critique: true,
+                        parcours: true
                     }
                 }
             )

@@ -1,18 +1,29 @@
 <template>
     <v-breadcrumbs-item
         :to="to()"
+        divider=""
         :active="isActive()"
-        class="text-subtitle-2 crumb-item"
+        class="text-subtitle-2 crumb-item d-flex align-center no-underline"
         active-class="activeAriane"
         :disabled="!isEnable()"
         exact
-      >
-        <v-btn class="ma-2 btnAriane " rounded>
+        :style="'text-decoration: none; ' + props.item.meta.ariane.order !== 1 ? 'margin-left: 60px;' : ''"
+    >
+        <v-icon
+            v-if="item.meta.ariane.icon"
+            class="mr-2"
+            style="color: #091D55F4; font-size: 24px; align-self: center; margin-right: 0px;"
+        >
+            {{ item.meta.ariane.icon }}
+        </v-icon>
+        <span
+            class="ma-2"
+            :style="`font-size: 18px; color: #091D55F4; align-self: center; padding-bottom: 6px;${isActive() ? ' border-bottom: 2px solid #12255B' : ''}`"
+        >
             {{ getLabel() }}
-        </v-btn>
-      </v-breadcrumbs-item>
+        </span>
+    </v-breadcrumbs-item>
 </template>
-
 <script setup>
 import { watch, defineProps } from 'vue'
 import { useParcoursStore } from '@/stores/parcoursStore';
@@ -94,11 +105,26 @@ const getLabel = () => {
 
 </script>
 
-<style scoped>
+<style>
 
 .activeAriane .btnAriane {
     color: rgb(var(--v-theme-on-primary));
     background-color: rgba(9, 29, 85, 0.957);
 }
 
+.no-underline-hover {
+  text-decoration: none !important;
+}
+
+.no-underline-hover:hover {
+  text-decoration: none !important;
+}
+
+v-breadcrumbs-item a {
+  text-decoration: none !important;
+}
+
+.v-breadcrumbs-item a:hover {
+  text-decoration: none !important;
+}
 </style>

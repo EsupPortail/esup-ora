@@ -8,22 +8,22 @@ import Routes from './routes/index';
 import {interceptorHTTP} from './middlewares/interceptor.middleware';
 import { interceptorNotification } from './middlewares/notify.middleware';
 import { guardian } from './middlewares/guardian.middleware';
-
-import pg from 'pg';
+  
+import pg from 'pg'; 
 import session from 'express-session';
 import connectPgSimple from 'connect-pg-simple';
-
-import { createProxyMiddleware } from 'http-proxy-middleware';
-
-class Server {
   
-    constructor(app: Application) { 
+import { createProxyMiddleware } from 'http-proxy-middleware';
+    
+class Server {  
+   
+    constructor(app: Application) {  
         this.config(app)
-        new Routes(app);
+        new Routes(app); 
     }
-
-    private config(app: Application): void {
-        const corsOptions: CorsOptions = {
+   
+    private config(app: Application): void {  
+        const corsOptions: CorsOptions = {   
             credentials: true,
             allowedHeaders: ['Authorization', 'Content-Type'], 
         };
@@ -41,7 +41,7 @@ class Server {
                 password: process.env.ORA_DATABASE_PSWD,
                 database: process.env.ORA_DATABASE_SECURITY_NAME,
                 host: process.env.DATABASE_HOST,
-                port: Number(process.env.DATABASE_PORT),
+                port: Number(process.env.DATABASE_PORT), 
             });
             logger.info('Connexion PostgreSQL réussie');
         } catch (error) {

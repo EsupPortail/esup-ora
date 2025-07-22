@@ -3,7 +3,6 @@
         "/api/auth/shibboleth",
         "/api/auth/local",
         "/api/auth/logout",
-        "/api/auth/me",
         "/api/export/getFormationAsPDF",
         "/api/export/getFormationAsExcel",
         "/api/websocket/getNbUsersConnectedInARoom"
