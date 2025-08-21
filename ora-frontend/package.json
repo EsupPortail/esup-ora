@@ -45,6 +45,8 @@
     "vue-types": "^6.0.0"
   },
   "devDependencies": {
+    "rollup": "^3.29.0",
+    "cross-env": "^7.0.3",
     "@playwright/test": "^1.54.1",
     "@rushstack/eslint-patch": "^1.12.0",
     "@tsconfig/node20": "^20.1.6",
