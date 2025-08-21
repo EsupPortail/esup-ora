@@ -1,9 +1,13 @@
 <template>
   <v-sheet
-    class="mx-auto"
+    width="100%"
+    class="d-flex justify-center align-center"
+    style="height: 50px;"
   >
       <v-breadcrumbs
+      style="padding: 0px;"
       :items="arianeRoutes"
+      divider=""
       >
         <template v-slot:item="{item}">
             <ArianeParcoursPathItem :item="item"></ArianeParcoursPathItem>

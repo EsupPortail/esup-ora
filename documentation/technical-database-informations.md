@@ -20,3 +20,23 @@ Puis une synchro :
 ```
 npx prisma db push --schema src/models/schema.prisma 
 ```
+
+
+-----------------
+Déploiement d'une migration prisma.
+
+Modifier le script de migration pour faire des transitions
+
+appliquer les transitions directement en bdd
+
+
+mettre en applied les migrations en prod si tout est ok 
+
+
+
+npx prisma migrate resolve --applied 20250710124548_add_notion_of_niveau_parcours
+
+
+npx prisma migrate status
+
+npx prisma migrate deploy

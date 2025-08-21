@@ -1,29 +1,31 @@
 <template>
-  <v-layout class="rounded rounded-md">
-    <DrawerMenuLayout v-model="drawer" />
-
+  <v-layout >
     <ToolbarLayout @toggleDrawer="toggleDrawer" />
 
-    <v-main ref="content" class="align-center justify-center">
-      <v-container
-        :style="{
-          width: '100%',
-          paddingLeft: '30px',
-          paddingRight: '30px',
-          paddingBottom: '100px',
-          maxWidth: width + 'px'
-        }"
-        class="r-view align-center justify-center"
-      >
-        <PopUpInformation
-          v-if="popUpStore.popUpData && popUpStore.popUpData.isVisible"
-          class="popup-information"
-          :message="popUpStore.popUpData.message"
-          :type="popUpStore.popUpData.type"
-        />
-        <router-view />
-      </v-container>
-      <FooterLayout />
+    <DrawerMenuLayout drawer="drawer" />
+    <v-main
+      ref="content"
+      class="align-center justify-center"
+      style="background: #f1f1f1 0% 0% no-repeat padding-box; opacity: 1"
+    >
+            <ArianeParcoursPath v-if="$route.meta.showAriane === true" />
+              <v-container
+            :style="{
+              width: '100%',
+              paddingLeft: '30px',
+              paddingRight: '30px',
+              maxWidth: width + 'px'
+            }"
+            class="r-view align-center justify-center"
+          >
+            <PopUpInformation
+              v-if="popUpStore.popUpData && popUpStore.popUpData.isVisible"
+              class="popup-information"
+              :message="popUpStore.popUpData.message"
+              :type="popUpStore.popUpData.type"
+            />
+            <router-view />
+          </v-container>
     </v-main>
   </v-layout>
 </template>
@@ -42,9 +44,10 @@ import { useElementSize } from '@vueuse/core'
 import { useConnectionStore } from './stores/connectionStore'
 import { config as env } from './environment/environment'
 import { useSocketStore } from './stores/socketStore'
+import ArianeParcoursPath from '@/components/ArianeParcoursPath.vue'
 const appStore = useAppStore()
 const connectionStore = useConnectionStore()
-const formationStore = useFormationStore();
+const formationStore = useFormationStore()
 const socketStore = useSocketStore()
 axios.interceptors.request.use(
   async (config) => {
@@ -75,19 +78,23 @@ axios.interceptors.request.use(
     }
 
     if (['post', 'put', 'delete'].includes(config.method)) {
-      if( formationStore.formationSelected) {
+      if (formationStore.formationSelected) {
         config.data = {
           ...config.data,
-          metadata : {
+          metadata: {
             formationId: formationStore.formationSelected
           }
         }
       }
     }
 
-    if( socketStore.isConnected === false && localStorage.getItem('roomId') !== null ) {
-      console.log('Reloading socket');
-      await socketStore.connect(localStorage.getItem('roomId'), connectionStore.user.givenname, connectionStore.user.sn)
+    if (socketStore.isConnected === false && localStorage.getItem('roomId') !== null) {
+      console.log('Reloading socket')
+      await socketStore.connect(
+        localStorage.getItem('roomId'),
+        connectionStore.user.givenname,
+        connectionStore.user.sn
+      )
     }
     return config
   },
@@ -108,7 +115,7 @@ const toggleDrawer = () => {
 <style scoped>
 .r-view {
   /* Pour que le footer reste en bas en cas de page vide */
-  min-height: calc(100vh - 60px - 64px);
+  min-height: calc(100vh - 64px);
 }
 
 .popup-information {

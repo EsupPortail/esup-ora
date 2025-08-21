@@ -144,7 +144,7 @@ export const useFormationStore = defineStore('formation', {
         include: {
           parcours: true,
           version: true,
-          composante: {
+          composante: { 
             include: {
               parametre: true
             }

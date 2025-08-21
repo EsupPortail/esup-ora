@@ -14,7 +14,7 @@
     >
         <template v-slot:activator="{ props }">
             <v-list-item
-                :title="index"
+                :title="isExpandedReactiv ? index : ''"
                 v-bind="props"
             ></v-list-item>
         </template>
@@ -35,10 +35,22 @@ import { ref, computed } from 'vue'
 const props = defineProps(
     {
         item: [String, Object],
-        index: String
+        index: String,
+        isExpanded: {
+            type: Boolean,
+            default: false
+        }
     }
 )
-
+const isExpandedReactiv = ref(props.isExpanded)
+console.log(props.isExpanded)
 const isString = (varToCheck) => typeof varToCheck === 'string'
+import { watch } from 'vue'
 
+watch(
+    () => props.isExpanded,
+    (newVal, oldVal) => {
+        isExpandedReactiv.value = newVal
+    }
+)
 </script>

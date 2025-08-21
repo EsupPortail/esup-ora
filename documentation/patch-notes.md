@@ -1,5 +1,21 @@
 # Notes de patchs
 
+## 1.2.4
+
+- Changement mineur liste des formations thèmes + features
+- Compétence : intégration d'un code couleur via une palette. On retrouvera ces couleurs sur le work flow
+- Apprentissages critiques : carroussel de compétences, ajout d'une association parcours/ niveau
+- Formation : instanciation des niveaux à la création avec le même titre de niveau pour chaque compétence. 
+- Éléments constitutifs : Filtrage par périodes/compétences/niveaux + intégration d'une composant TreeView de Vuetify pour associer les enseignements aux ACs
+
+## 1.1.0
+
+Refonte applicative
+- passage en thème blanc
+- toolbar (menu du haut)
+- burger menu (menu de gauche) avec une version icône et icône + titre
+- fil d'ariane
+
 ## 0.20.0 PRE-VERSION [RELEASE]
 
 - WARNING: Refonte applicative validée par l'équipe. La v0 va être publiée.

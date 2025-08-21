@@ -1,13 +1,4 @@
 <template>
-  <v-row>
-    <ArianeParcoursPath />
-  </v-row>
-  <v-row>
-    <v-col offset="11" cols="1">
-      <UsersConnectedInfo />
-    </v-col>
-  </v-row>
-
   <v-row
     v-if="competenceStore.getCompetenceByVersion(parcoursStore.versionSelected.id).length !== 0"
   >

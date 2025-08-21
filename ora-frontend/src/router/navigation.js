@@ -1,12 +1,29 @@
-import {paths} from '@/router/routesEnumeration';
+import { paths } from '@/router/routesEnumeration';
 
 export default {
-    "Accueil": paths.root,
-    "Parcours formation": paths.parcoursFormation,
-    "Administration": {
-        "Configuration": paths.backoffice_etablisement,
-        "Utilisateurs": paths.administrationRoles,
+  "Accueil": {
+    icon: "mdi-home-outline",
+    path: paths.root,
+  },
+  "Formation": {
+    icon: "mdi-file-document-outline",
+    path: paths.parcoursFormation,
+  },
+  "Administration": [
+    {
+      title: "Paramètres",
+      icon: "mdi-cog-outline",
+      path: paths.backoffice_etablisement,
     },
-    // "ProtectedRoute": paths.protectedRouteTest,
-};
-
+    {
+      title: "Configuration",
+      icon: "mdi-tune-vertical",
+      path: paths.administrationRoles,
+    },
+    {
+      title: "Rôles et utilisateurs",
+      icon: "mdi-account-multiple-outline",
+      path: paths.administrationRoles,
+    },
+  ],
+}

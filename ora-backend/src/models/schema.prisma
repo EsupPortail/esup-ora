@@ -27,6 +27,7 @@ model competence {
   rncp_id   Int?
   rome4     rome4?      @relation(fields: [rome4_id], references: [id])
   rome4_id  Int?
+  color_hexadecimal String? @db.VarChar(7)
   caractere_evaluables caractere_evaluable[]
   critere_exigences critere_exigence[]
   contexte_evaluation contexte_evaluation[]
@@ -108,6 +109,8 @@ model niveau {
   id        Int        @id @default(autoincrement())
   libelle   String     @db.VarChar(255)
   description String? @db.Text
+  print_order Int 
+  parcours parcours[]
   apprentissage_critique apprentissage_critique[]
   competence competence @relation(fields: [competence_id], references: [id])
   competence_id Int
@@ -319,6 +322,7 @@ model parcours {
   description String?   @db.Text
   formation formation  @relation(fields: [formation_id], references: [id])
   formation_id Int
+  niveaux niveau[]
   effectif_theorique Int? @db.Integer
   bloc_de_competences bloc_de_competence[]
 }
@@ -331,6 +335,11 @@ model formation {
   nb_credits Int?       @db.Integer
   nb_heures_enseignement Int? @db.Integer
   regime String?   @db.VarChar(255)
+  state String?  @default("En cours") @db.VarChar(255)
+  is_regime_fa Boolean @default(false)
+  is_regime_fi Boolean @default(false)
+  is_regime_fc Boolean @default(false)
+  noms_des_niveaux String[] @db.VarChar(255)
   parcours  parcours[]
   nombre_de_niveaux Int?
   enseignements enseignement[]
