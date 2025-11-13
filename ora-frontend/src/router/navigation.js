@@ -6,24 +6,49 @@ export default {
     path: paths.root,
   },
   "Formation": {
-    icon: "mdi-file-document-outline",
+    icon: "mdi-school-outline",
     path: paths.parcoursFormation,
   },
   "Administration": [
     {
+      title: 'Administration',
+      icon: "mdi-file-document-outline",
+      path: paths.settings,
+    },
+    {
       title: "Paramètres",
       icon: "mdi-cog-outline",
-      path: paths.backoffice_etablisement,
+      path: paths.globalParams
     },
     {
       title: "Configuration",
       icon: "mdi-tune-vertical",
-      path: paths.administrationRoles,
+      path: paths.configuration,
+    },
+    {
+      title: "Template",
+      icon: "mdi-file-document-edit-outline",
+      path: paths.administrationDesTemplates,
     },
     {
       title: "Rôles et utilisateurs",
       icon: "mdi-account-multiple-outline",
       path: paths.administrationRoles,
+    },
+    {
+      title: "Imports",
+      icon: "mdi-download",
+      path: '/notfound',
+    },
+    {
+      title: "Journaux et logs",
+      icon: "mdi-volume-high",
+      path: '/notfound',
+    },
+    {
+      title: "Indicateurs",
+      icon: "mdi-chart-line",
+      path: '/notfound',
     },
   ],
 }

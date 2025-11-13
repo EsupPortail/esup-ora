@@ -19,48 +19,53 @@ export const useDiplomeStore = defineStore('diplome', {
     actions: {
         createDiplome(diplome: any) {
             this.create(this.entity, diplome)
-            .then((res) => {
-                this.diplomes.push(res.data)
-            })
-            .catch((err) => {
-            })
+                .then((res) => {
+                    this.diplomes.push(res.data)
+                })
+                .catch((err) => {
+                })
         },
         createDiplomeWithElement(diplome: any) {
             this.create('diplomeWithElement', diplome)
-            .then((res) => {
-                this.diplomes.push(res.data)
-            })
-            .catch((err) => {
-            })
+                .then((res) => {
+                    this.diplomes.push(res.data)
+                })
+                .catch((err) => {
+                })
         },
         updateDiplome(diplome: any) {
             this.update(this.entity, diplome)
-            .then((res) => {
-                const updated = res.data
-                this.diplomes = this.diplomes.map((e) => {
-                    if (e.id === updated.id) {
-                        return updated
-                    }
-                    return e
+                .then((res) => {
+                    const updated = res.data
+                    this.diplomes = this.diplomes.map((e) => {
+                        if (e.id === updated.id) {
+                            return updated
+                        }
+                        return e
+                    })
                 })
-            })
-            .catch((err) => {
-            })
+                .catch((err) => {
+                })
         },
         deleteDiplome(diplome: any) {
             this.delete(this.entity, diplome)
-            .then((res) => {
-                this.diplomes = this.diplomes.filter((e) => e.id !== diplome.id)
-            })
-            .catch((err) => {
-            })
+                .then((res) => {
+                    this.diplomes = this.diplomes.filter((e) => e.id !== diplome.id)
+                })
+                .catch((err) => {
+                })
         },
         fetchDiplome() {
-            this.getCollection(this.entity)
-            .then((res) => {
-                this.diplomes = res.data
-            })
-            .catch((err) => {
+            return new Promise((resolve, reject) => {
+
+                this.getCollection(this.entity)
+                    .then((res) => {
+                        this.diplomes = res.data
+                        resolve(true)
+                    })
+                    .catch((err) => {
+                        reject(err)
+                    })
             })
         }
     }

@@ -34,7 +34,6 @@ const users = ref([])
 
 onMounted( async () => {
   await nextTick()
-  console.log('compouting default value')
   await socketStore.getRoomUserCount(localStorage.getItem('roomId'));
   userCount.value = socketStore.nbUsersInRoom
   users.value = socketStore.usersInRoom
@@ -42,7 +41,6 @@ onMounted( async () => {
 watch(
   () => socketStore.nbUsersInRoom,
   (newValue) => {
-    console.log('new value')
     userCount.value = newValue
     users.value = socketStore.usersInRoom
   },

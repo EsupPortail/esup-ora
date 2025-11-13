@@ -6,12 +6,35 @@ export const useApprentissageStore = defineStore('apprentissage', {
   state: () => ({
     entity: 'apprentissage',
     apprentissages: [] as any[],
+    niveaux: [] as any[],
     loading: false as boolean,
     error: false as Boolean | Object
   }),
   getters: {},
   actions: {
     getApprentissagesCritiquesWithEnseignements() {},
+    fetchNiveaux() {
+      return new Promise((resolve, reject) => {
+        this.getCollection('niveau', {
+          orderBy: [
+            {
+              ordre: 'asc'
+            }
+          ],
+          include: {
+            apprentissage_critique: true,
+            parcours: true
+          }
+        })
+          .then((res) => {
+            this.niveaux = res.data
+            resolve(res.data)
+          })
+          .catch((err) => {
+            reject(err)
+          })
+      })    
+    },
     fetchNiveauById(niveauId: string) {
       return new Promise((resolve, reject) => {
         this.get('niveau', niveauId, {
@@ -30,15 +53,10 @@ export const useApprentissageStore = defineStore('apprentissage', {
     },
     updateNiveau(niveau: any) {
       return new Promise((resolve, reject) => {
-        console.log(niveau.parcoursToConnect)
         this.update('niveau', {
           id: niveau.id,
           libelle: niveau.libelle,
-          description: niveau.description,
-          parcours: {
-            connect: niveau.parcoursToConnect.map((element: any) => { return { id: element.id } }),
-            disconnect: niveau.parcoursToDisconnect.map((element: any) => { return { id: element.id } })
-          }
+          description: niveau.description
         })
           .then((res) => {
             const socketStore = useSocketStore()

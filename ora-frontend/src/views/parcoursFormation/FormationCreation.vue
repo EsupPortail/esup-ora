@@ -1,20 +1,22 @@
 <template>
-  <v-row style="margin-top: 12px;">
+  <v-row style="margin-top: 12px">
     <v-col cols="3">
       <h2>
-        <v-icon style="vertical-align: middle; margin-right: 8px;">mdi-home-outline</v-icon>
+        <v-icon style="vertical-align: middle; margin-right: 8px">mdi-home-outline</v-icon>
         Accueil
       </h2>
     </v-col>
     <v-col cols="9" class="d-flex justify-end">
-      <span style="color: #878787; font-size: 20px;">Un outil d'aide à la conception d'une offre de formation en approche par compétences</span>
+      <span style="color: #878787; font-size: 20px"
+        >Un outil d'aide à la conception d'une offre de formation en approche par compétences</span
+      >
     </v-col>
   </v-row>
   <v-row>
     <v-col cols="12">
       <v-card>
         <v-card-title>
-          <h3 style="color: #12255B; font-weight: normal;">Liste des formations</h3>
+          <h3 style="color: #12255b; font-weight: normal">Liste des formations</h3>
         </v-card-title>
         <v-card-text>
           <v-table style="color: #878787" class="formation-table">
@@ -28,7 +30,12 @@
               </tr>
             </thead>
             <tbody>
-              <tr v-for="formation in formationStore.getFormations" :key="formation.id">
+              <tr
+                v-for="formation in formationStore.getFormations
+                  .slice()
+                  .sort((a, b) => a.libelle.localeCompare(b.libelle))"
+                :key="formation.id"
+              >
                 <td>{{ composanteStore.getComposanteLibelleById(formation.composante_id) }}</td>
                 <td class="toSelect" @click="toFormation(formation)">
                   {{ formation.libelle }}
@@ -54,7 +61,7 @@
                     </tbody>
                   </v-table>
                 </td>
-                <td style="vertical-align: middle; text-align: center;">
+                <td style="vertical-align: middle; text-align: center">
                   <v-menu>
                     <template v-slot:activator="{ props }">
                       <v-btn
@@ -110,7 +117,7 @@
                       </v-dialog>
                     </v-list>
                   </v-menu>
-                    <v-chip
+                  <v-chip
                     class="ma-2"
                     :style="{
                       backgroundColor: formation.state === 'Terminé' ? '#E2F1B8' : '#B8C2F1',
@@ -118,9 +125,9 @@
                       cursor: 'pointer',
                       opacity: 1
                     }"
-                    >
+                  >
                     <span style="color: black">{{ formation.state }}</span>
-                    </v-chip>
+                  </v-chip>
                   <v-btn
                     icon="mdi-arrow-right-circle"
                     variant="text"
@@ -158,12 +165,13 @@
               </v-col>
               <v-col cols="6">
                 <v-text-field
+                  :error="refMissingValues.includes('libelle_formation')"
                   density="compact"
                   variant="outlined"
                   v-model="currentFormation.libelle"
                   hide-details
-                  label="Libellé"
-                ></v-text-field>
+                  label="Libellé de la formation"
+                />
               </v-col>
             </v-row>
             <v-row class="uniformRow">
@@ -173,13 +181,25 @@
               <v-col cols="6">
                 <v-select
                   density="compact"
+                  :error="refMissingValues.includes('composante_formation')"
                   variant="outlined"
-                  :items="composanteStore.getComposantes"
+                  :items="composantesOrderedByEtablissement"
                   v-model="currentFormation.composante_id"
                   item-title="libelle"
-                  item-value="id"
+                  item-value="value"
+                  item-props="props"
                   label="Composante"
                 >
+                  <template #item="{ item, props }">
+                    <v-list-subheader v-if="item.isHeader">
+                      <h2 class="font-semibold text-gray-700">
+                        {{ item.title }}
+                      </h2>
+                    </v-list-subheader>
+                    <v-list-item v-else v-bind="props" class="pl-6">
+                      <v-list-item-title>{{ item.libelle }}</v-list-item-title>
+                    </v-list-item>
+                  </template>
                 </v-select>
               </v-col>
             </v-row>
@@ -191,7 +211,11 @@
                 <v-select
                   density="compact"
                   variant="outlined"
-                  :items="typesDiplomes"
+                  :error="refMissingValues.includes('type_diplome_formation')"
+                  :items="
+                    composanteStore.composantes.find((c) => c.id === currentFormation.composante_id)
+                      ?.parametre?.type_diplomes || []
+                  "
                   v-model="currentFormation.type_diplome_id"
                   item-title="libelle"
                   item-value="id"
@@ -261,6 +285,37 @@
                 </v-row>
               </v-col>
             </v-row>
+            <v-row>
+              <template v-if="currentFormation.parcours.length > 0">
+                <v-col cols="auto">
+                  <span>Total de l'effectif théorique :</span>
+                </v-col>
+                <v-col cols="auto">
+                  <strong style="padding-left: 12px">
+                    {{
+                      currentFormation.parcours.reduce(
+                        (total, parcours) => total + (parcours.effectif_theorique || 0),
+                        0
+                      )
+                    }}
+                  </strong>
+                </v-col>
+              </template>
+              <template v-else>
+                <v-col cols="auto">
+                  <span>Effectif théorique de la formation</span>
+                </v-col>
+                <v-col cols="2">
+                  <v-text-field
+                    density="compact"
+                    variant="outlined"
+                    v-model.number="currentFormation.total_effectif_theorique"
+                    label="Effectif théorique"
+                    type="number"
+                  />
+                </v-col>
+              </template>
+            </v-row>
             <div class="dividerForm" style="border-top: 1px dashed #707070" />
 
             <v-row style="padding: 6px 0">
@@ -271,31 +326,30 @@
             </v-row>
             <v-row class="align-center">
               <v-col cols="4">
-              <span style="padding-left: 10px">Régime</span>
-              <div style="display: flex; align-items: center; gap: 16px;">
-                <v-checkbox
-                v-model="currentFormation.is_regime_fc"
-                label="FC"
-                class="rounded-checkbox"
-                hide-details
-                inline
-                />
-                <v-checkbox
-                v-model="currentFormation.is_regime_fi"
-                label="FI"
-                class="rounded-checkbox"
-                hide-details
-                inline
-                />
-                <v-checkbox
-                v-model="currentFormation.is_regime_fa"
-                label="FA"
-                class="rounded-checkbox"
-                hide-details
-                inline
-                />
-              </div>
-
+                <span style="padding-left: 10px">Régime</span>
+                <div style="display: flex; align-items: center; gap: 16px">
+                  <v-checkbox
+                    v-model="currentFormation.is_regime_fc"
+                    label="FC"
+                    class="rounded-checkbox"
+                    hide-details
+                    inline
+                  />
+                  <v-checkbox
+                    v-model="currentFormation.is_regime_fi"
+                    label="FI"
+                    class="rounded-checkbox"
+                    hide-details
+                    inline
+                  />
+                  <v-checkbox
+                    v-model="currentFormation.is_regime_fa"
+                    label="FA"
+                    class="rounded-checkbox"
+                    hide-details
+                    inline
+                  />
+                </div>
               </v-col>
               <v-col cols="4">
                 <span style="padding-left: 10px">Type de période de la formation</span>
@@ -303,6 +357,7 @@
                   v-model="currentFormation.duree_unite"
                   :disabled="formMode === 'update'"
                   inline
+                  :error="refMissingValues.includes('duree_unite_formation')"
                 >
                   <v-radio label="Semestre" value="semestre"></v-radio>
                   <v-radio label="Année" value="annee"></v-radio>
@@ -312,6 +367,7 @@
               <v-col cols="4">
                 <v-text-field
                   density="compact"
+                  :error="refMissingValues.includes('duree_formation')"
                   variant="outlined"
                   v-model.number="currentFormation.duree"
                   label="Nombre de périodes de formation"
@@ -326,7 +382,7 @@
                   disabled
                   density="compact"
                   variant="outlined"
-                  v-model.number="currentFormation.nb_heures_enseignement"
+                  v-model="currentFormation.type_diplome.heures"
                   label="Nombre d'heures d'enseignement"
                   type="number"
                 />
@@ -336,7 +392,7 @@
                   density="compact"
                   variant="outlined"
                   disabled
-                  v-model.number="currentFormation.nb_credits"
+                  v-model="currentFormation.type_diplome.credits"
                   label="Nombre de crédits"
                   type="number"
                 />
@@ -368,6 +424,7 @@
                   density="compact"
                   :disabled="formMode === 'update'"
                   variant="outlined"
+                  :error="refMissingValues.includes(`niveau_${index + 1}_formation`)"
                   v-model="currentFormation.noms_des_niveaux[index]"
                   :label="`Libellé du niveau ${index + 1}`"
                   style="flex: 1"
@@ -387,10 +444,14 @@
             <v-row>
               <v-col cols="4" style="padding-top: 0px; padding-bottom: 0px">
                 <v-btn
-                  style="background-color: green; color: white"
+                  :style="{
+                    backgroundColor:
+                      currentFormation.noms_des_niveaux.length === 0 ? 'red' : 'green',
+                    color: 'white'
+                  }"
                   variant="outlined"
                   prepend-icon="mdi-plus"
-                    @click="currentFormation.noms_des_niveaux.push('')"
+                  @click="currentFormation.noms_des_niveaux.push('')"
                   :disabled="formMode === 'update'"
                 >
                   Ajouter un niveau
@@ -428,36 +489,47 @@
 </template>
 
 <script setup>
+import { effect, ref, computed, onMounted, nextTick } from 'vue'
 import axios from 'axios'
-
+import router from '@/router/router'
 import { config } from '@/environment/environment'
-import { useConnectionStore } from '@/stores/connectionStore'
-import SearchEngine from '@/components/SearchEngine.vue'
-import { useFormationStore } from '@/stores/formationStore'
-import { useTypeFormationStore } from '@/stores/typeFormationStore'
-import { useComposanteStore } from '@/stores/composanteStore'
-import { useDiplomeStore } from '@/stores/diplomeStore'
-import { useParcoursStore } from '@/stores/parcoursStore'
-import { useEtablissementStore } from '@/stores/etablissementStore'
-import { useSocketStore } from '@/stores/socketStore'
-import InformationBubble from '@/components/InformationBubble.vue'
-
 import { navigateTo } from '@/router/router'
 import { paths } from '@/router/routesEnumeration'
-import { effect, ref, computed } from 'vue'
-import router from '@/router/router'
-import ParcoursVersion from './ParcoursVersion.vue'
+
+import { useConnectionStore } from '@/stores/connectionStore'
+import { useFormationStore } from '@/stores/formationStore'
+import { useComposanteStore } from '@/stores/composanteStore'
 import { useTypeDiplomeStore } from '@/stores/typeDiplomeStore'
+import { useEtablissementStore } from '@/stores/etablissementStore'
+import { useParcoursStore } from '@/stores/parcoursStore'
+import { useSocketStore } from '@/stores/socketStore'
+import { usePopUpStore } from '@/stores/popUp/PopUpStoreImplementation'
+
+import SearchEngine from '@/components/SearchEngine.vue'
 
 const connectionStore = useConnectionStore()
 const formationStore = useFormationStore()
 const composanteStore = useComposanteStore()
-const typeFormationStore = useTypeFormationStore()
-const diplomeStore = useDiplomeStore()
+
 const parcoursStore = useParcoursStore()
 const etablissementStore = useEtablissementStore()
-
 const socketStore = useSocketStore()
+const popUpStore = usePopUpStore()
+
+const refMissingValues = ref([])
+const showMissingValuesError = () => {
+  popUpStore.print({
+    isVisible: true,
+    message:
+      "Des valeurs sont manquantes lors de la création d'une formation.\nVeuillez remplir les champs manquants (en rouge).",
+    type: 'ERROR'
+  })
+}
+
+onMounted(async () => {
+  await nextTick()
+  await init()
+})
 
 const users = ref([])
 const fetchUsers = async () => {
@@ -476,29 +548,29 @@ const fetchUsers = async () => {
         lastName: user.lastName
       }))
     })
+    .catch((error) => {
+      console.error('Error fetching users:', error)
+    })
 }
 
 const init = async () => {
   await etablissementStore.fetchEtablissements()
-  await composanteStore.fetchComposanteByEtablissement(etablissementStore.etablissementSelected.id)
+  await composanteStore.fetchComposantes()
   await formationStore.fetchFormation()
-
-  await typeFormationStore.fetchTypeFormation()
-  await diplomeStore.fetchDiplome()
+  await typeDiplomeStore.fetchTypeDiplomes()
   await parcoursStore.fetchParcours()
   await fetchUsers()
 }
-init()
 const formMode = ref('create')
 const currentFormation = ref({
   libelle: '',
   state: '',
   nb_heures_enseignement: null,
   nb_credits: null,
+  type_diplome: {},
   duree: null,
   duree_unite: null,
   noms_des_niveaux: [],
-  type_diplome_id: null,
   composante_id: null,
   nombre_de_niveaux: null,
   regime: null,
@@ -510,6 +582,39 @@ const parcoursList = ref([])
 const newParcours = ref('')
 const confirmDelete = ref(false)
 const showFormationCard = ref(false)
+
+const composantesOrderedByEtablissement = computed(() => {
+  const map = new Map()
+
+  composanteStore.composantes.forEach((c) => {
+    const etabId = c.etablissement.id
+    const etabLibelle = c.etablissement.libelle
+
+    if (!map.has(etabId)) {
+      map.set(etabId, { title: etabLibelle, children: [] })
+    }
+
+    map.get(etabId).children.push({
+      libelle: c.libelle,
+      value: c.id,
+      isHeader: false
+    })
+  })
+
+  const groups = Array.from(map.values()).sort((a, b) => a.title.localeCompare(b.title))
+
+  return groups.flatMap((g) => {
+    const sortedChildren = g.children.sort((x, y) => x.libelle.localeCompare(y.libelle))
+    return [
+      {
+        libelle: g.title,
+        isHeader: true,
+        props: { disabled: true }
+      },
+      ...sortedChildren
+    ]
+  })
+})
 
 const toggleFormationCard = () => {
   showFormationCard.value = !showFormationCard.value
@@ -537,7 +642,8 @@ const toggleFormationCard = () => {
 }
 
 const showUpdateFormation = (formation) => {
-  currentFormation.value = formation
+  currentFormation.value = formationStore.formations.find((f) => f.id === formation.id)
+  console.log(currentFormation.value)
   showFormationCard.value = true
   formMode.value = 'update'
 }
@@ -548,6 +654,9 @@ const addParcours = () => {
       libelle: newParcours.value,
       effectif_theorique: 0
     })
+    if (currentFormation.value.parcours.length > 0) {
+      currentFormation.value.total_effectif_theorique = null
+    }
     newParcours.value = ''
   }
 }
@@ -560,7 +669,6 @@ const deleteParcours = (parcours) => {
 
 const toFormation = (formation) => {
   if (formationStore.formationSelected.id !== localStorage.getItem('roomId')) {
-    console.log('disconnecting old room')
     socketStore.disconnect(
       localStorage.getItem('roomId'),
       connectionStore.user.givenname,
@@ -575,24 +683,19 @@ const toFormation = (formation) => {
 const toVersion = (formation, version) => {
   formationStore.formationSelected = formation
   parcoursStore.versionSelected = version
-  console.log(formation)
-  console.log('toVersion', formationStore.formationSelected.id)
-  console.log(localStorage.getItem('roomId'))
   socketStore.disconnect(
     localStorage.getItem('roomId'),
     connectionStore.user.givenname,
     connectionStore.user.sn
   )
-  console.log('ask websocket connection')
   socketStore.connect(
     formationStore.formationSelected.id,
     connectionStore.user.givenname,
     connectionStore.user.sn
   )
-  console.log('clear')
   router.push({
     name: 'parcours-competences',
-    params: { idVersion: version.id, idFormation: formationStore.formationSelected.id }
+    params: { idVersion: version.id }
   })
 }
 
@@ -604,6 +707,12 @@ const deleteFormation = (formation) => {
 }
 
 const updateFormation = async () => {
+  if (!analyzeMissingValues()) {
+    showMissingValuesError()
+    return
+  }
+
+
   // Logique pour modifier une formation
   const oldFormation = await formationStore
     .fetchOneFormationFromId(currentFormation.value.id)
@@ -639,7 +748,7 @@ const updateFormation = async () => {
       !oldFormation.parcours.some((oldParcours) => oldParcours.libelle === currentParcours.libelle)
   )
 
-  const formationToUpdateForCreationParcours = {
+  let formationToUpdateForCreationParcours = {
     ...currentFormation.value,
     parcours: {
       createMany: {
@@ -656,7 +765,6 @@ const updateFormation = async () => {
   await formationStore.fetchOneFormationFromId(currentFormation.value.id).then((d) => {
     currentFormation.value.parcours = d.parcours
   })
-
   const formationToUpdate = {
     id: currentFormation.value.id,
     libelle: currentFormation.value.libelle,
@@ -676,26 +784,21 @@ const updateFormation = async () => {
         id: currentFormation.value.composante_id
       }
     },
-    type_diplome: {
-      connect: {
-        id: currentFormation.value.type_diplome_id
-      }
-    } // ,
+    type_diplome_to_connect: currentFormation.value.type_diplome_id
     // parcours: {
     //     createMany: {
     //         data: parcoursData.parcoursToCreate
     //     }
     // }
   }
+  console.log(currentFormation.value)
   formationStore.updateFormation(formationToUpdate)
 
   currentFormation.value.parcours.forEach((p) => {
     parcoursStore.updateParcours(p)
   })
 
-  console.log('toggled')
   toggleFormationCard()
-  console.log('toggled')
   // Update versions et periodes
 }
 
@@ -715,7 +818,46 @@ const getParcoursData = async (parcours) => {
   }
 }
 
+const analyzeMissingValues = () => {
+  refMissingValues.value = []
+  if (currentFormation.value.libelle === '') {
+    refMissingValues.value.push('libelle_formation')
+  }
+
+  if (currentFormation.value.composante_id === null) {
+    refMissingValues.value.push('composante_formation')
+  }
+
+  if (currentFormation.value.type_diplome_id === null) {
+    refMissingValues.value.push('type_diplome_formation')
+  }
+
+  if (currentFormation.value.duree === null) {
+    refMissingValues.value.push('duree_formation')
+  }
+
+  if (currentFormation.value.duree_unite === null) {
+    refMissingValues.value.push('duree_unite_formation')
+  }
+
+  if (currentFormation.value.noms_des_niveaux.length === 0) {
+    refMissingValues.value.push('niveaux_formation')
+  } else {
+    for (let i = 0; i < currentFormation.value.noms_des_niveaux.length; i++) {
+      if (currentFormation.value.noms_des_niveaux[i] === '') {
+        refMissingValues.value.push(`niveau_${i + 1}_formation`)
+      }
+    }
+  }
+
+  return refMissingValues.value.length === 0
+}
+
 const createFormation = () => {
+  if (!analyzeMissingValues()) {
+    showMissingValuesError()
+    return
+  }
   // Logique pour créer une formation
   const formationToCreate = {
     libelle: currentFormation.value.libelle,
@@ -728,7 +870,9 @@ const createFormation = () => {
     noms_des_niveaux: currentFormation.value.noms_des_niveaux,
     is_regime_fi: currentFormation.value.is_regime_fi,
     is_regime_fc: currentFormation.value.is_regime_fc,
-    noms_des_niveaux: currentFormation.value.noms_des_niveaux ? [...currentFormation.value.noms_des_niveaux] : [],
+    noms_des_niveaux: currentFormation.value.noms_des_niveaux
+      ? [...currentFormation.value.noms_des_niveaux]
+      : [],
     composante: {
       connect: {
         id: currentFormation.value.composante_id
@@ -745,13 +889,6 @@ const createFormation = () => {
       }
     }
   }
-  // for(let parcours of parcoursList.value) {
-  //     formationToCreate.parcours.createMany.data.push(
-  //         {
-  //             libelle: parcours
-  //         }
-  //     )
-  // }
   formationStore.createFormation(formationToCreate).then(() => {
     formationStore.fetchFormation()
     showFormationCard.value = false
@@ -788,7 +925,6 @@ const changeCreditAndHours = () => {
   currentFormation.value.nb_heures_enseignement = typesDiplomes.value.find(
     (t) => t.id === currentFormation.value.type_diplome_id
   ).heures
-  console.log(currentFormation.value)
 }
 </script>
 

@@ -1,10 +1,16 @@
 <template>
   <v-row>
-    <v-col cols="12">
-      <h3 style="font-weight: normal; display: flex; align-items: center; gap: 8px;">
-        <v-icon left >mdi-book-open-variant-outline</v-icon>
+    <v-col cols="10">
+      <h3 style="font-weight: normal; display: inline-block; align-items: center; gap: 8px">
+        <v-icon left>mdi-book-open-variant-outline</v-icon>
         Les apprentissages
       </h3>
+      <div style="display: inline-block; margin-left: 12px">
+        <AideBulles pageAsked="apprentissages-critiques" />
+      </div>
+    </v-col>
+    <v-col cols="2">
+      <ButtonExport pageAsked="AC" />
     </v-col>
   </v-row>
   <v-row>
@@ -38,10 +44,10 @@
               >
                 <v-card-title
                   :style="{
-                  backgroundColor: item.color_hexadecimal,
-                  color: '#222',
-                  paddingTop: '16px',
-                  paddingBottom: '16px'
+                    backgroundColor: item.color_hexadecimal,
+                    color: 'white',
+                    paddingTop: '16px',
+                    paddingBottom: '16px'
                   }"
                 >
                   {{ item.competence_contextualisee || item.libelle }}
@@ -73,7 +79,7 @@
       </v-carousel>
     </v-col>
   </v-row>
-  <v-row style="padding-left: 32px; padding-right: 32px">
+  <v-row style="padding-left: 32px; padding-right: 32px" v-if="competenceStore.competenceSelected">
     <v-col>
       <v-card style="margin-top: 20px; background-color: transparent; box-shadow: none">
         <v-card-title
@@ -87,7 +93,7 @@
             paddingBottom: '20px'
           }"
         >
-          <h3 style="margin: 0; color: #222; font-weight: normal;">
+          <h3 style="margin: 0; color: white; font-weight: normal">
             {{ competenceStore.competenceSelected?.libelle }}
           </h3>
         </v-card-title>
@@ -108,15 +114,28 @@
       </v-card>
     </v-col>
   </v-row>
+  <v-row>
+    <v-col cols="12">
+      <h4>
+        Veuillez ajouter des compétences à l'étape précédente et en sélectionner une dans le
+        carroussel en haut de cette page.
+      </h4>
+    </v-col>
+  </v-row>
 </template>
 
 <script setup>
 import { ref, computed, watch } from 'vue'
-import ContexteEvaluation from './apprentissages/ContexteEvaluation.vue'
 import { useFormationStore } from '@/stores/formationStore'
 import { useParcoursStore } from '@/stores/parcoursStore'
 import { useApprentissageStore } from '@/stores/apprentissageStore'
 import { useCompetenceStore } from '@/stores/competenceStore'
+
+import NiveauApprentissage from '@/views/parcoursFormation/apprentissages/NiveauApprentissage.vue'
+import router from '@/router/router'
+
+import ButtonExport from '@/views/parcoursFormation/exportExcelPDF/ButtonExport.vue'
+import AideBulles from '@/components/AideBulles.vue'
 
 const formationStore = useFormationStore()
 const parcoursStore = useParcoursStore()
@@ -128,16 +147,12 @@ function chunkArray(array, size) {
   for (let i = 0; i < array.length; i += size) {
     chunked.push(array.slice(i, i + size))
   }
-  console.log('chunked', chunked)
   return chunked
 } // Compute chunked competences for the carousel
 const chunkedCompetences = computed(() => {
   if (!competenceStore.competences || !competenceStore.competences.length) return []
   return chunkArray(competenceStore.competences, 2)
 })
-import NiveauApprentissage from '@/views/parcoursFormation/apprentissages/NiveauApprentissage.vue'
-import ArianeParcoursPath from '@/components/ArianeParcoursPath.vue'
-import router from '@/router/router'
 
 const parametre = ref({})
 const heightEntete = ref(0)
@@ -227,14 +242,12 @@ const setNLines = async () => {
       }
     })
   })
-  console.log('highestRank', highestRank)
   nLines.value = highestRank
 }
 
 watch(
   () => competenceStore.competences,
   (newCompetences) => {
-    console.log('watch competences from apprentissages', newCompetences)
     getNiveauSliced()
   }
 )

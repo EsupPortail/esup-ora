@@ -2,6 +2,7 @@ import { fileURLToPath, URL } from 'node:url'
 
 import { defineConfig } from 'vite'
 import vueDevtools from 'vite-plugin-vue-devtools'
+import fs from "fs"
 
 import vue from '@vitejs/plugin-vue'
 import vueJsx from '@vitejs/plugin-vue-jsx'
@@ -11,6 +12,11 @@ import vueJsx from '@vitejs/plugin-vue-jsx'
 // https://vitejs.dev/config/
 export default defineConfig({
   base: '/',
+  define: {
+    __APP_VERSION__: JSON.stringify(
+      fs.readFileSync("/app/app.module.version", "utf8")
+    )
+  },
   server: {
     allowedHosts: ['ora-frontend']
   },

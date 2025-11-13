@@ -14,12 +14,13 @@
         style="height: 40px; margin-bottom: 10px; margin-top: 10px"
         class="d-flex align-center"
       >
-        <v-col cols="6" style="padding-top: 0px; padding-bottom: 0px; height: 40px">
+        <v-col cols="8" style="padding-top: 0px; padding-bottom: 0px; height: 40px">
           <span v-if="idOfEnseignementLibelleIsEdited !== enseignement.id">
             {{ enseignement.libelle }}
           </span>
           <v-text-field
             v-else
+            style="max-width: 600px;"
             @blur="() => updateLibelleOfEnseignement(enseignement)"
             @keyup.enter="updateLibelleOfEnseignement(enseignement)"
             v-model="enseignementLibelleEdited"
@@ -29,7 +30,7 @@
         </v-col>
         <v-col
           cols="2"
-          offset="4"
+          offset="2"
           style="
             padding-top: 0px;
             padding-bottom: 0px;
@@ -41,9 +42,18 @@
         >
           <v-btn
             icon="mdi-pencil"
+            v-if="idOfEnseignementLibelleIsEdited !== enseignement.id"
             size="x-small"
             @click="startEditLibelleOfEnseignement(enseignement)"
           >
+          </v-btn>
+            <v-btn
+            icon="mdi-check"
+            v-else
+            size="x-small"
+            color="success"
+            @click="updateLibelleOfEnseignement(enseignement)"
+            >
           </v-btn>
           <v-btn
             style="margin-left: 8px"
@@ -80,6 +90,7 @@ import { defineProps, computed, ref, watch } from 'vue'
 import { useEnseignementStore } from '@/stores/enseignementStore'
 import { usePeriodeStore } from '@/stores/periodeStore'
 import { useFormationStore } from '@/stores/formationStore'
+import { useEcStore } from '@/stores/elementConstitutifStore'
 
 const props = defineProps({
   periode: Object,
@@ -94,15 +105,15 @@ const enseignementLibelleToAdd = ref('')
 const enseignementsStore = useEnseignementStore()
 const enseignementsList = ref([])
 const formationStore = useFormationStore()
+const ecStore = useEcStore()
 // Get enseignements of parcours with version
 
-const fetchEnseignements = () => {
+const fetchEnseignements = async () => {
   // console.log('fetchEnseignements', props.periode)
   enseignementsStore.fetchEnseignementsOfVersion(props.periode.id).then((d) => {
-    enseignementsList.value = d.sort((a, b) => a.id - b.id)
+    enseignementsList.value = d.sort((a, b) => a.libelle.localeCompare(b.libelle))
   })
 }
-fetchEnseignements()
 const addEnseignement = async () => {
   await enseignementsStore.createEnseignement(
     enseignementLibelleToAdd.value,
@@ -110,7 +121,7 @@ const addEnseignement = async () => {
     formationStore.formationSelected.id
   )
   enseignementLibelleToAdd.value = ''
-  fetchEnseignements()
+  await fetchEnseignements()
   emit('refresh-enseignements')
 }
 
@@ -127,10 +138,21 @@ const handleCheckboxClick = async (type, enseignement) => {
 }
 
 const enseignementLibelleEdited = ref('')
-const updateLibelleOfEnseignement = (enseignement) => {
+const updateLibelleOfEnseignement = async (enseignement) => {
   idOfEnseignementLibelleIsEdited.value = null
   const enseignementUpdated = { ...enseignement, libelle: enseignementLibelleEdited.value }
   enseignementsStore.updateEnseignement(enseignementUpdated)
+  await ecStore.fetchECs()
+  const ecsWithThisEnseignement = ecStore.ecs.filter(
+    (ec) =>
+      ec.enseignement_id === enseignement.id &&
+      ec.version?.id === props.version?.id
+  )
+  if( ecsWithThisEnseignement.length > 0 ) {
+    ecsWithThisEnseignement[0].libelle = enseignementLibelleEdited.value
+    ecStore.updateEC(ecsWithThisEnseignement[0])
+  }
+
   fetchEnseignements()
   emit('refresh-enseignements')
 }
@@ -141,18 +163,31 @@ const startEditLibelleOfEnseignement = (enseignement) => {
 const idOfEnseignementLibelleIsEdited = ref(null)
 const deleteEnseignement = async (enseignement) => {
   // console.log(enseignement)
-  await enseignementsStore.removeEnseignement(enseignement)
+  // On regarde si il existe un ec qui a cet enseignement
+  await ecStore.fetchECs()
+  const ecsWithThisEnseignement = ecStore.ecs.filter(
+    (ec) =>
+      ec.enseignement_id === enseignement.id &&
+      ec.version?.id === props.version?.id
+  )
+  console.log(ecStore.ecs)
+  console.log('ecsWithThisEnseignement', ecsWithThisEnseignement)
+  if( ecsWithThisEnseignement.length > 0 ) {
+    ecStore.removeEC(ecsWithThisEnseignement[0])
+  }
+
+    await enseignementsStore.removeEnseignement(enseignement)
   fetchEnseignements()
   emit('refresh-enseignements')
 }
 
 // watch if periode change
-watch(
-  () => props.periode,
-  () => {
-    fetchEnseignements()
-  }
-)
+
+const initData = async () => {
+  await fetchEnseignements()
+  await ecStore.fetchECs()
+}
+initData();
 // watch(() => enseignementsStore.enseignements, () => {
 //   fetchEnseignements()
 // })

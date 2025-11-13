@@ -1,6 +1,6 @@
 FROM ubuntu:20.04
 
-ARG NODE_VERSION=20.14.0
+ARG NODE_VERSION=24.6.0
 ENV NODE_VERSION=$NODE_VERSION
 
 RUN if [ -f ./deployment-configuration/proxy/.env_proxy ]; then \
@@ -31,6 +31,7 @@ fi
 
 # Partie vuejs3 App
 
+
 # Install Nodejs
 
 WORKDIR /opt
@@ -53,7 +54,12 @@ RUN curl -fsSL https://nodejs.org/dist/v$NODE_VERSION/node-v$NODE_VERSION-linux-
 RUN mkdir /app
 COPY ./ora-frontend/ /app
 
+## Injection des versions
+COPY ./app.module.version /app
+
 WORKDIR /app
+
+
 RUN rm -f /app/package-lock.json
 RUN npm install
 RUN npm run build

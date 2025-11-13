@@ -1,54 +1,85 @@
 <template>
-  <v-layout >
+  <v-layout>
     <ToolbarLayout @toggleDrawer="toggleDrawer" />
-
     <DrawerMenuLayout drawer="drawer" />
     <v-main
       ref="content"
       class="align-center justify-center"
       style="background: #f1f1f1 0% 0% no-repeat padding-box; opacity: 1"
     >
-            <ArianeParcoursPath v-if="$route.meta.showAriane === true" />
-              <v-container
-            :style="{
-              width: '100%',
-              paddingLeft: '30px',
-              paddingRight: '30px',
-              maxWidth: width + 'px'
-            }"
-            class="r-view align-center justify-center"
-          >
-            <PopUpInformation
-              v-if="popUpStore.popUpData && popUpStore.popUpData.isVisible"
-              class="popup-information"
-              :message="popUpStore.popUpData.message"
-              :type="popUpStore.popUpData.type"
-            />
-            <router-view />
-          </v-container>
+      <ArianeParcoursPath v-if="$route.meta.showAriane === true" />
+      <v-container
+        :style="{
+          width: '100%',
+          paddingLeft: '30px',
+          paddingRight: '30px',
+          maxWidth: width + 'px'
+        }"
+        class="r-view align-center justify-center"
+      >
+        <PopUpInformation
+          v-if="popUpStore.popUpData && popUpStore.popUpData.isVisible"
+          class="popup-information"
+          :message="popUpStore.popUpData.message"
+          :type="popUpStore.popUpData.type"
+        />
+        <router-view />
+      </v-container>
     </v-main>
   </v-layout>
 </template>
 
 <script setup>
+import { ref, onMounted, nextTick } from 'vue'
+
+import axios from 'axios'
+
+import { config as env } from './environment/environment'
+
+import { useAppStore } from '@/stores/appStore'
+import { useFormationStore } from '@/stores/formationStore'
+import { useElementSize } from '@vueuse/core'
+import { useSocketStore } from './stores/socketStore'
+import { usePopUpStore } from '@/stores/popUp/PopUpStoreImplementation'
+import { useConnectionStore } from './stores/connectionStore'
+
 import ToolbarLayout from '@/layout/ToolbarLayout.vue'
 import FooterLayout from '@/layout/FooterLayout.vue'
 import DrawerMenuLayout from '@/layout/DrawerMenuLayout.vue'
-import { useAppStore } from '@/stores/appStore'
 import PopUpInformation from '@/helpers/PopUpInformation.vue'
-import { usePopUpStore } from '@/stores/popUp/PopUpStoreImplementation'
-import axios from 'axios'
-import { useFormationStore } from '@/stores/formationStore'
-import { ref, onMounted, nextTick } from 'vue'
-import { useElementSize } from '@vueuse/core'
-import { useConnectionStore } from './stores/connectionStore'
-import { config as env } from './environment/environment'
-import { useSocketStore } from './stores/socketStore'
 import ArianeParcoursPath from '@/components/ArianeParcoursPath.vue'
+
 const appStore = useAppStore()
 const connectionStore = useConnectionStore()
 const formationStore = useFormationStore()
 const socketStore = useSocketStore()
+
+onMounted(async () => {
+  await nextTick()
+  try {
+    const response = await axios.get(`${env.backend.url}/auth/me`, {
+      withCredentials: true,
+      headers: {
+        Authorization: `Bearer ${connectionStore.token.access_token}`
+      }
+    })
+
+    if (response.status === 419) {
+      connectionStore.logout()
+    }
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      console.error('Axios error:', error.response?.status, error.message)
+
+      if (error.response?.status === 419) {
+        connectionStore.logout()
+      }
+    } else {
+      console.error('Unexpected error:', error)
+    }
+  }
+})
+
 axios.interceptors.request.use(
   async (config) => {
     try {
@@ -89,7 +120,6 @@ axios.interceptors.request.use(
     }
 
     if (socketStore.isConnected === false && localStorage.getItem('roomId') !== null) {
-      console.log('Reloading socket')
       await socketStore.connect(
         localStorage.getItem('roomId'),
         connectionStore.user.givenname,
@@ -114,7 +144,6 @@ const toggleDrawer = () => {
 
 <style scoped>
 .r-view {
-  /* Pour que le footer reste en bas en cas de page vide */
   min-height: calc(100vh - 64px);
 }
 

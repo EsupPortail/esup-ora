@@ -8,6 +8,10 @@
                 <p class="message">{{ message }}</p>
                 <span class="close-btn" @click="closePopup">&times;</span>
             </div>
+            <!-- Barre de progression -->
+            <div class="progress-bar">
+                <div class="progress" :style="{ width: progressWidth + '%' }"></div>
+            </div>
         </div>
     </transition>
 </template>
@@ -17,92 +21,88 @@ import { ref, computed, onMounted, onUnmounted } from 'vue';
 import PropTypes from 'vue-types';
 import { usePopUpStore } from '@/stores/popUp/PopUpStoreImplementation';
 
-// Définition des props avec validation
 const props = defineProps({
     message: PropTypes.string.isRequired,
     type: PropTypes.oneOf(['INFO', 'ERROR', 'WARNING', 'SUCCESS']).isRequired
 });
 
-// Initialisation du store
 const popUpStore = usePopUpStore();
 
-// État de visibilité du popup
 const isVisible = ref(true);
 
-// Calcul de la classe CSS en fonction du type de popup
+// Durée totale
+const totalTime = 6000;
+let timerId = null;
+let remainingTime = totalTime;
+let startTime = null;
+
 const typeClass = computed(() => {
     switch (props.type) {
-        case 'INFO':
-            return 'popup-info';
-        case 'SUCCESS':
-            return 'popup-success';
-        case 'ERROR':
-            return 'popup-error';
-        case 'WARNING':
-            return 'popup-warning';
-        default:
-            return '';
+        case 'INFO': return 'popup-info';
+        case 'SUCCESS': return 'popup-success';
+        case 'ERROR': return 'popup-error';
+        case 'WARNING': return 'popup-warning';
+        default: return '';
     }
 });
 
-// Calcul de la classe de l'icône en fonction du type
 const iconClass = computed(() => {
     switch (props.type) {
-        case 'INFO':
-            return 'fas fa-info-circle';
-        case 'SUCCESS':
-            return 'fas fa-check-circle';
-        case 'ERROR':
-            return 'fas fa-exclamation-circle';
-        case 'WARNING':
-            return 'fas fa-exclamation-triangle';
-        default:
-            return '';
+        case 'INFO': return 'fas fa-info-circle';
+        case 'SUCCESS': return 'fas fa-check-circle';
+        case 'ERROR': return 'fas fa-exclamation-circle';
+        case 'WARNING': return 'fas fa-exclamation-triangle';
+        default: return '';
     }
 });
 
-// Méthode pour fermer le popup
 const closePopup = () => {
     isVisible.value = false;
     popUpStore.close();
 };
 
-// Référence pour stocker l'ID du timer
-let timerId = null;
-let remainingTime = 4000;
-let startTime = null;
+// Progression (%)
+const progressWidth = ref(100);
+let progressInterval = null;
 
-// Fonction pour démarrer le timer
+const updateProgress = () => {
+    progressWidth.value = (remainingTime / totalTime) * 100;
+};
+
+// Timer principal
 const startTimer = () => {
     startTime = Date.now();
     timerId = setTimeout(() => {
         closePopup();
     }, remainingTime);
+
+    // Mise à jour de la barre toutes les 50ms
+    progressInterval = setInterval(() => {
+        const elapsed = Date.now() - startTime;
+        progressWidth.value = ((remainingTime - elapsed) / totalTime) * 100;
+    }, 50);
 };
 
-// Fonction pour mettre en pause le timer
 const pauseTimer = () => {
     clearTimeout(timerId);
+    clearInterval(progressInterval);
     remainingTime -= Date.now() - startTime;
 };
 
-// Fonction pour reprendre le timer
 const resumeTimer = () => {
     startTimer();
 };
 
-// Configuration du timer pour fermer le popup après 4 secondes
 onMounted(() => {
     startTimer();
 });
 
-// Nettoyage du timer si le composant est détruit avant la fin du délai
 onUnmounted(() => {
-    if (timerId) {
-        clearTimeout(timerId);
-    }
+    clearTimeout(timerId);
+    clearInterval(progressInterval);
 });
 </script>
+
 <style scoped>
 @import url('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css');
 
@@ -117,7 +117,7 @@ onUnmounted(() => {
     box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
     z-index: 1000;
     display: flex;
-    align-items: center;
+    flex-direction: column;
     opacity: 0;
     transform: translateY(-20px);
 }
@@ -125,6 +125,8 @@ onUnmounted(() => {
 .popup-content {
     display: flex;
     align-items: center;
+    padding-left: 12px;
+    padding-right: 12px;
     width: 100%;
     position: relative;
 }
@@ -151,6 +153,23 @@ onUnmounted(() => {
 
 .close-btn:hover {
     color: #000;
+}
+
+/* Progress bar */
+.progress-bar {
+    position: relative;
+    width: 100%;
+    height: 4px;
+    border-radius: 2px;
+    background: rgba(255,255,255,0.3);
+    overflow: hidden;
+    margin-top: 10px;
+}
+
+.progress {
+    height: 100%;
+    background: rgba(255,255,255,0.8);
+    transition: width 0.05s linear;
 }
 
 /* Types de popup */

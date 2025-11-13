@@ -12,8 +12,6 @@
 </template>
 
 <script setup>
-import {mockUpUsers} from './mockUpUsers.js';
-import {mockUpRoles} from '../rolesAdministration/mockUpRoles.js';
 
 const headers = [
     { text: 'ID', value: 'id' },
@@ -21,6 +19,4 @@ const headers = [
     { text: 'Name', value: 'name' },
     { text: 'Affectation de rôle', value: 'role' }
 ];
-const users = mockUpUsers;
-const roles = mockUpRoles.roles;
 </script>

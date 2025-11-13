@@ -26,9 +26,14 @@ export const useFormationStore = defineStore('formation', {
           include: {
             parcours: true,
             version: true,
+            type_diplome: true,
             composante: {
               include: {
-                parametre: true
+                parametre: {
+                  include: {
+                    tags: true
+                  }
+                }
               }
             }
           }
@@ -82,10 +87,10 @@ export const useFormationStore = defineStore('formation', {
         })
     },
     updateFormation(formation: any) {
-      return new Promise( async (resolve, reject) => {
-        
-        let currentFormation = {} as any; 
-        await this.fetchOneFormationFromId(formation.id).then( d => {
+      return new Promise(async (resolve, reject) => {
+
+        let currentFormation = {} as any;
+        await this.fetchOneFormationFromId(formation.id).then(d => {
           currentFormation = d;
         })
         if (currentFormation.composante?.id !== formation.composante?.id) {
@@ -100,10 +105,13 @@ export const useFormationStore = defineStore('formation', {
             }
           };
         }
-
-        if (currentFormation.type_diplome?.id !== formation.type_diplome?.id) {
-          let idTmp = formation.type_diplome?.id;
+        console.log(formation)
+        console.log('currentFormation.type_diplome?.id', currentFormation.type_diplome?.id);
+        console.log('formation.type_diplome?.id', formation.type_diplome_to_connect);
+        if (currentFormation.type_diplome?.id !== formation.type_diplome_to_connect && formation.type_diplome_to_connect !== undefined) {
+          let idTmp = formation.type_diplome_to_connect;
           delete formation.type_diplome;
+          delete formation.type_diplome_to_connect;
           formation.type_diplome = {
             disconnect: {
               id: currentFormation.type_diplome?.id
@@ -112,24 +120,26 @@ export const useFormationStore = defineStore('formation', {
               id: idTmp
             }
           };
+        } else {
+          delete formation.type_diplome_to_connect;
+          delete formation.type_diplome;
         }
-        console.log(formation)
         delete formation.composante_id;
-        delete formation.type_diplome_id;
-        delete formation.diplome_id;
         delete formation.version;
         delete formation.composante;
-        
+
+
         this.update(this.entity, formation)
           .then(async (res) => {
             const updated = res.data
             this.fetchOneFormationFromId(updated.id)
+            console.log('updated formation', updated);
             resolve(updated);
           })
           .catch((err) => {
             reject(err)
           })
-        })
+      })
     },
     deleteFormation(formation: any) {
       this.delete(this.entity, formation)
@@ -140,30 +150,40 @@ export const useFormationStore = defineStore('formation', {
         })
     },
     fetchFormation() {
-      this.getCollection(this.entity, {
-        include: {
-          parcours: true,
-          version: true,
-          composante: { 
-            include: {
-              parametre: true
+      return new Promise(async (resolve, reject) => {
+
+        this.getCollection(this.entity, {
+          include: {
+            parcours: true,
+            version: true,
+            type_diplome: true,
+            composante: {
+              include: {
+                parametre: {
+                  include: {
+                    tags: true
+                  }
+                }
+              }
             }
           }
-        }
+        })
+          .then((res) => {
+            this.formations = [...res.data]
+            resolve(res.data)
+          })
+          .catch((err) => {
+            reject(err)
+          })
       })
-        .then((res) => {
-          this.formations = res.data
-        })
-        .catch((err) => {
-        })
     },
     fetchMutualisedBCCForVersion(versionId: string) {
       return new Promise((resolve, reject) => {
         this.get('version', versionId, {
-            include: {
-              importation_mutualisation_bcc: true,
-            }
-          })
+          include: {
+            importation_mutualisation_bcc: true,
+          }
+        })
           .then((res) => {
             resolve(res.data)
           })

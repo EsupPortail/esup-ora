@@ -20,7 +20,7 @@ export function isPrismaEntity(entity: string): boolean {
 export function getEntity(model: any, reqParams: getParamsOfRequestResponse): Promise<any> {
     return new Promise((resolve, reject) => {
         let include = {};
-        if(reqParams.getParams) {
+        if (reqParams.getParams) {
             const paramObject = Parser.transformObject(reqParams.getParams)
             if (paramObject.include) {
                 include = paramObject.include;
@@ -35,10 +35,10 @@ export function getEntity(model: any, reqParams: getParamsOfRequestResponse): Pr
         }).then((data: any) => {
             resolve(data)
         })
-        .catch((error: any) => {
-            reject(error)
-        })
-        
+            .catch((error: any) => {
+                reject(error)
+            })
+
     })
 }
 
@@ -50,12 +50,12 @@ export function getEntityCollection(model: any, reqParams: getParamsOfRequestRes
         } as any
         const paramObject = Parser.transformObject(reqParams.getParams)
         // console.log(JSON.stringify(Parser.transformObject(reqParams.getParams)))
-        if(Object.keys(reqParams.getParams).length > 0) {
-            for(const param in reqParams.getParams) {
-                if(param.includes('where')) {
+        if (Object.keys(reqParams.getParams).length > 0) {
+            for (const param in reqParams.getParams) {
+                if (param.includes('where')) {
                     opt.where = paramObject.where ?? {}
                 }
-                if(param.includes('include')){
+                if (param.includes('include')) {
                     opt.include = paramObject.include ?? {}
                     // const includes = param.split('[')[1].split(']')[0]
                     // opt.include[includes] = (reqParams.getParams[param] === "true") ? true : false
@@ -69,20 +69,29 @@ export function getEntityCollection(model: any, reqParams: getParamsOfRequestRes
         model.findMany(opt).then((data: any) => {
             resolve(data)
         })
-        .catch((error: any) => {
-            reject(error)
-        })
+            .catch((error: any) => {
+                reject(error)
+            })
     })
 }
 
-export function createEntity(model: any, reqParams: getParamsOfRequestResponse): Promise<any> {
-    return model.create({ data: reqParams.postParams })
+export async function createEntity(model: any, reqParams: getParamsOfRequestResponse): Promise<any> {
+    try {
+        return await model.create({ data: reqParams.postParams });
+    } catch (error: any) {
+        if (error.code === 'P2002') {
+            throw new Error(
+                'Un élément constitutif pour cet enseignement existe déjà dans cette période.'
+            );
+        }
+        throw error;
+    }
 }
 
 export function updateEntity(model: any, reqParams: getParamsOfRequestResponse): Promise<any> {
     // remove id from postParams
     delete reqParams.postParams.id;
-    
+
     return model.update({
         where: {
             id: parseInt(reqParams.urlParams[0])
@@ -92,12 +101,12 @@ export function updateEntity(model: any, reqParams: getParamsOfRequestResponse):
 }
 
 export function deleteEntity(model: any, reqParams: getParamsOfRequestResponse): Promise<any> {
-    
+
     // if model has a property deleted_at, we archive the entity instead of deleting it
     console.log(isFieldExist(model, 'deleted_at'))
     if (isFieldExist(model, 'deleted_at')) {
         return archiveEntity(model, reqParams);
-    }else {
+    } else {
         return model.delete({
             where: {
                 id: parseInt(reqParams.urlParams[0])
@@ -108,15 +117,15 @@ export function deleteEntity(model: any, reqParams: getParamsOfRequestResponse):
 
 // Do we need it ?
 export function archiveEntity(model: any, reqParams: getParamsOfRequestResponse): Promise<any> {
-        return model.update({
-            where: {
-                id: parseInt(reqParams.urlParams[0])
-            },
-            data: {
-                // What property should be updated to archive the entity?
-                deleted_at: new Date()
-            }
-        })
+    return model.update({
+        where: {
+            id: parseInt(reqParams.urlParams[0])
+        },
+        data: {
+            // What property should be updated to archive the entity?
+            deleted_at: new Date()
+        }
+    })
 }
 
 function isFieldExist(model: any, fieldToFind: string): boolean {
@@ -160,11 +169,11 @@ function normalizeProperties(reqParams: getParamsOfRequestResponse): Record<stri
 
 // Custom handler for Prisma errors ?
 function handlePrismaError(error: any, req: Request, res: Response, next: NextFunction) {
-    logger.error(`Prisma`,error);
+    logger.error(`Prisma`, error);
     res.status(400).json({
         timestamp: time(),
         message: error.message,
-        error: error 
+        error: error
     });
 }
 

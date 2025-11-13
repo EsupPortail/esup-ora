@@ -43,26 +43,6 @@
           ></v-btn>
         </v-col>
       </v-row>
-      <v-row class="align-center" style="margin-top: 16px;">
-        <v-col cols="2">
-          <span style="color: #707070; font-size: 15px;">Parcours</span>
-        </v-col>
-        <v-col>
-            <v-select
-            v-model="selectedParcoursIds"
-            :items="refParcours"
-            item-title="libelle"
-            item-value="id"
-            label="Sélectionner des parcours"
-            multiple
-            @update:menu="updateNiveau"
-            chips
-            clearable
-            variant="outlined"
-            density="compact"
-            ></v-select>
-        </v-col>
-      </v-row>
     </v-card-title>
     <v-card-text>
       <v-data-table :items="refNiveau.apprentissage_critique" :headers="headers" hide-default-footer>
@@ -134,7 +114,6 @@ import { ref, defineProps, nextTick, watch, onMounted, onBeforeMount, computed }
 import { useApprentissageStore } from '@/stores/apprentissageStore'
 import { useFormationStore } from '@/stores/formationStore';
 import { useParcoursStore } from '@/stores/parcoursStore';
-import { data } from '@/mocks/data';
 const apprentissageStore = useApprentissageStore();
 const formationStore = useFormationStore();
 const parcoursStore = useParcoursStore();
@@ -159,7 +138,6 @@ const init = async () => {
   await apprentissageStore.fetchNiveauById( props.niveau.id ).then(d => {
     refNiveau.value = d;
   })
-  console.log( refNiveau.value );
 }
 onBeforeMount( async () => {
   await init()
@@ -319,14 +297,11 @@ const updateNiveau = async (open) => {
   }
 
   const niveau = refNiveau.value;
-  console.log(refNiveau.value);
   let parcours = [];
   await apprentissageStore.fetchNiveauById(refNiveau.value.id).then((data) => {
-    console.log(data)
     parcours = data.parcours.map(p => { return { id: p.id } });
 
   });
-  console.log(parcours);
   const parcoursToConnect = refNiveau.value.parcours.map(p => { return { id: p.id } });
   const parcoursToDisconnect = parcours.filter(p1 =>
     !parcoursToConnect.some(p2 => p2.id === p1.id)

@@ -9,7 +9,7 @@ services:
     environment:
       DEPLOYMENT_MODE: ${DEPLOYMENT_MODE:-development}
       SERVER_NAME: ${SERVER_NAME:-localhost}
-      BACKEND_URL: ${BACKEND_URL:-ora_backend}
+      BACKEND_URL: ${BACKEND_URL:-ora-backend}
       BACKEND_PORT: ${BACKEND_PORT:-1111}
       FRONTEND_URL: ${FRONTEND_URL:-ora_frontend}
       FRONTEND_PORT: ${FRONTEND_PORT:-5173}
@@ -38,6 +38,7 @@ services:
     ports:
       - 817:80 
     volumes:
+      - ./app.module.version:/app/app.module.version
       - ./deployment-configuration/service/local-supervisord.conf:/supervisord.conf
       - ./deployment-configuration/service/local-000-default.conf:/etc/apache2/sites-available/000-default.conf
       - ./deployment-configuration/service/local-default-ssl.conf:/etc/apache2/sites-available/default-ssl.conf
@@ -89,6 +90,7 @@ services:
       - 5173:5173
     volumes:
       # - ./application-data/localhost-src:/localhostsrc
+      - ./app.module.version:/app/app.module.version
       - ./ora-frontend:/app
       - ./.env:/.env
 

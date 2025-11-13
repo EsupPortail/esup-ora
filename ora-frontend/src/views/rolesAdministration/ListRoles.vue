@@ -16,14 +16,9 @@
 </template>
 
 <script setup>
-import { mockUpRoles } from './mockUpRoles.js';
-import { mockUpUsers } from '../usersAdministration/mockUpUsers.js';
-
 import {usePopUpStore} from '@/stores/popUp/PopUpStoreImplementation';
 
 const popUpStore = usePopUpStore();
-const roles = mockUpRoles.roles;
-const users = mockUpUsers;
 
 const headers = [
     { text: 'ID', value: 'id' },

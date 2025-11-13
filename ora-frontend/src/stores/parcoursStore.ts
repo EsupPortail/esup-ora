@@ -94,6 +94,22 @@ export const useParcoursStore = defineStore('parcours', {
           })
       })
     },
+    fetchVersions(){
+      return new Promise((resolve, reject) => {
+        this.getCollection('version', {
+          include: {
+            formation: true
+          }
+        })
+          .then((res) => {
+            this.versions = [...res.data]
+            resolve(res.data)
+          })
+          .catch((err) => {
+            reject(err)
+          })
+      })    
+    },
     fetchVersionById(versionId: string) {
       return new Promise((resolve, reject) => {
         this.get('version', versionId)

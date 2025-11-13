@@ -16,10 +16,10 @@
         </v-row>
       </v-card-text>
 
-      <v-card-text v-else style="padding-top: 2px;">
+      <v-card-text v-else style="padding-top: 2px">
         <v-form @submit.prevent="login" style="padding-left: 4px; padding-right: 4px">
           <v-row style="margin-top: 4px; margin-bottom: 0px">
-            <v-col style="padding: 6px 10px 0px 10px !important;" cols="12">
+            <v-col style="padding: 6px 10px 0px 10px !important" cols="12">
               <v-text-field
                 v-model="localCredentials.username"
                 label="Nom d'utilisateur"
@@ -45,9 +45,14 @@
               ></v-text-field>
             </v-col>
           </v-row>
-          <v-row style="margin-top: 0px;">
+          <v-row style="margin-top: 0px">
             <v-col col="6" offset="2">
-                <v-btn type="submit" color="primary" :loading="loadingLogin" :style="{ width: loadingLogin || resultError ? '282px' : '' }">
+              <v-btn
+                type="submit"
+                color="primary"
+                :loading="loadingLogin"
+                :style="{ width: loadingLogin || resultError ? '282px' : '' }"
+              >
                 <template v-slot:loader>
                   <v-progress-circular
                     v-if="loadingLogin"
@@ -72,14 +77,8 @@
 </template>
 
 <script>
-import { postApiRequest } from '../helpers/api/post'
-import { backendRoutes } from '../environment/backendRoutes'
-import { config } from '../environment/environment'
 import { useAuthenticationStore } from '../stores/accessSecurity/AuthenticationStoreImplementation'
-import { paths } from '../router/routesEnumeration'
-import { navigateTo } from '../router/router'
 import { usePopUpStore } from '@/stores/popUp/PopUpStoreImplementation'
-import { computed } from 'vue'
 import { useConnectionStore } from '@/stores/connectionStore'
 
 export default {

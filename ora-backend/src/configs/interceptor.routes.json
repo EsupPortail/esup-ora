@@ -8,7 +8,6 @@
         "/@id/",
         "/@vite/",
         "/login",
-        "/home",
         "/favicon.ico"
     ]
 }
