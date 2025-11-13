@@ -7,6 +7,8 @@ import { useFormationStore } from './formationStore'
 import { useCompetenceStore } from './competenceStore'
 import { useApprentissageStore } from './apprentissageStore'
 import { useEnseignementStore } from './enseignementStore'
+import { usePeriodeStore } from './periodeStore'
+import { useEcStore } from './elementConstitutifStore'
 
 export const useSocketStore = defineStore('socket', {
   state: () => ({
@@ -31,13 +33,8 @@ export const useSocketStore = defineStore('socket', {
         firstname: firstname,
         lastname: lastName
       })
-      console.log(localStorage.getItem('roomId'))
-      console.log(formationId)
       localStorage.setItem('roomId', formationId)
-      console.log('User connected to room:', formationId)
-      console.log(localStorage.getItem('roomId'))
       await this.getRoomUserCount(localStorage.getItem('roomId') as string).then((result: any) => {
-        console.log(result)
         this.nbUsersInRoom = result.count
         this.usersInRoom = result.usersConnected
       })
@@ -46,14 +43,12 @@ export const useSocketStore = defineStore('socket', {
       this.socket?.on('room-notification', async (data) => {
         await this.getRoomUserCount(localStorage.getItem('roomId') as string).then(
           (result: any) => {
-            console.log(result)
             this.nbUsersInRoom = result.count
             this.usersInRoom = result.usersConnected
           }
         )
       })
       this.socket?.on('user-left', ({ firstname, lastname }) => {
-        console.log(`User left: ${firstname} ${lastname}`)
 
         // Rafraîchir la liste
         const roomId = localStorage.getItem('roomId') as string
@@ -65,9 +60,7 @@ export const useSocketStore = defineStore('socket', {
         })
       })
       this.socket?.on('need-refresh', (data) => {
-        console.log(data);
         if( data.datamodel_element === 'competence') {
-          console.log('receive need-refresh for competence')
           const competenceStore = useCompetenceStore()
           competenceStore.fetchCompetenceForSelectedVersion()
         } else if (data.datamodel_element === 'apprentissage_critique') {
@@ -76,13 +69,21 @@ export const useSocketStore = defineStore('socket', {
         } else if( data.datamodel_element === 'enseignement') {
           const enseignementStore = useEnseignementStore()
           enseignementStore.fetchEnseignements()
+          const periodeStore = usePeriodeStore()
+          periodeStore.fetchPeriodes()
+        } else if ( data.datamodel_element === 'periodes') {
+          const periodeStore = usePeriodeStore()
+          periodeStore.fetchPeriodes()
+        } else if( data.datamodel_element === 'element_constitutif') {
+          const ecStore = useEcStore()
+          ecStore.fetchECs()
+          const periodeStore = usePeriodeStore()
+          periodeStore.fetchPeriodes()
         }
       })
     },
     notifyChange(element: string) {
-      console.log(this.socket)
       if (this.socket === null) return -1
-      console.log('contacting hote on... ', element)
       
       this.socket.emit('notify-change-on-datamodel', { elementToNotify: element })
     },

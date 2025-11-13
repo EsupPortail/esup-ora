@@ -13,13 +13,34 @@
         <v-list style="margin-top: 20px">
           <v-list-item v-for="(version, index) in versionList" :key="index">
             <v-row>
-            <v-col cols="2">
+            <v-col cols="2" style="padding: 20px;">
               <span>Version : </span>
             </v-col>
-            <v-col cols="6">
-              <span>{{ version.libelle }}</span>
+            <v-col cols="4" style="padding: 20px;">
+              <template v-if="libChangeVersion != version.id">
+                <span>{{ version.libelle }}</span>
+                    <v-icon size="small" @click="libChangeVersion = version.id" style="padding-left: 16px;"
+                        >mdi-pencil</v-icon
+                      >
+                </template>
+                <template v-else>
+                  <v-row style="margin: 0; padding: 0">
+                    <v-col cols="10" style="margin: 0; padding: 0">
+                      <v-text-field
+                        @keyup.enter="changeLibelle(version)"
+                        v-model="version.libelle"
+                        label="Libelle"
+                        variant="outlined"
+                        density="compact"
+                      ></v-text-field>
+                    </v-col>
+                    <v-col cols="2" style="margin: 0; padding: 0; padding-left: 16px;">
+                      <v-btn icon="mdi-check" size="small" @click="changeLibelle(version)"></v-btn>
+                    </v-col>
+                  </v-row>
+                </template>
             </v-col>
-            <v-col cols="4">
+            <v-col cols="4" style="padding: 20px;">
               <v-btn
                 @click="selectVersion(version)"
                 style="background-color: #1E88E5; margin-left: 10px; color: white"
@@ -66,11 +87,18 @@ const parcours = ref()
 const formation = ref()
 const versionList = ref([])
 
+const formationStore = useFormationStore()
 const parcoursStore = useParcoursStore()
 const periodesStore = usePeriodeStore()
-const formationStore = useFormationStore()
 
 const newVersion = ref('')
+
+const libChangeVersion = ref(false)
+
+const changeLibelle = async (version) => {
+  await formationStore.updateVersion(version)
+  libChangeVersion.value = false
+}
 
 // const fetchingParcours = async () => {
 //   await parcoursStore.fetchParcours()

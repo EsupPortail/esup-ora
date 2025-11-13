@@ -1,449 +1,261 @@
 <template>
-  <PageInDev />
-  <RecursivTree :items="items" :root="true" />
-    <v-row>
-        <v-col cols="6">
-            <v-row align="center">
-                <v-col cols="auto">
-                    <v-icon size="36">mdi-chart-box-outline</v-icon>
-                </v-col>
-                <v-col>
-                    <h3 style="display: inline-block; vertical-align: middle; margin-left: 8px;">Maquette</h3>
-                </v-col>
-                <v-col cols="auto">
-                    <v-btn-toggle v-model="selectedView" mandatory>
-                        <v-btn value="semestre">Vue en semestre</v-btn>
-                        <v-btn value="bcc">Vue en bloc de connaissances et de compétences</v-btn>
-                    </v-btn-toggle>
-                </v-col>
-            </v-row>
+  <!-- <PageInDev /> -->
+  <v-row>
+    <v-col cols="8">
+      <v-row align="center">
+        <v-col cols="auto">
+          <v-icon size="36">mdi-chart-box-outline</v-icon>
         </v-col>
-        <v-col offset="4" cols="2">
-            <v-btn color="secondary" @click="exporter">
-                Exporter
-            </v-btn>
-        </v-col>
-    </v-row>
-    <v-row>
-        <v-col cols="6">
-            <template v-if="periodeStore.getPeriodesByVersion !== 0">
-            <v-card v-for="periode in periodeStore.getPeriodesByVersion" :key="periode.id" class="mb-4">
-                <v-card-title>
-                    {{ periode.libelle }}
-                </v-card-title>
-                <v-card-text>
-                    <v-list>
-                        <v-list-item
-                            v-for="(competence, index) in competenceStore.getCompetenceByVersion(parcoursStore.versionSelected.id)"
-                            :key="index"
-                        >
-                            {{ parametre.semantique_competence || 'Compétence' }} {{ index + 1 }} : {{ competence.competence_contextualisee || competence.libelle }}
-                        </v-list-item>
-                    </v-list>
-                </v-card-text>
-            </v-card>
-
-            </template>
-        </v-col>
-        <v-col cols="6">
-        </v-col>
-    </v-row>
-  <v-row
-    v-if="competenceStore.getCompetenceByVersion(parcoursStore.versionSelected.id).length !== 0"
-  >
-    <v-col cols="12">
-      <v-row>
-          <v-col cols="8">
-            <h1>{{ parametre.semantique_bcc || 'Bloc de connaissances et de compétences' }}</h1>
-          </v-col>
-          <v-col offset="2" cols="2" justify="end">
-            <v-btn @click="nextStep" color="primary">Etape suivante</v-btn>
-          </v-col>
-
-      </v-row>
-      <v-row>
-        <v-col cols="7" class="ml-10">
-
-          <div v-for="bloc in bccsList" :key="bloc.id">
-            <div style="margin-top: 14px; box-shadow: 10px 20px 70px rgba(0, 0, 0, 0.1)">
-              <BCC
-                :bloc="bloc"
-                :myId="bloc.id"
-                :parametre="parametre"
-                :blocSelectedId="blocSelectedId"
-                :competences="
-                  competenceStore.getCompetenceByVersion(parcoursStore.versionSelected.id)
-                "
-                :parcours="parcoursStore.parcours"
-                :apprentissages="apprentissageStore.apprentissages"
-                :periodes="periodeStore.getPeriodesByVersion"
-                :tags="tagStore.tags"
-                @deleteItem="removeItem"
-                @setStateOverlay="setStateOverlay"
-                class="card-3d"
-                :recapBccExpanded="recapBccExpanded"
-                @recapBccExpanded="recapBccExpandedFunction"
-                @updateBcc="updateBcc"
-                @addEcToBcc="addEcToBcc"
-                :refreshAskedId="refBccRefresh"
-                :resetRefresh="resetRefresh"
-                :resetBCCListRefresh="resetBCCListRefresh"
-                :isImported="bloc.isBCCImported"
-              />
-            </div>
+        <v-col cols="auto">
+          <h3 style="display: inline-block; vertical-align: middle; margin-left: 8px">Maquette</h3>
+          <div style="display: inline-block; margin-left: 12px">
+            <AideBulles pageAsked="maquette" />
           </div>
-          <v-row align="center">
-            <v-col cols="7">
-              <v-text-field
-                style="margin-top: 26px"
-                variant="outlined"
-                density="compact"
-                :label="'Libellé du nouveau ' + parametre.semantique_bcc || 'bcc'"
-                v-model="currentNewBccLabel"
-                @keyup.enter="addNewBCC"
-              />
-            </v-col>
-            <v-col>
-              <v-btn :loading="loaderCreateBCC" @click="addNewBCC" color="green">
-                <template v-slot:loader>
-                  <v-progress-circular
-                    v-if="loaderCreateBCC"
-                    indeterminate
-                    color="white"
-                  ></v-progress-circular>
-                </template>
-                <template v-slot:default>
-                  <v-icon left>mdi-plus</v-icon>
-                </template>
-              </v-btn>
-            </v-col>
-            <v-col>
-              <v-btn color="info" @click="overlayActiveBCC = !overlayActiveBCC">
-                Importer un BCC
-              </v-btn>
-            </v-col>
-          </v-row>
         </v-col>
-        <v-col cols="4" class="ml-10">
-          <SommeBCC
-            v-if="blocSelectedId"
-            :bloc="bccStore.getBccById(blocSelectedId)"
-            @recapBccClose="close"
-          />
+        <v-col cols="auto">
+          <v-btn-toggle v-model="selectedView" mandatory>
+            <v-btn value="semestre">Vue en semestre</v-btn>
+            <v-btn value="bcc">Vue en bloc de connaissances et de compétences</v-btn>
+          </v-btn-toggle>
         </v-col>
       </v-row>
     </v-col>
-  </v-row>
-  <v-row v-else>
-    <v-col cols="12">
-      <h3>
-        Veuillez d'abord compléter les éléments précédents tels que les compétences, apprentissages
-        critiques, etc.
-      </h3>
+    <v-col offset="2" cols="2">
+      <ButtonExport pageAsked="Maquette" />
     </v-col>
   </v-row>
-  <v-overlay
-    v-model="overlayActive"
-    class="d-flex justify-center align-center"
-    style="height: 100vh"
+  <v-container
+    style="
+      border-radius: 15px;
+      margin-top: 40px;
+      padding: 26px 30px;
+      width: 100%;
+      background-color: #fcfcfc;
+      max-width: none !important;
+    "
   >
-    <v-container>
-      <ECImport :bccId="overlayOfBCCid" />
-    </v-container>
-  </v-overlay>
-  <v-overlay
-    v-model="overlayActiveBCC"
-    class="d-flex justify-center align-center"
-    style="height: 100vh"
-  >
-    <v-container>
-      <BCCImport />
-    </v-container>
-  </v-overlay>
+    <v-row>
+      <v-col cols="6">
+        <template v-if="selectedView === 'semestre'">
+          <MaquetteTreeView
+            :isSemestre="true"
+            v-model:selectedData="refDataEditionCard"
+            :ajouterEnseignement="ajouterEnseignementPeriode"
+            :ajouterEcDansPeriode="ajouterEcDansPeriode"
+            :updateUE="updateUE"
+            :refKeyRefreshTreeView="refKeyRefreshTreeView"
+          />
+        </template>
+        <template v-else-if="selectedView === 'bcc'">
+          <MaquetteTreeView
+            :isSemestre="false"
+            v-model:selectedData="refDataEditionCard"
+            :ajouterEnseignement="ajouterEnseignementPeriode"
+            :ajouterEcDansPeriode="ajouterEcDansPeriode"
+            :updateUE="updateUE"
+            :refKeyRefreshTreeView="refKeyRefreshTreeView"
+          />
+        </template>
+      </v-col>
+      <v-col
+        cols="6"
+        style="position: sticky; top: 100px; align-self: flex-start; height: fit-content"
+      >
+        <EditionCard
+          v-if="refDataEditionCard?.id"
+          @refreshTreeView="refreshTreeView"
+          :refKeyRefreshTreeView="refKeyRefreshTreeView"
+          :data="refDataEditionCard"
+        />
+      </v-col>
+    </v-row>
+  </v-container>
 </template>
 
 <script setup>
-import { ref, watch, onMounted } from 'vue'
-import BCC from '../bcc/BCC.vue'
-import router from '@/router/router'
+import { nextTick, ref, watch } from 'vue'
 
-import PageInDev from '@/components/PageInDev.vue'
-import RecursivTree from '@/components/tree/RecursivTree.vue'
-import SommeBCC from '../bcc/SommeBCC.vue'
-import ECImport from './mutualisation/ECImport.vue'
-import ArianeParcoursPath from '@/components/ArianeParcoursPath.vue'
-import { useBccStore } from '@/stores/bccStore'
-import { useCompetenceStore } from '@/stores/competenceStore'
-import { useParcoursStore } from '@/stores/parcoursStore'
 import { useFormationStore } from '@/stores/formationStore'
-import { useEcStore } from '@/stores/elementConstitutifStore'
-import { useApprentissageStore } from '@/stores/apprentissageStore'
 import { usePeriodeStore } from '@/stores/periodeStore'
-import { useTagStore } from '@/stores/tagStore'
-import ScreenOverlayed from './mutualisation/ScreenOverlayed.vue'
-import BCCImport from './mutualisation/BCCImport.vue'
+import { useEcStore } from '@/stores/elementConstitutifStore'
+import { useEnseignementStore } from '@/stores/enseignementStore'
+import { useCompetenceStore } from '@/stores/competenceStore'
 
-
-const items = ref([
-  {
-    name: 'Débutant',
-    children: [
-      { 
-        name: 'Implémenter des conceptions simples',
-        children: [
-          {
-            name: 'Lire un cahier des charges',
-            children: [
-              { name: 'Identifier les exigences fonctionnelles' },
-              { name: 'Identifier les contraintes techniques' }
-            ]
-          },
-          {
-            name: 'Traduire en pseudo-code',
-            children: [
-              { name: 'Utiliser des structures de contrôle' },
-              { name: 'Décomposer en sous-tâches' }
-            ]
-          }
-        ]
-      },
-      { 
-        name: 'Élaborer des conceptions simples',
-        children: [
-          {
-            name: 'Créer un diagramme de flux',
-            children: [
-              { name: 'Définir les entrées et sorties' },
-              { name: 'Identifier les processus clés' }
-            ]
-          }
-        ]
-      },
-      {
-        name: 'Faire des essais et évaluer leurs résultats en regard de spécifications',
-        children: [
-          {
-            name: 'Écrire des cas de test',
-            children: [
-              { name: 'Définir les critères d’acceptation' },
-              { name: 'Automatiser les tests simples' }
-            ]
-          }
-        ]
-      },
-      { 
-        name: 'Développer des interfaces utilisateurs',
-        children: [
-          {
-            name: 'Créer une maquette',
-            children: [
-              { name: 'Utiliser un outil de prototypage' },
-              { name: 'Recueillir des retours utilisateurs' }
-            ]
-          }
-        ]
-      },
-    ],
-  },
-  {
-    name: 'Intermédiaire',
-    children: [
-      { 
-        name: 'Implémenter des conceptions simples',
-        children: [
-          {
-            name: 'Optimiser le code',
-            children: [
-              { name: 'Analyser la complexité' },
-              { name: 'Réduire la duplication' }
-            ]
-          }
-        ]
-      },
-      { 
-        name: 'Élaborer des conceptions simples',
-        children: [
-          {
-            name: 'Utiliser des patrons de conception',
-            children: [
-              { name: 'Appliquer le patron Singleton' },
-              { name: 'Appliquer le patron Observateur' }
-            ]
-          }
-        ]
-      },
-      {
-        name: 'Faire des essais et évaluer leurs résultats en regard de spécifications',
-        children: [
-          {
-            name: 'Analyser les résultats de test',
-            children: [
-              { name: 'Identifier les causes d’échec' },
-              { name: 'Proposer des corrections' }
-            ]
-          }
-        ]
-      },
-      { 
-        name: 'Développer des interfaces utilisateurs',
-        children: [
-          {
-            name: 'Intégrer l’accessibilité',
-            children: [
-              { name: 'Respecter les normes WCAG' },
-              { name: 'Tester avec des outils d’accessibilité' }
-            ]
-          }
-        ]
-      },
-    ],
-  },
-])
+import EditionCard from '@/views/parcoursFormation/bcc/EditionCard.vue'
+import MaquetteTreeView from '@/views/parcoursFormation/bcc/MaquetteTreeView.vue'
+import BCC from '@/views/parcoursFormation/bcc/BCC.vue'
+import PageInDev from '@/components/PageInDev.vue'
+import ButtonExport from '@/views/parcoursFormation/exportExcelPDF/ButtonExport.vue'
+import AideBulles from '@/components/AideBulles.vue'
+import { useParcoursStore } from '@/stores/parcoursStore'
 
 const formationStore = useFormationStore()
 const parcoursStore = useParcoursStore()
+const periodesStore = usePeriodeStore()
 const ecStore = useEcStore()
+const enseignementStore = useEnseignementStore()
 const competenceStore = useCompetenceStore()
-const apprentissageStore = useApprentissageStore()
-const periodeStore = usePeriodeStore()
-const tagStore = useTagStore()
-const bccStore = useBccStore()
 
-const refreshPlaned = ref(false)
+const refDataEditionCard = ref({})
+const refKeyRefreshTreeView = ref(0)
+const selectedView = ref('semestre')
 
-const close = () => {
-  blocSelectedId.value = null
+const refreshTreeView = async () => {
+  refKeyRefreshTreeView.value += 1
+  await nextTick()
 }
 
-const overlayActiveBCC = ref(false)
-
-watch(overlayActiveBCC, async (newVal) => {
-  if (!newVal) {
-    resetBCCListRefresh()
-  }
-})
-
-const overlayOfBCCid = ref(-1)
-const overlayActive = ref(false)
-const setStateOverlay = (idBccAsked) => {
-  overlayOfBCCid.value = idBccAsked
-  overlayActive.value = !overlayActive.value
-}
-const loaderCreateBCC = ref(false)
-const refBccRefresh = ref(-1)
-
-const resetBCCListRefresh = () => {
-  updateListBCC()
+const updateUE = async (ueLibelle, ueId) => {
+  periodesStore.updateUE(ueLibelle, ueId)
 }
 
-const resetRefresh = () => {
-  refBccRefresh.value = -1
-}
-watch(overlayActive, (newVal) => {
-  if (!newVal) {
-    refBccRefresh.value = overlayOfBCCid.value
-    overlayOfBCCid.value = -1
-  }
-})
-
-const parametre = ref({})
-const bccsList = ref([])
-const blocSelectedId = ref(null)
-
-const updatePeriode = async () => {
-  await periodeStore.fetchPeriodesByVersionWithEnseignements()
+const ajouterPeriodeToCompetence = async (periodeId, competenceId) => {
+  await competenceStore.linkCompetenceToPeriode(competenceId, periodeId)
 }
 
-const updateTags = async () => {
-  await tagStore.fetchAllTags()
-}
-
-const refBCCsMutualises = ref([])
-
-const updateListBCC = async () => {
+const ajouterEnseignementPeriode = async (periodeId, enseignementId) => {
   try {
-    await competenceStore.fetchCompetenceForSelectedVersion()
-    await apprentissageStore.fetchElementsApprentissageByVersion()
-    await parcoursStore.fetchParcoursByFormationId(formationStore.formationSelected.id)
-
-    parametre.value = formationStore.formationSelected.composante.parametre
-
-    const data = []
-    await bccStore.getBCCByVersionId(parcoursStore.versionSelected.id).then((d) => {
-      data.push(...d)
-    })
-
-    bccsList.value = data
-
-    const d = await formationStore.fetchMutualisedBCCForVersion(parcoursStore.versionSelected.id)
-    refBCCsMutualises.value = d.importation_mutualisation_bcc
-
-    const promises = d.importation_mutualisation_bcc.map((bccM) =>
-      bccStore.fetchBCCById(bccM.id).then((b) => ({ ...b, isBCCImported: true }))
-    )
-    const results = await Promise.all(promises)
-    //Duplicate keys id because imported BCCs have the same id as the original BCCs
-    bccsList.value.push(...results)
-    const uniqueBccs = new Map()
-    bccsList.value.forEach((bcc) => {
-      if (!uniqueBccs.has(bcc.id)) {
-        uniqueBccs.set(bcc.id, bcc)
-      }
-    })
-    bccsList.value = Array.from(uniqueBccs.values())
-
-    bccsList.value.sort((a, b) => a.id - b.id)
+    await ecStore.createECEnseignementInPeriodeByLink(periodeId, enseignementId)
   } catch (error) {
-    console.error('Erreur lors de la mise à jour de la liste des BCC :', error)
+    console.error('Error adding teaching to period:', error)
   }
 }
 
-const currentNewBccLabel = ref('')
-const recapBccExpanded = ref(null)
+const ajouterEcDansPeriode = async (periodeId, typeEc) => {
+  if (typeEc === "Unité d'enseignement") {
+    await periodesStore.addUEToPeriode(periodeId)
+    return
+  }
+  const data = await ecStore.createECInPeriode(periodeId, typeEc)
 
-const updateBcc = async () => {
-  updateListBCC()
-}
+  // Vérification du retour
+  if (!data || typeof data !== 'object' || !data.id) {
+    console.error('Échec de création de l’EC ou données invalides :', data)
+    return
+  }
 
-const addEcToBcc = async (data) => {
-  updateListBCC()
-}
 
-const addNewBCC = async () => {
-  if (currentNewBccLabel.value !== '') {
-    loaderCreateBCC.value = true
-    await bccStore.createBCC({ libelle: currentNewBccLabel.value })
-    currentNewBccLabel.value = ''
-    updateListBCC()
-    setTimeout(() => {
-      loaderCreateBCC.value = false
-    }, 1500)
+  if (!refDataEditionCard.value) {
+    console.error('Failed to create EC')
+    return
   }
 }
 
-const removeItem = async (id) => {
-  //Delete cascade
-  const currentBCC = bccsList.value.find((bcc) => bcc.id === id)
-  currentBCC.element_constitutif.forEach(async (ec) => {
-    await ecStore.removeEC(ec)
-  })
-  await bccStore.removeBCC({ id: id })
-  updateListBCC()
+const exporter = () => {
+  console.log('Exporter clicked')
 }
 
-function recapBccExpandedFunction(bloc) {
-  blocSelectedId.value = bloc.id
+const lockImportation = ref(false)
+// identifiant d’exécution croissant
+let refId = 0
+
+const enseignementsImportation = async () => {
+  // si un import est déjà en cours, on sort
+  if (lockImportation.value) {
+    console.log('Importation déjà en cours...')
+    return
+  }
+
+  // on marque le début de notre exécution
+  lockImportation.value = true
+  const myId = ++refId
+  console.log(`🟢 [${myId}] Début importation`)
+
+  try {
+    await nextTick()
+
+    console.log('Importation des enseignements dans la maquette...')
+
+    // récupère la liste d’enseignements attendus
+    const expectedEnseignementsId = enseignementStore.enseignements
+      .filter((e) => e.formation_id === formationStore.formationSelected.id)
+      .map((e) => e.id)
+
+    // on collecte les ids d’enseignements déjà présents dans la maquette
+    const actualId = []
+
+    periodesStore.periodes.forEach((p) => {
+      p.linked_element_constitutif.forEach((ec) => {
+        if (ec.type === 'enseignement') actualId.push(ec.enseignement_id)
+      })
+      p.element_constitutif.forEach((ec) => {
+        if (ec.type === 'enseignement') actualId.push(ec.enseignement_id)
+      })
+      p.unites_enseignement.forEach((ue) => {
+        ue.elements_constitutifs.forEach((ec) => {
+          if (ec.type === 'enseignement') actualId.push(ec.enseignement_id)
+        })
+      })
+    })
+
+    // détecte les enseignements manquants
+    const diff = expectedEnseignementsId.filter((x) => !actualId.includes(x))
+
+    // ajoute les enseignements manquants
+    for (const missingCurrentEnsId of diff) {
+      // 💡 sécurité : si un autre import a repris le lock, on annule celui-ci
+      if (myId !== refId) {
+        console.log(`⛔ [${myId}] Annulé (nouvel import détecté)`)
+        return
+      }
+
+      const linkedEns = enseignementStore.enseignements.find((e) => e.id === missingCurrentEnsId)
+      if (linkedEns) {
+        console.log(
+          `➕ [${myId}] Ajout de l’enseignement ${missingCurrentEnsId} dans la période ${linkedEns.periode_id}`
+        )
+        await ajouterEnseignementPeriode(linkedEns.periode_id, missingCurrentEnsId)
+      }
+    }
+
+    // rafraîchit la vue
+
+    await refreshTreeView()
+    console.log(`✅ [${myId}] Importation terminée`)
+  } catch (err) {
+    console.error(`❌ [${myId}] Erreur lors de l’importation`, err)
+  } finally {
+    // libère le lock seulement si c’est toujours le même import
+    if (myId === refId) {
+      lockImportation.value = false
+      console.log(`🔓 [${myId}] Lock libéré`)
+    } else {
+      console.log(`⚠️ [${myId}] Lock déjà repris par un nouvel import`)
+    }
+  }
 }
 
-const periode = 'Semestre 1'
-
-onMounted(() => {
-  updatePeriode()
-  updateTags()
-  updateListBCC()
-})
-
-const nextStep = () => {
-  router.push({ name: 'globalData' })
+const initData = async () => {
+  await periodesStore.fetchPeriodes()
+  await enseignementStore.fetchEnseignements()
+  await ecStore.fetchECs()
+  await competenceStore.fetchCompetences()
 }
+
+watch(
+  () => selectedView.value,
+  () => {
+    refDataEditionCard.value = null
+  }
+)
+watch(
+  () => refDataEditionCard.value,
+  (newVal, oldVal) => {
+    refDataEditionCard.value = newVal
+  },
+  { deep: true }
+)
+
+watch(
+  () =>
+    enseignementStore.enseignements.filter(
+      (e) => e.formation_id === formationStore.formationSelected.id
+    ),
+  async (ens) => {
+    await enseignementsImportation()
+  },
+  { immediate: true }
+)
+
+initData()
 </script>

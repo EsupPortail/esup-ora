@@ -1,6 +1,82 @@
 # Notes de patchs
 
-## 1.2.4
+## 1.7.10 (05/11/2025)
+
+- MaquetteTreeView => vue bcc => on ne remonte plus que les ecs qui sont liés à la compétence
+- Mutualisation => filtrage par composante/formation + recherche textuelle
+- Paramétrage => historisation des composantes
+- Tableaux de bord => amélioration de la présentation des ACs
+
+## 1.7.6 (03/11/2025)
+
+- Les ECs sont désormais mutualisable
+- Ajout d'une vue d'importation des éléments mutualisés .
+- Nettoyage dans le code, sur des éléments inutilisés suite à la refonte graphique
+- Remove des consoles.log qui viennent polluer la stack trace
+
+## 1.7.3 (30/10/2025)
+
+- Nettoyage applicatif sur les traces.
+
+Paramètres : 
+- Refonte des paramètres. => Partie administration recense tout les paramètres actuellement disponibles sous forme de cartes.
+=> Configuration : ajout de l'affichage et de l'historisation des éléments. Pour diplômes et tags
+Composantes : rangés par établissements. Sélectionnables dans le tableau (étab)
+
+Ajout d'un retour visuel (en rouge) lors de la création d'une formation + pop up pour avertir qu'il y a une erreur
+Modif sur l'effectif théorique globale de la formation => par parcours ou global
+
+Bulle d'informations présentes sur chaque page du workflow. => paramétrable dans l'administration de l'appli
+
+Importation automatique des enseignements. Système de lock si multi-clients
+Finalisation du treeview en deux parties pour la maquette
+Debug du refresh treeview sur les modifs
+
+Parcours global => début d'ajout du calcul autour des compétences et des apprentissages critiques + pré-listing
+
+De nombreux bugs ont été trouvés et corrigés dans cette nouvelle version. 
+Rendant le workflow stable.
+
+## 1.6.1 (01/10/2025)
+
+- Corrections bugs mineurs page création formation:  
+Remontée des composantes + formulaire formation => composantes triées par établissements
+Les types de diplômes remontent en fonction de la composante sélectionné (et donc de son paramètre)
+Remontée des utilisateurs en erreur
+Trie formation par libellé ascendant
+
+- Corrections workflow | Si valeur des étapes du workflow précédentes sont manquantes (compétences & apprentissages). => évite un crash de l'appli
+- Gestion des erreurs et des valeurs manquantes création et modification formation (début workflow)  
+- Modification pop up avec un timer pour voir quand elle disparait (> 5secondes)
+
+- Ajout d'une bulle d'informations sur l'ensemble des pages du workflow (compétences, ac, ec, maquette ,tableaux de bord). Paramétrable dans le backoffice (partie templates)
+
+## 1.5.3 (24/09/2025)
+- Début et finalisation de la partie paramétrage des établissements, composantes, paramètres, types de diplomes et des tags.
+- Export PDF sur certaines vues du workflow.
+- Début des tableaux de bord
+- Correctifs bugs mineurs
+- Remonté du numéro de version côté application
+- Réorganisation de la partie administration de l'appli
+
+## 1.4.1 (09/09/2025)
+- Début d'intégration de la vue parallèle à Semestre dans Maquette => BCC
+- Branchement et correctifs autour de la websocket dans les vues AC,EC,Maquette
+- Export Excel EC des enseignements pour toutes les périodes
+- Drag&Drop Maquette fonctionnel dans Semestre.
+
+## 1.3.2 (04/09/2025)
+- Montée de version du core NodeJS
+- Ajout des routes vers l'interface de configuration
+- Compétence : duplication, édition OK. Via websocket.
+- Apprentissages critiques => websocket : OK. 
+- Éléments constitutitfs : TreeView finalisé (hors optimisation du chargement). Headers alignés avec le tree view. Validation des filtres via bouton post chargement tree view. 
+- Maquette : Ajout d'un tree view en vue par semestre fonctionnel à 90%
+- Maquette : Edition Card par type d'élément (enseignement, stage, portfolio, AMS)
+- Maquette : Edition Card est fix en base. | Début vue parallèle par compétences
+- Export Excel des pages compétences & apprentissages critiques via overlay et sélection des éléments à exporter
+
+## 1.2.4 (23/07/2025)
 
 - Changement mineur liste des formations thèmes + features
 - Compétence : intégration d'un code couleur via une palette. On retrouvera ces couleurs sur le work flow

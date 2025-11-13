@@ -13,9 +13,11 @@ export const useTypeDiplomeStore = defineStore('typeDiplome', {
     actions: {
         fetchTypeDiplomes() {
             return new Promise((resolve, reject) => {
-                this.getCollection(this.entity)
+                this.getCollection(this.entity, {
+                    include: { parametres: true }
+                })
                 .then((res) => {
-                    this.typeDiplomes = res.data
+                    this.typeDiplomes = [...res.data]
                     resolve(res.data)
                 })
                 .catch((err) => {
@@ -37,15 +39,10 @@ export const useTypeDiplomeStore = defineStore('typeDiplome', {
         },
         updateTypeDiplome(typeDiplome: any) {
             return new Promise((resolve, reject) => {
-                this.update(this.entity, typeDiplome)
-                .then((res) => {
-                    const updated = res.data
-                    this.typeDiplomes = this.typeDiplomes.map((e) => {
-                        if (e.id === updated.id) {
-                            return updated
-                        }
-                        return e
-                    })
+                const { parametres, ...cleanTypeDiplome } = typeDiplome
+                this.update(this.entity, cleanTypeDiplome)
+                .then(async (res) => {
+                    await this.fetchTypeDiplomes()
                     resolve(res.data)
                 })
                 .catch((err) => {

@@ -1,11 +1,18 @@
 <template>
   <v-row>
-    <v-col cols="12">
-      <h3 style="font-weight: normal; display: flex; align-items: center; gap: 8px;">
-        <v-icon left >mdi-bullseye</v-icon>
+    <v-col cols="6">
+      <h3 style="font-weight: normal; display: inline-block; align-items: center; gap: 8px">
+        <v-icon left>mdi-bullseye</v-icon>
         {{ parametre.semantique_competence || 'Compétences' }} et
-        {{ parametre.semantique_critere || "critères d'exigence" }}
+        {{ parametre.semantique_critere || "critères d'exigences" }}
       </h3>
+      <div style="display: inline-block; margin-left: 12px">
+        <AideBulles pageAsked="competences" />
+      </div>
+
+    </v-col>
+    <v-col cols="2" offset="4">
+      <ButtonExport pageAsked="Competences" />
     </v-col>
   </v-row>
 
@@ -27,31 +34,14 @@
           <v-row>
             <v-col cols="6">
               <v-row>
-                <!-- <v-col cols="2">
-                  <v-btn
-                    icon="mdi-information"
-                    variant="text"
-                    @click="toggleHelp === index ? (toggleHelp = null) : (toggleHelp = index)"
-                  >
-                  </v-btn>
-                  <transition name="slide-right">
-                    <CaractereEvaluable
-                      :toggleHelp="toggleHelp === index"
-                      :competence="comp"
-                      :caractereEvaluableTypes="caractereEvaluableStore.caractereEvaluableTypes"
-                      @refreshCompetence="init"
-                      @closeHelp="toggleHelp = null"
-                    />
-                  </transition>
-                </v-col> -->
-                <v-col cols="11" style="padding-left: 40px; padding-top: 20px;">
+                <v-col cols="11" style="padding-left: 40px; padding-top: 20px">
                   <v-row>
                     <v-col class="pt-0 pb-0" cols="12">
                       <v-text-field
                         @blur="libChange(comp)"
                         @keyup.enter="libChange(comp)"
                         v-model="comp.libelle"
-                        label="Libelle"
+                        label="Fiche RNCP"
                         variant="outlined"
                         density="compact"
                       ></v-text-field>
@@ -70,15 +60,15 @@
                       ></v-text-field>
                     </v-col>
                     <v-col cols="2">
-                      <v-btn @click="libChangeCompContext(comp)" color="success" :disabled="!comp.id"
+                      <v-btn
+                        @click="libChangeCompContext(comp)"
+                        color="success"
+                        :disabled="!comp.id"
                         >Ajouter</v-btn
                       >
                     </v-col>
                   </v-row>
-                  <v-row
-                    v-for="critExig in comp.critere_exigences"
-                    style="margin-top: 10px; "
-                  >
+                  <v-row v-for="critExig in comp.critere_exigences" style="margin-top: 10px">
                     <v-col cols="10" style="padding-top: 0px; padding-bottom: 0px">
                       <div v-if="!(showInputCritEx === critExig.id)">{{ critExig.libelle }}</div>
                       <div v-else>
@@ -93,9 +83,16 @@
                       </div>
                     </v-col>
                     <v-col cols="2" style="padding-top: 0px; padding-bottom: 0px">
-                      <v-icon size="small" @click="showInputCritEx = critExig.id"
+                      <v-icon
+                        size="small"
+                        v-if="!(showInputCritEx === critExig.id)"
+                        @click="showInputCritEx = critExig.id"
                         >mdi-pencil</v-icon
                       >
+                      <v-icon v-else color="success" @click="updateCritEx(critExig)" size="small">
+                        mdi-check-circle
+                      </v-icon>
+
                       <v-icon color="error" @click="deleteNCritEx(critExig)" size="small"
                         >mdi-trash-can</v-icon
                       >
@@ -122,48 +119,62 @@
                   </v-row>
                 </v-col>
                 <v-col cols="1" class="d-flex justify-end">
-                  <v-icon size="small" disabled>mdi-content-duplicate</v-icon>
+                  <v-icon size="small" @click="duplicateCompetence(comp)"
+                    >mdi-content-duplicate</v-icon
+                  >
                   <v-icon @click="deleteCompetence(comp)" color="error" size="small"
                     >mdi-trash-can</v-icon
                   >
                 </v-col>
               </v-row>
             </v-col>
-            <v-divider vertical :thickness="2" ></v-divider>
-            <v-col cols="5" style="padding-left: 80px; padding-top: 80px;">
-              <h3>Famille de situation</h3>
+            <v-divider vertical :thickness="2"></v-divider>
+            <v-col cols="5" style="padding-left: 80px; padding-top: 80px">
+              <h3>Famille de situations</h3>
               <v-row
-                    v-for="fdi in [...comp.famille_de_situations].sort((a, b) => a.libelle.localeCompare(b.libelle))"
-                    style="margin-top: 10px; "
+                v-for="fdi in [...comp.famille_de_situations].sort((a, b) =>
+                  a.libelle.localeCompare(b.libelle)
+                )"
+                style="margin-top: 22px"
+              >
+                <v-col cols="10" style="padding-top: 0px; padding-bottom: 0px">
+                  <div v-if="!(showInputFdi === fdi.id)">{{ fdi.libelle }}</div>
+                  <div v-else>
+                    <v-text-field
+                      @blur="updateSituationPro(fdi)"
+                      @keyup.enter="updateSituationPro(fdi)"
+                      v-model="fdi.libelle"
+                      :label="'Éditer ' + (parametre.semantique_famille || 'famille de situations')"
+                      variant="outlined"
+                      density="compact"
+                      style="margin-top: 10px; margin-bottom: 10px"
+                    ></v-text-field>
+                  </div>
+                </v-col>
+                <v-col
+                  cols="2"
+                  class="d-flex align-center justify-center"
+                  style="padding-top: 0px; padding-bottom: 0px"
+                >
+                  <v-icon
+                    v-if="!(showInputFdi === fdi.id)"
+                    size="small"
+                    @click="showInputFdi = fdi.id"
+                    >mdi-pencil</v-icon
                   >
-                    <v-col cols="10" style="padding-top: 0px; padding-bottom: 0px">
-                      <div v-if="!(showInputFdi === fdi.id)">{{ fdi.libelle }}</div>
-                        <div v-else>
-                        <v-text-field
-                          @blur="updateSituationPro(fdi)"
-                          @keyup.enter="updateSituationPro(fdi)"
-                          v-model="fdi.libelle"
-                          label="Famille de situation"
-                          variant="outlined"
-                          density="compact"
-                          style="margin-top: 10px; margin-bottom: 10px;"
-                        ></v-text-field>
-                        </div>
-                    </v-col>
-                    <v-col cols="2" style="padding-top: 0px; padding-bottom: 0px">
-                      <v-icon size="small" @click="showInputFdi = fdi.id"
-                        >mdi-pencil</v-icon
-                      >
-                      <v-icon color="error" @click="deleteSituationPro(fdi)" size="small"
-                        >mdi-trash-can</v-icon
-                      >
-                    </v-col>
-                  </v-row>
-              <v-row style="margin-top: 10px;">
+                  <v-icon v-else color="success" @click="updateSituationPro(fdi)" size="small">
+                    mdi-check-circle
+                  </v-icon>
+                  <v-icon color="error" @click="deleteSituationPro(fdi)" size="small">
+                    mdi-trash-can
+                  </v-icon>
+                </v-col>
+              </v-row>
+              <v-row style="margin-top: 10px">
                 <v-col cols="10">
                   <v-text-field
                     v-model="vModelSituationPro[comp.id]"
-                    label="Ajouter une situation professionnelle"
+                    :label="'Ajouter ' + (parametre.semantique_famille || 'famille de situations')"
                     variant="outlined"
                     @keyup.enter="addSituationPro(comp)"
                     density="compact"
@@ -171,13 +182,16 @@
                   ></v-text-field>
                 </v-col>
                 <v-col cols="2">
-                  <v-btn @click="addSituationPro(comp)" color="success" :disabled="!vModelSituationPro">
+                  <v-btn
+                    @click="addSituationPro(comp)"
+                    color="success"
+                    :disabled="!vModelSituationPro"
+                  >
                     Ajouter
                   </v-btn>
                 </v-col>
               </v-row>
             </v-col>
-
           </v-row>
         </v-card-text>
       </v-card>
@@ -194,20 +208,16 @@
 </template>
 
 <script setup>
-import SearchEngine from '@/components/SearchEngine.vue'
-import InformationBubble from '@/components/InformationBubble.vue'
-import UsersConnectedInfo from '@/components/UsersConnectedInfo.vue'
-import ArianeParcoursPath from '@/components/ArianeParcoursPath.vue'
-import CaractereEvaluable from './competence/CaractereEvaluable.vue'
-import CompetencesList from '@/views/parcoursFormation/CompetencesList.vue'
+import { ref, watch } from 'vue'
 import router from '@/router/router'
+
 import { useCompetenceStore } from '@/stores/competenceStore'
 import { useParcoursStore } from '@/stores/parcoursStore'
 import { useFormationStore } from '@/stores/formationStore'
 import { useParametreStore } from '@/stores/parametreStore'
-import { useCaractereEvaluableStore } from '@/stores/caractereEvaluableStore'
 
-import { ref, watch } from 'vue'
+import ButtonExport from '@/views/parcoursFormation/exportExcelPDF/ButtonExport.vue'
+import AideBulles from '@/components/AideBulles.vue'
 
 const colors = [
   '#6BFA0A',
@@ -226,7 +236,6 @@ const colors = [
   '#91228D',
   '#B2C453',
   '#212153'
-
 ]
 const vModelSituationPro = ref({})
 const competencesList = ref([])
@@ -243,18 +252,16 @@ const helpList = ref([true, false, true, false, true])
 const Ncomp = ref({
   libelle: '',
   critere_exigences: [],
-  famille_de_situations: [],
+  famille_de_situations: []
 })
 
 const competenceStore = useCompetenceStore()
-const caractereEvaluableStore = useCaractereEvaluableStore()
 const parcoursStore = useParcoursStore()
 const formationStore = useFormationStore()
 const parametreStore = useParametreStore()
 
 const init = async () => {
   await competenceStore.fetchCompetences()
-  await caractereEvaluableStore.fetchCaractereEvaluableTypes()
   competencesList.value = competenceStore.getCompetenceByVersion(versionId)
   version.value = await formationStore.fetchVersionById(versionId)
   const formation = await formationStore.fetchOneFormationFromId(version.value.formation_id)
@@ -274,11 +281,7 @@ const deleteNCritEx = (compC) => {
   })
 }
 
-const addCritEx = () => {
-  console.log('addCritEx')
-}
-
-const preAddCompetence = () => {
+const takeColor = () => {
   const usedColors = competencesList.value
     .map((c) => c.color_hexadecimal)
     .filter((color) => typeof color === 'string' && color.length > 0)
@@ -287,11 +290,20 @@ const preAddCompetence = () => {
   const availableColor = unusedColors.length
     ? unusedColors[Math.floor(Math.random() * unusedColors.length)]
     : colors[Math.floor(Math.random() * colors.length)]
+  return availableColor
+}
+
+const duplicateCompetence = (comp) => {
+  comp.version_id = parseInt(versionId, 10)
+  comp.color_hexadecimal = takeColor()
+  competenceStore.duplicateCompetence(comp, formationStore.formationSelected.noms_des_niveaux)
+}
+const preAddCompetence = () => {
   competencesList.value.push({
     libelle: '',
-    color_hexadecimal: availableColor,
+    color_hexadecimal: takeColor(),
     critere_exigences: [],
-    famille_de_situations: [],
+    famille_de_situations: []
   })
 }
 
@@ -359,7 +371,6 @@ const libChange = (comp) => {
       competenceStore.updateCompetence(comp)
     } else {
       comp.version_id = versionId
-      console.log('create competence', formationStore.formationSelected.noms_des_niveaux)
       competenceStore
         .createCompetence(comp, formationStore.formationSelected.noms_des_niveaux)
         .then((nComp) => {
@@ -395,7 +406,6 @@ const nextStep = () => {
 watch(
   () => competenceStore.competences,
   (newCompetences) => {
-    console.log('watch competences', newCompetences)
     delete competencesList.value
     competencesList.value = competenceStore.getCompetenceByVersion(versionId)
   }

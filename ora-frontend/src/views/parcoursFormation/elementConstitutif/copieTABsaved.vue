@@ -1,0 +1,409 @@
+<template>
+  <v-overlay :model-value="isLoading" class="align-center justify-center">
+    <v-progress-circular color="primary" size="64" indeterminate></v-progress-circular>
+  </v-overlay>
+  <v-row class="align-end">
+    <v-col offset="3" cols="4" style="padding-left: 0px; padding-right: 0px">
+      <div class="headers-strip">
+        <div v-for="ens in enseignementsP1List" :key="'header-p1-' + ens.id" class="header-cell">
+          <span class="header-tilt">{{ ens.libelle }}</span>
+        </div>
+      </div>
+    </v-col>
+    <v-col cols="4" style="padding-left: 62px; padding-right: 0px">
+      <div class="headers-strip">
+        <div v-for="ens in enseignementsP2List" :key="'header-p2-' + ens.id" class="header-cell">
+          <span class="header-tilt">{{ ens.libelle }}</span>
+        </div>
+      </div>
+    </v-col>
+  </v-row>
+
+  <v-container fluid>
+    <div style="height: 600px; overflow-y: auto">
+      <v-treeview
+        v-if="treesList.length > 0"
+        :hide-actions="!actionIcons"
+        :indent-lines="indentLines"
+        :items="treesList"
+        :separate-roots="separateRoots"
+        density="compact"
+        item-value="id"
+        selected-color="transparent"
+            :hoverable="false"
+
+        :item-disabled="isLeafDisabled"
+        open-all
+        open-on-click
+      >
+        <template v-if="prependIcons" v-slot:prepend="{ item, isOpen }">
+          <v-icon :icon="item.icon"></v-icon>
+        </template>
+        <template v-slot:title="{ item }">
+          <v-row :style="item.color ? { backgroundColor: item.color, color: 'white' } : {}">
+            <v-col cols="2" :style="!item.children ? 'padding-top: 36px;' : ''">
+              <span v-if="item.title.length <= 16">{{ item.title }}</span>
+              <span v-else>
+                <span v-for="(line, idx) in item.title.match(/.{1,16}/g)" :key="idx">
+                  {{ line }}<br />
+                </span>
+              </span>
+            </v-col>
+            <v-col cols="5">
+              <v-radio-group
+                v-if="!item.children"
+                v-for="ens in enseignementsP1List"
+                :key="`${item.idAc}-${ens.id}`"
+                :model-value="getRadioValue(item.idAc, ens.id)"
+                @update:model-value="(val) => onRadioUpdate(val, item.idAc, ens.id)"
+                class="d-inline-block"
+                style="padding-top: 20px"
+              >
+                <template v-if="isLoadingRadioButton(item.idAc, ens.id)">
+                  <v-progress-circular indeterminate small />
+                </template>
+                <template v-else>
+                  <v-radio
+                    :value="item.id"
+                    density="compact"
+                    hide-details
+                    @click="onRadioClick(item.idAc, ens.id)"
+                  />
+                </template>
+              </v-radio-group>
+            </v-col>
+            <v-col cols="5">
+              <v-radio-group
+                v-if="!item.children"
+                v-for="ens in enseignementsP2List"
+                :key="`${item.id}-${ens.id}`"
+                :model-value="getRadioValue(item.idAc, ens.id)"
+                @update:model-value="(val) => onRadioUpdate(val, item.idAc, ens.id)"
+                class="d-inline-block"
+                style="padding-top: 20px"
+              >
+                <template v-if="isLoadingRadioButton(item.idAc, ens.id)">
+                  <v-progress-circular indeterminate small />
+                </template>
+                <template v-else>
+                  <v-radio
+                    :value="item.id"
+                    density="compact"
+                    hide-details
+                    @click="onRadioClick(item.idAc, ens.id)"
+                  />
+                </template>
+              </v-radio-group>
+            </v-col>
+          </v-row>
+        </template>
+      </v-treeview>
+    </div>
+  </v-container>
+</template>
+
+<script setup>
+import {
+  computed,
+  defineProps,
+  ref,
+  watch,
+  shallowRef,
+  onUnmounted,
+  nextTick,
+  onMounted
+} from 'vue'
+import { useCompetenceStore } from '@/stores/competenceStore'
+import { useEnseignementStore } from '@/stores/enseignementStore'
+import { useApprentissageStore } from '@/stores/apprentissageStore'
+import { usePeriodeStore } from '@/stores/periodeStore'
+
+const props = defineProps({
+  niveauxSelected: Array,
+  competencesSelected: Array,
+  periodes: Array,
+  keyForRefresh: Number,
+  refreshComponent: Boolean
+})
+
+const competenceStore = useCompetenceStore()
+const enseignementsStore = useEnseignementStore()
+const niveauxAppStore = useApprentissageStore()
+const periodesStore = usePeriodeStore()
+
+const competencesList = ref([])
+const niveauxList = ref([])
+const enseignementsP1List = ref([])
+const enseignementsP2List = ref([])
+
+const treesList = ref([])
+
+const inline = ref(true)
+const separateRoots = shallowRef(false)
+const actionIcons = shallowRef(true)
+const prependIcons = shallowRef(true)
+const indentLines = shallowRef(true)
+
+const ensAcIsChecked = ref([])
+const headersWrapper = ref(null)
+const wrapperOffset = ref(0)
+const isLoading = ref(false)
+
+const isLeafDisabled = (item) => {
+  return item.children
+}
+
+const initData = async () => {
+  isLoading.value = true
+  for (const competenceId of props.competencesSelected) {
+    const data = await competenceStore.fetchOneCompetence(competenceId)
+    if (!competencesList.value.some((c) => c.id === data.id)) {
+      competencesList.value.push(data)
+    }
+  }
+  console.log(competencesList.value)
+  let niveauWithName = []
+  for (const niveauId of props.niveauxSelected) {
+    const data = await niveauxAppStore.fetchNiveauById(niveauId)
+    niveauWithName.push(data)
+  }
+
+  console.log(competencesList.value[0])
+  competencesList.value.forEach((competence) => {
+    let tree = {
+      id: 'comp-' + competence.id,
+      idCompetence: competence.id,
+      title: competence.libelle,
+      color: competence.color_hexadecimal,
+      icon: 'mdi-bullseye',
+      children: []
+    }
+    console.log(niveauWithName)
+    competence.niveau = competence.niveau.filter((niveau) =>
+      niveauWithName.some((n) => n.libelle === niveau.libelle)
+    )
+    console.log(competence)
+    competence.niveau.sort((a, b) => a.libelle.localeCompare(b.libelle))
+    competence.niveau.forEach((niveau) => {
+      let children = {
+        id: 'niveau-' + niveau.id,
+        idNiveau: niveau.id,
+        title: niveau.libelle,
+        icon: 'mdi-chart-line-variant',
+        children: []
+      }
+      let apps = []
+      niveau.apprentissage_critique.forEach((ac) => {
+        apps.push({
+          id: 'ac-' + ac.id,
+          idAc: ac.id,
+          title: ac.libelle,
+          icon: 'mdi-book-open-variant-outline'
+        })
+      })
+      if (apps.length > 0) {
+        children.children.push(...apps)
+      }
+      tree.children.push(children)
+    })
+
+    if (!treesList.value.some((t) => t.id === tree.id)) {
+      treesList.value.push(tree)
+    }
+  })
+  treesList.value.sort((a, b) => a.title.localeCompare(b.title))
+  treesList.value.forEach((tree) => {
+    tree.children.sort((a, b) => a.title.localeCompare(b.title))
+    tree.children.forEach((child) => {
+      if (child.children) {
+        child.children.sort((a, b) => a.title.localeCompare(b.title))
+      }
+    })
+  })
+  enseignementsP1List.value = await enseignementsStore.fetchEnseignementsOfVersion(
+    props.periodes[0]
+  )
+  if (props.periodes.length > 1) {
+    enseignementsP2List.value = await enseignementsStore.fetchEnseignementsOfVersion(
+      props.periodes[1]
+    )
+  }
+  initIsSelected()
+  console.log('enseignementsP1List', enseignementsP1List.value)
+  isLoading.value = false
+}
+
+const lastClicked = ref({ acid: null, ensid: null })
+
+const getRadioValue = (acid, ensid) => {
+  return isChecked(acid, ensid) ? acid : null
+}
+
+const onRadioUpdate = async (val, acid, ensid) => {
+  // Ne rien faire ici, on gère tout dans onRadioClick
+}
+
+const loadingRadios = ref([])
+
+const isLoadingRadioButton = (idAc, ensId) => {
+  return loadingRadios.value.some((r) => r.idAc === idAc && r.ensId === ensId)
+}
+
+const onRadioClick = async (acid, ensid) => {
+  loadingRadios.value.push({ idAc: acid, ensId: ensid })
+
+  const alreadySelected = isChecked(acid, ensid)
+
+  if (alreadySelected) {
+    // Décocher
+    try {
+      await enseignementsStore.disconnectEnseignementToApprentissageCritique(ensid, acid)
+      updateLocalState(ensid, acid, false)
+    } catch (err) {
+      console.error('Erreur décochage:', err)
+    }
+  } else {
+    // Cocher
+    try {
+      await enseignementsStore.connectEnseignementToApprentissageCritique(ensid, acid)
+      updateLocalState(ensid, acid, true)
+      loadingRadios.value = loadingRadios.value.filter((r) => r.idAc !== acid && r.ensId !== ensid)
+    } catch (err) {
+      console.error('Erreur cochage:', err)
+    }
+  }
+}
+
+const updateLocalState = (ensid, acid, checked) => {
+  // Cherche dans P1
+  let ens = enseignementsP1List.value.find((e) => e.id === ensid)
+
+  // Si pas trouvé dans P1, cherche dans P2
+  if (!ens) {
+    ens = enseignementsP2List.value.find((e) => e.id === ensid)
+  }
+
+  if (!ens) return
+
+  if (!Array.isArray(ens.apprentissages_critiques)) ens.apprentissages_critiques = []
+
+  if (checked) {
+    // Ajouter si pas déjà présent
+    if (
+      !ens.apprentissages_critiques.some((ac) =>
+        typeof ac === 'object' ? ac.id === acid : ac === acid
+      )
+    ) {
+      ens.apprentissages_critiques.push({ id: acid })
+    }
+  } else {
+    // Retirer
+    ens.apprentissages_critiques = ens.apprentissages_critiques.filter((ac) =>
+      typeof ac === 'object' ? ac.id !== acid : ac !== acid
+    )
+  }
+
+  // Mise à jour de la variable de tracking locale
+  if (checked) {
+    if (!ensAcIsChecked.value.some((sel) => sel.acid === acid && sel.ensid === ensid)) {
+      ensAcIsChecked.value.push({ acid, ensid })
+    }
+  } else {
+    const index = ensAcIsChecked.value.findIndex((sel) => sel.acid === acid && sel.ensid === ensid)
+    if (index !== -1) {
+      ensAcIsChecked.value.splice(index, 1)
+    }
+  }
+}
+
+const isChecked = (acid, ensid) => {
+  return ensAcIsChecked.value.some((sel) => sel.acid === acid && sel.ensid === ensid)
+}
+
+const initIsSelected = () => {
+  ensAcIsChecked.value = []
+
+  enseignementsP1List.value.forEach((ens) => {
+    ;(ens.apprentissages_critiques || []).forEach((ac) => {
+      if (ac && typeof ac.id === 'number') {
+        ensAcIsChecked.value.push({ acid: ac.id, ensid: ens.id })
+      }
+    })
+  })
+
+  if (props.periodes.length > 1) {
+    enseignementsP2List.value.forEach((ens) => {
+      ;(ens.apprentissages_critiques || []).forEach((ac) => {
+        if (ac && typeof ac.id === 'number') {
+          ensAcIsChecked.value.push({ acid: ac.id, ensid: ens.id })
+        }
+      })
+    })
+  }
+}
+
+watch(
+  () => props.keyForRefresh,
+  async (newVal) => {
+    await nextTick() // ← 🔁 Attendre la mise à jour des props
+    console.log('[REFRESH] compétences sélectionnées:', props.competencesSelected)
+    console.log('[REFRESH] niveaux sélectionnés:', props.niveauxSelected)
+
+    treesList.value = []
+    competencesList.value = []
+    niveauxList.value = []
+
+    await initData()
+    await initIsSelected()
+  }
+)
+</script>
+
+<style scoped>
+/* Bande contenant les en-têtes, alignés en bas pour un rendu net */
+.headers-strip {
+  display: flex;
+  align-items: flex-end;
+  gap: 0px; /* espace entre chaque titre */
+  height: 160px;
+  /* hauteur totale dispo pour les titres */
+  overflow: visible; /* laisse dépasser si besoin */
+}
+
+/* Chaque “colonne” de titre a une largeur fixe */
+.header-cell {
+  position: relative;
+  width: 33px !important;
+  min-width: 33px !important;
+  height: 100%;
+}
+
+/* Texte vertical (solution moderne) */
+.header-vertical {
+  display: inline-block;
+  writing-mode: vertical-rl; /* texte vertical */
+  text-orientation: mixed; /* lettres latines lisibles */
+  white-space: nowrap;
+  line-height: 1;
+  font-size: 12px;
+}
+
+/* Fallback pour vieux navigateurs : rotation 90° */
+@supports not (writing-mode: vertical-rl) {
+  .header-vertical {
+    transform: rotate(-90deg);
+    transform-origin: bottom left;
+  }
+}
+
+.header-tilt {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  transform: rotate(-45deg);
+  transform-origin: bottom left;
+  white-space: nowrap;
+  line-height: 1;
+  font-size: 12px;
+}
+</style>

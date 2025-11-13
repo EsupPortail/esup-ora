@@ -126,8 +126,26 @@ export class authentificationController {
             });
         }
 
+
+        const isTokenValid = await KeycloakService.tokenIntrospection( req.cookies['access_token'] ).then( data => {
+            return data;
+        }).catch( error => {
+            console.log(error);
+            return false;
+        });
+
+        if( !isTokenValid ) {
+            
+            return res.status(419).json({
+                code: 419,
+                response: 'Token invalide ou expiré. Authentication timeout.',
+            });
+        }
+
         return res.status(200).json({
-            data: req.session.user,
+            data: { 
+                ...req.session.user
+            }
         });
     }
 
@@ -147,8 +165,12 @@ export class authentificationController {
             return data.access_token;
         });
 
-        let { username, password } = req.body;
+        let username = undefined;
+        let password = undefined;
+
         if( !fromShibboleth ) {
+            username = req.body.username || '';
+            password = req.body.password || '';
             if (!username || !password) {
                 return {
                     isValid: false,

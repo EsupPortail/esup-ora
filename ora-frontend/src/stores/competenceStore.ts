@@ -32,13 +32,13 @@ export const useCompetenceStore = defineStore('competence', {
             contexte_evaluation: true,
             famille_de_situations: true,
             niveau: {
-                include: {
-                    apprentissage_critique: {
-                        orderBy: {
-                            ordre: 'asc'
-                        }
-                    }
+              include: {
+                apprentissage_critique: {
+                  orderBy: {
+                    ordre: 'asc'
+                  }
                 }
+              }
             }
           }
         })
@@ -55,8 +55,13 @@ export const useCompetenceStore = defineStore('competence', {
         this.getCollection(this.entity, {
           include: {
             critere_exigences: true,
-            caractere_evaluables: true,
-            famille_de_situations: true
+            famille_de_situations: true,
+            niveau: {
+              include: {
+                apprentissage_critique: true
+              }
+            },
+            linked_periodes_maquette: true
           }
         })
           .then((res) => {
@@ -90,31 +95,46 @@ export const useCompetenceStore = defineStore('competence', {
                   }
                 }
               }
-            },
-            contexte_evaluation: {
-              orderBy: {
-                ordre: 'asc'
-              }
-            },
-            caractere_evaluables: true
+            }
           }
         })
           .then((res) => {
             this.competences = res.data.sort((a: { libelle: string }, b: { libelle: string }) =>
               a.libelle.localeCompare(b.libelle)
             )
-            if (this.competenceSelected.id) {
-              this.competenceSelected = this.competences.find(
-                (e) => e.id === this.competenceSelected.id
-              )
-            } else {
-              this.competenceSelected = this.competences[0]
+            if( this.competences.length > 0 ) {
+              if (this.competenceSelected?.id) {
+                this.competenceSelected = this.competences.find(
+                  (e) => e.id === this.competenceSelected.id
+                )
+              } else {
+                this.competenceSelected = this.competences[0]
+              }
             }
             resolve(res.data)
           })
           .catch((err) => {
             reject(err)
           })
+      })
+    },
+    linkCompetenceToPeriode( competenceId: number, periodeId: number ) {
+      return new Promise((resolve, reject) => {
+        this.update(this.entity, {
+          id: competenceId,
+          periodes: {
+            connect: { id: periodeId }
+          }
+        })
+          .then((res) => {
+            const socketStore = useSocketStore()
+            socketStore.notifyChange('competence')
+
+            resolve(res.data)
+          })
+          .catch((err) => {
+            reject(err)
+        })
       })
     },
     updateCompetence(competence: any) {
@@ -130,6 +150,34 @@ export const useCompetenceStore = defineStore('competence', {
             socketStore.notifyChange('competence')
 
             resolve(res.data)
+          })
+          .catch((err) => {
+            reject(err)
+          })
+      })
+    },
+    duplicateCompetence(competence: any, noms_des_niveaux: number | string[]) {
+      return new Promise((resolve, reject) => {
+        competence.libelle = `${competence.libelle} (copie)`;
+        delete competence.id;
+        this.createCompetence(competence, noms_des_niveaux)
+          .then((res: any) => {
+            console.log(res)
+            competence.famille_de_situations.forEach((fds: any) => {
+              this.addFamilleDeSituation({
+                competence_id: res.id,
+                libelle: fds.libelle,
+                ordre: fds.ordre
+              })
+            })
+            competence.critere_exigences.forEach((ce: any) => {
+              this.addCritereExigence({
+                competence_id: res.id,
+                libelle: ce.libelle,
+                ordre: ce.ordre
+              })
+            })
+            resolve(res)
           })
           .catch((err) => {
             reject(err)
@@ -268,56 +316,6 @@ export const useCompetenceStore = defineStore('competence', {
     updateCritereExigence(critereExigence: any) {
       return new Promise((resolve, reject) => {
         this.update('critere_exigence', critereExigence)
-          .then((res) => {
-            const socketStore = useSocketStore()
-            socketStore.notifyChange('competence')
-
-            resolve(res.data)
-          })
-          .catch((err) => {
-            reject(err)
-          })
-      })
-    },
-    addContexteEvaluation(competenceId: number, contexteEvaluation: any) {
-      return new Promise((resolve, reject) => {
-        this.create('contexte_evaluation', {
-          competence: {
-            connect: {
-              id: competenceId
-            }
-          },
-          libelle: contexteEvaluation.libelle,
-          ordre: contexteEvaluation.ordre
-        })
-          .then((res) => {
-            const socketStore = useSocketStore()
-            socketStore.notifyChange('competence')
-
-            resolve(res.data)
-          })
-          .catch((err) => {
-            reject(err)
-          })
-      })
-    },
-    updateContexteEvaluation(contexteEvaluation: any) {
-      return new Promise((resolve, reject) => {
-        this.update('contexte_evaluation', contexteEvaluation)
-          .then((res) => {
-            const socketStore = useSocketStore()
-            socketStore.notifyChange('competence')
-
-            resolve(res.data)
-          })
-          .catch((err) => {
-            reject(err)
-          })
-      })
-    },
-    deleteContexteEvaluation(contexteEvaluation: any) {
-      return new Promise((resolve, reject) => {
-        this.delete('contexte_evaluation', contexteEvaluation)
           .then((res) => {
             const socketStore = useSocketStore()
             socketStore.notifyChange('competence')

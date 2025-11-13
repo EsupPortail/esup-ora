@@ -1,4 +1,4 @@
-FROM node:22.11.0 AS build
+FROM node:24.6.0 AS build
 
 RUN if [ -f ./deployment-configuration/proxy/.env_proxy ]; then \
     COPY ./deployment-configuration/proxy/.env_proxy /; \
@@ -27,6 +27,11 @@ RUN if [ -n "$http_proxy" ]; then \
 fi
 
 WORKDIR /app
+
+## Injection des versions
+COPY ./app.module.version /app
+
+
 COPY ./ora-frontend .
 RUN rm -f /app/package-lock.json
 RUN npm install

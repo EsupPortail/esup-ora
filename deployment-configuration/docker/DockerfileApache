@@ -53,6 +53,9 @@ RUN curl -fsSL https://nodejs.org/dist/v$NODE_VERSION/node-v$NODE_VERSION-linux-
 RUN mkdir /app
 COPY ./ora-frontend/ /app
 
+## Injection des versions
+COPY ./app.module.version /app
+
 WORKDIR /app
 RUN rm -f /app/package-lock.json
 RUN npm install

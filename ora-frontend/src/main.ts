@@ -2,10 +2,7 @@ import { createApp } from 'vue'
 
 import App from './App.vue'
 
-// TODO : Est-ce qu'on en a besoin ?
 import InlineSvgPlugin from 'vue-inline-svg';
-
-// Plugins
 import pinia from './plugins/pinia.js';
 import vuetify from './plugins/vuetify.js';
 

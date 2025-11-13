@@ -39,6 +39,5 @@ const renderFieldLink = (item) => {
 };
 
 const onSearch = () => {
-  console.log('Sélection actuelle:', selectedItems.value);
 };
 </script>

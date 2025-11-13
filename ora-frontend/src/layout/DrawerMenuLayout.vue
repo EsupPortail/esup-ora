@@ -38,6 +38,13 @@
         </template>
       </template>
     </v-list>
+    <v-list-item>
+      <template #append>
+        <span style="font-size: 12px; color: #888;">
+          Core {{ versions.APPLICATION_VERSION }}
+        </span>
+      </template>
+    </v-list-item>
   </v-navigation-drawer>
 </template>
 
@@ -55,6 +62,14 @@ const router = useRouter()
 const props = defineProps({
   drawer: Boolean
 })
+
+const versions = {};
+for (const line of __APP_VERSION__.split("\n")) {
+  const [key, value] = line.split(":").map(s => s.trim());
+  if (["APPLICATION_VERSION", "SERVICE_VERSION", "FRONTAL_VERSION"].includes(key)) {
+    versions[key] = value.replace(/['"]+/g, ""); // supprime guillemets
+  }
+}
 
 const navigate = (path) => {
   if (path) {

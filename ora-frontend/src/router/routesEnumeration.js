@@ -1,43 +1,27 @@
 // Utilities
-import { getDataForTable } from '@/mocks/dataForTable.js';
 import { useConnectionStore } from '@/stores/connectionStore';
 
 //Components imports
 import HomeView from '@/views/HomeView.vue'
-import BackofficeView from '@/views/Backoffice/BackofficeView.vue'
-import EtablissementView from '@/views/Backoffice/EtablissementView.vue'
-import ComposanteView from '@/views/Backoffice/ComposanteView.vue'
-import ParametreView from '@/views/Backoffice/ParametreView.vue'
-import EditableDataTable from '@/components/EditableDataTable.vue'
-import CustomTable from '@/components/CustomTable.vue'
-import Competence from '@/views/CompetenceView.vue'
 import NotFound from '@/components/NotFound.vue'
-import Parcours from '@/views/competence/ParcoursView.vue'
-import Version from '@/views/competence/VersionView.vue'
-import View401 from '@/views/errorsViews/View401.vue';
-import Login from '@/views/LoginView.vue';
 import Logout from '@/views/LogoutView.vue';
-import UserInformations from '@/views/UserInformations.vue';
-import RecapitulatifBCC from '@/views/bcc/RecapitulatifBCC.vue';
 import RolesAdministration from '@/views/rolesAdministration/RolesAdministration.vue';
 import UsersAdministration from '@/views/usersAdministration/UsersAdministration.vue';
 import ListRoles from '@/views/rolesAdministration/ListRoles.vue';
 import FormationCreation from '@/views/parcoursFormation/FormationCreation.vue';
 import Versions from '@/views/parcoursFormation/Versions.vue';
 import ParcoursVersion from '@/views/parcoursFormation/ParcoursVersion.vue';
-import ParcoursGlobalData from '@/views/parcoursFormation/ParcoursGlobalData.vue';
 import ParcoursCompetences from '@/views/parcoursFormation/ParcoursCompetences.vue';
 import ParcoursApprentissagesCritiques from '@/views/parcoursFormation/ParcoursApprentissagesCritiques.vue';
-import ParcoursElementsConstitutifs from '@/views/parcoursFormation/ParcoursElementsConstitutifsNew.vue';
-import path from 'path';
-import TagView from '@/views/Backoffice/TagView.vue';
-import TypeDiplomeView from '@/views/Backoffice/TypeDiplomeView.vue';
-import ConfEquivalentTD from '@/views/Backoffice/ConfEquivalentTD.vue'
 import ExportScreen from '@/views/ExportScreen.vue';
-import BCC from '@/views/bcc/BCC.vue';
 import ParcoursElementsConstitutifsNew from '@/views/parcoursFormation/ParcoursElementsConstitutifsNew.vue';
 import ParcoursMaquette from '@/views/parcoursFormation/ParcoursMaquette.vue';
-// Énumération des routes de l'app
+import ParcoursTableauDeBord from '@/views/parcoursFormation/ParcoursTableauDeBord.vue';
+import GlobalParam from '@/views/Backoffice/views/GlobalParam.vue';
+import Configuration from '@/views/Backoffice/views/Configuration.vue';
+import Template from '@/views/Backoffice/views/Template.vue';
+import ParametreView from '@/views/Backoffice/views/ParametreView.vue';
+
 export const paths = {
     root: "/home",
     login: "/login",
@@ -59,7 +43,7 @@ export const paths = {
     parcours: '/parcours',
     version: '/version',
     versionList: '/version-list/:idFormation',
-    blocDeCompetences: '/bloc-de-competences',
+    blocDeCompetences: '/maquette',
     composantesEssentielles: '/composantes-essentielles',
     ensemblesAC: '/ensembles-ac',
     apprentissagesCritiques: '/apprentissages-critiques',
@@ -83,11 +67,24 @@ export const paths = {
     competencesParcours: "/competences-parcours/:idVersion",
     apprentissagesCritiquesParcours: "/apprentissages-critiques-parcours",
     elementsConstitutifsParcours: "/elements-constitutifs-parcours",
-    globalData: "/globalData"
+    globalData: "/globalData",
+    globalParams: "/globalParams",
+    configuration: "/configuration",
+    template: "/template",
+    courriersInformations: "/courriels-informations",
+    formulaire: "/formulaire",
+    enquetes: "/enquetes",
+    administrationDesTemplates: "/administration-des-templates",
+    imports: "/imports",
+    evenements: "/evenements",
+    courriels: "/courriels",
+    verifications: "/verifications",
+    journauxEtLogs: "/journaux-et-logs",
+    settings: "/settings",
+    indicateurs: "/indicateurs",
+    rolesEtUtilisateurs: "/roles-et-utilisateurs",
 }
 
-
-// Cet élément permet de linker une route à une vue
 export const routes = [
     {
         path: '/',
@@ -126,7 +123,7 @@ export const routes = [
         beforeEnter: async (to, from, next) => {
             const connectionStore = useConnectionStore();
             await connectionStore.logout();
-            
+
             next({ name: 'Home' });
         }
     },
@@ -141,15 +138,6 @@ export const routes = [
             const connectionStore = useConnectionStore();
             await connectionStore.completeCookie();
             await connectionStore.login();
-        }
-    },
-    {
-        name: "Informations utilisateur",
-        path: paths.userInfos,
-        component: UserInformations,
-        meta: {
-            isProtectedRoute: true,
-            titlePage: 'Informations utilisateur'
         }
     },
     {
@@ -222,7 +210,7 @@ export const routes = [
     {
         name: "globalData",
         path: paths.globalData,
-        component: ParcoursGlobalData,
+        component: ParcoursTableauDeBord,
         meta: {
             ariane: {
                 icon: "mdi-sigma",
@@ -257,46 +245,9 @@ export const routes = [
         name: "export",
         path: paths.export,
         component: ExportScreen,
-
         meta: {
             isProtectedRoute: false,
             titlePage: 'Exporter la formation'
-        }
-    },
-    {
-        name: "Administration des rôles",
-        path: paths.administrationRoles,
-        component: RolesAdministration,
-        meta: {
-            isProtectedRoute: false,
-            titlePage: 'Administration des rôles Page'
-        }
-    },
-    {
-        name: "Administration des utilisateurs",
-        path: paths.affectationRoles,
-        component: UsersAdministration,
-        meta: {
-            isProtectedRoute: false,
-            titlePage: 'Administration des utilisateurs Page'
-        }
-    },
-    {
-        name: "Liste des rôles",
-        path: paths.listeRoles,
-        component: ListRoles,
-        meta: {
-            isProtectedRoute: false,
-            titlePage: 'Liste des rôles Page'
-        }
-    },
-    {
-        name: 'Test Protected Route',
-        path: paths.protectedRouteTest,
-        component: View401,
-        meta: {
-            isProtectedRoute: true,
-            titlePage: 'Test Protected Route Page'
         }
     },
     {
@@ -316,27 +267,6 @@ export const routes = [
         }
     },
     {
-        name: 'Compétence',
-        path: paths.competence,
-        component: Competence,
-        meta: {
-            isProtectedRoute: false,
-            titlePage: 'Compétence Page'
-        },
-        children: [
-            {
-                name: 'parcours',
-                path: 'parcours',
-                component: Parcours
-            },
-            {
-                name: 'version',
-                path: 'version',
-                component: Version
-            }
-        ]
-    },
-    {
         name: 'Formation',
         path: paths.formation,
         component: NotFound,
@@ -346,170 +276,175 @@ export const routes = [
         }
     },
     {
-        name: 'Apprentissages critiques',
-        path: paths.apprentissagesCritiques,
-        component: ParcoursApprentissagesCritiques,
-        props: { 
-            tableData: getDataForTable('apprentissageCritiques')
-        },
+        name: "Configuration",
+        path: paths.configuration,
+        component: Configuration,
         meta: {
             isProtectedRoute: false,
-            titlePage: 'Apprentissages critiques Page'
+            titlePage: 'Configuration',
+            isSettingsPage: true,
+            settingsPageIcon: "mdi-tune-vertical",
         }
     },
     {
-        name: 'Niveaux',
-        path: paths.niveaux,
-        component: EditableDataTable,
-        props: { 
-            tableData: getDataForTable('niveaux')
-        },
+        name: 'Paramètres',
+        path: paths.settings,
+        component: () => import('@/views/Backoffice/BackofficeSelection.vue'),
         meta: {
             isProtectedRoute: false,
-            titlePage: 'Niveaux Page'
-        }
-    },
-    // {
-    //     name: 'Fiches RNCP',
-    //     path: paths.fichesRNCP,
-    //     component: BuildingPage
-    // },
-    // {
-    //     name: 'Enseignements',
-    //     path: paths.enseignements,
-    //     component: BuildingPage
-    // },
-    // {
-    //     name: 'Semestres',
-    //     path: paths.semestres,
-    //     component: BuildingPage
-    // },
-    // {
-    //     name: 'Types ressources pédagogiques',
-    //     path: paths.typesRessourcesPedagogiques,
-    //     component: BuildingPage
-    // },
-    {
-        name: 'Diplômes',
-        path: paths.diplomes,
-        component: EditableDataTable,
-        props: { 
-            tableData: getDataForTable('diplômes')
+            titlePage: 'Paramètres'
         },
-        meta: {
-            titlePage: 'Diplômes Page'
-        }
     },
-    // {
-    //     name: 'Gestion des composantes',
-    //     path: paths.gestionsDesComposantes,
-    //     component: BuildingPage
-    // },
-    // {
-    //     name: 'Administration',
-    //     path: paths.administration,
-    //     component: BuildingPage
-    // },
-    // {
-    //     name: 'À propos',
-    //     path: paths.aPropos,
-    //     component: BuildingPage
-    // },
-    // {
-    //     name: 'Contact',
-    //     path: paths.contact,
-    //     component: BuildingPage
-    // },
-    // {
-    //     name: 'Plan de Navigation',
-    //     path: paths.planNavigation,
-    //     component: BuildingPage
-    // },
+
     {
-        name: "Tableau PowerPoint Temporaire",
-        path: paths.tableauPowerPointTMP,
-        component: CustomTable,
+        name: "Template",
+        path: paths.template,
+        component: ParametreView,
         meta: {
             isProtectedRoute: false,
-            titlePage: 'Tableau PowerPoint Temporaire Page'
-        }    
-    },
-    {
-        name: "Tableau Lazy Loading",
-        path: paths.tableauEasyLoading,
-        component: EditableDataTable,
-        props: {
-            tableData: getDataForTable('composantesEssentielles')
-        },
-        meta: {
-            isProtectedRoute: false,
-            titlePage: 'Tableau Lazy Loading Page'
+            titlePage: 'Template Page',
+            isSettingsPage: true
         }
     },
     {
-        name: "Backoffice",
-        path: paths.backoffice,
-        component: BackofficeView,
+        name: "CourriersInformations",
+        path: paths.courriersInformations,
+        component: ParametreView,
         meta: {
             isProtectedRoute: false,
-            titlePage: 'Backoffice Page',
-        },
-        children: [
-            {
-                name: 'Etablissement',
-                path: paths.backoffice_etablisement,
-                component: EtablissementView,
-                meta: {
-                    isProtectedRoute: false,
-                    titlePage: 'Etablissement Page'
-                }
-            },
-            {
-                name: 'Composante',
-                path: paths.backoffice_composante,
-                component: ComposanteView,
-                meta: {
-                    isProtectedRoute: false,
-                    titlePage: 'Composante Page'
-                }
-            },
-            {
-                name: 'Paramètre',
-                path: paths.backoffice_parametre,
-                component: ParametreView,
-                meta: {
-                    isProtectedRoute: false,
-                    titlePage: 'Paramètre Page'
-                }
-            },
-            {
-                name: 'Tags',
-                path: paths.backoffice_tags,
-                component: TagView,
-                meta: {
-                    isProtectedRoute: false,
-                    titlePage: 'Tags Page'
-                }
-            },
-            {
-                name: 'Diplomes',
-                path: paths.backoffice_type_diplomes,
-                component: TypeDiplomeView,
-                meta: {
-                    isProtectedRoute: false,
-                    titlePage: 'Diplomes Page'
-                }
-            },
-            {
-                name: 'Configuration coût équivalent TD',
-                path: paths.backoffice_conf_unite_td,
-                component: ConfEquivalentTD,
-                meta: {
-                    isProtectedRoute: false,
-                    titlePage: 'Diplomes Page'
-                }
-            }
-        ]
+            titlePage: 'Courriels Informations Page',
+            settingsFather: paths.template,
+        }
+    },
+    {
+        name: "Formulaire",
+        path: paths.formulaire,
+        component: ParametreView,
+        meta: {
+            isProtectedRoute: false,
+            titlePage: 'Formulaire Page',
+            settingsFather: paths.template,
+        }
+    },
+    {
+        name: "Enquetes",
+        path: paths.enquetes,
+        component: ParametreView,
+        meta: {
+            isProtectedRoute: false,
+            titlePage: 'Enquêtes Page',
+            settingsFather: paths.template,
+        }
+    },
+    {
+        name: "AdministrationDesTemplates",
+        path: paths.administrationDesTemplates,
+        component: Template,
+        meta: {
+            isProtectedRoute: false,
+            titlePage: 'Administration des Templates Page',
+            settingsFather: paths.template,
+        }
+    },
+    {
+        name: "Imports",
+        path: paths.imports,
+        component: ParametreView,
+        meta: {
+            isProtectedRoute: false,
+            titlePage: 'Imports Page',
+            isSettingsPage: true
+        }
+    },
+    {
+        name: "Journaux et logs",
+        path: paths.journauxEtLogs,
+        component: ParametreView,
+        meta: {
+            isProtectedRoute: false,
+            titlePage: 'Journaux et logs',
+            isSettingsPage: true
+        }
+    },
+    {
+        name: "Evenements",
+        path: paths.evenements,
+        component: ParametreView,
+        meta: {
+            isProtectedRoute: false,
+            titlePage: 'Événements Page',
+            settingsFather: paths.journauxEtLogs,
+        }
+    },
+    {
+        name: "Courriels",
+        path: paths.courriels,
+        component: ParametreView,
+        meta: {
+            isProtectedRoute: false,
+            titlePage: 'Courriels Page',
+            settingsFather: paths.journauxEtLogs,
+        }
+    },
+    {
+        name: "Verifications",
+        path: paths.verifications,
+        component: ParametreView,
+        meta: {
+            isProtectedRoute: false,
+            titlePage: 'Vérifications Page',
+            settingsFather: paths.journauxEtLogs,
+        }
+    },
+    {
+        name: "Indicateurs",
+        path: paths.indicateurs,
+        component: ParametreView,
+        meta: {
+            isProtectedRoute: false,
+            titlePage: 'Indicateurs',
+            isSettingsPage: true
+        }
+    },
+    {
+        name: "Rôles",
+        path: paths.administrationRoles,
+        component: RolesAdministration,
+        meta: {
+            isProtectedRoute: false,
+            titlePage: 'Rôles',
+            settingsFather: paths.rolesEtUtilisateurs
+        }
+    },
+    {
+        name: "Utilisateurs",
+        path: paths.affectationRoles,
+        component: UsersAdministration,
+        meta: {
+            isProtectedRoute: false,
+            titlePage: 'Utilisateurs',
+            settingsFather: paths.rolesEtUtilisateurs
+        }
+    },
+    {
+        name: "Liste des rôles",
+        path: paths.listeRoles,
+        component: ListRoles,
+        meta: {
+            isProtectedRoute: false,
+            titlePage: 'Liste des rôles Page',
+            settingsFather: paths.rolesEtUtilisateurs
+        }
+    },
+    {
+        name: 'Paramètres globaux',
+        path: paths.globalParams,
+        component: GlobalParam,
+        meta: {
+            isProtectedRoute: false,
+            titlePage: 'Paramètres globaux',
+            isSettingsPage: true,
+        }
     },
     {
         name: "NotFound",
@@ -520,4 +455,4 @@ export const routes = [
             titlePage: 'NotFound Page'
         }
     }
-]
+];

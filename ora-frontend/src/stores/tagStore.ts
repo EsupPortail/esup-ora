@@ -15,7 +15,7 @@ export const useTagStore = defineStore('tags', {
     actions: {
         fetchAllTags(){
             return new Promise((resolve, reject) => {
-                this.getCollection(this.entity)
+                this.getCollection(this.entity, { include: { parametre: true}})
                 .then((res) => {
                     this.tags = res.data
                     resolve(res.data)
@@ -39,15 +39,12 @@ export const useTagStore = defineStore('tags', {
         },
         updateTag(tag: any){
             return new Promise((resolve, reject) => {
-                this.update(this.entity, tag)
-                .then((res) => {
+                const { parametre, ...cleanTag } = tag
+
+                this.update(this.entity, cleanTag)
+                .then(async (res) => {
+                    await this.fetchAllTags()
                     const updated = res.data
-                    this.tags = this.tags.map((e) => {
-                        if (e.id === updated.id) {
-                            return updated
-                        }
-                        return e
-                    })
                     resolve(updated)
                 })
                 .catch((err) => {
