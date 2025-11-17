@@ -1,5 +1,11 @@
 # Notes de patchs
 
+## 1.8.3 [RELEASE] (13/11/2025)
+
+- Nettoyage modèle de données => suppression des éléments dépréciés + simplification de certains attributs
+- Export PDF/Excel page maquette => remontée des enseignements par période.
+- Début d'export final de la formation dans la page tableaux de bord
+
 ## 1.7.10 (05/11/2025)
 
 - MaquetteTreeView => vue bcc => on ne remonte plus que les ecs qui sont liés à la compétence

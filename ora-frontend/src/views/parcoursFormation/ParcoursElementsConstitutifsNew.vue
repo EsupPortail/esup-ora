@@ -118,9 +118,7 @@
               <v-card-text style="display: 0px;  padding: 15px 8px 8px 15px !important;">
                 <v-row style="padding-bottom: 12px">
                   <v-col
-                    v-for="niveau in [...niveauxRef].sort((a, b) =>
-                      a.libelle.localeCompare(b.libelle)
-                    )"
+                    v-for="niveau in [...niveauxRef].sort((a, b) => a.id - b.id)"
                     :key="niveau.id"
                     style="padding: 0px; padding-left: 12px !important"
                     cols="12"
