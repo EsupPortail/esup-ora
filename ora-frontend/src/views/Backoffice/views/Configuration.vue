@@ -32,8 +32,7 @@ const items = [
   { title: 'Tags', component: CardTags },
   { title: 'Paramètres', component: CardParametreItems },
   { title: 'Établissements', component: CardEtablissement },
-  { title: 'Composantes', component: CardComposantes },
-  { title: 'Coût équivalent TD', component: CardEquivalentTD }
+  { title: 'Composantes', component: CardComposantes }
 ]
 
 const panels = ref([])

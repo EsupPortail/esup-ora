@@ -29,8 +29,8 @@
         selected-color="transparent"
         :hoverable="false"
         :item-disabled="isLeafDisabled"
-        open-all
         open-on-click
+        :open="opened"
       >
         <template v-if="prependIcons" v-slot:prepend="{ item, isOpen }">
           <v-progress-circular
@@ -178,6 +178,8 @@ const headersWrapper = ref(null)
 const wrapperOffset = ref(0)
 const isLoading = ref(false)
 
+const opened = ref([]);
+
 const isLeafDisabled = (item) => {
   return item.children
 }
@@ -207,10 +209,8 @@ const initData = async () => {
     competence.niveau = competence.niveau.filter((niveau) =>
       niveauWithName.some((n) => n.libelle === niveau.libelle)
     )
-    competence.niveau.sort((a, b) => a.libelle.localeCompare(b.libelle))
     // Trier les niveaux par id croissant
-    competence.niveau.sort((a, b) => a.id - b.id)
-    competence.niveau.forEach((niveau) => {
+    competence.niveau.sort((a, b) => a.id - b.id).forEach((niveau, index) => {
       let children = {
         id: 'niveau-' + niveau.id,
         idNiveau: niveau.id,
@@ -238,14 +238,6 @@ const initData = async () => {
     }
   })
   treesList.value.sort((a, b) => a.title.localeCompare(b.title))
-  treesList.value.forEach((tree) => {
-    tree.children.sort((a, b) => a.title.localeCompare(b.title))
-    tree.children.forEach((child) => {
-      if (child.children) {
-        child.children.sort((a, b) => a.title.localeCompare(b.title))
-      }
-    })
-  })
 
   enseignementsP1List.value = await enseignementsStore.fetchEnseignementsOfVersion(
     props.periodes[0]
@@ -256,7 +248,28 @@ const initData = async () => {
     )
   }
   initIsSelected()
+  syncOpened()
   isLoading.value = false
+}
+
+const syncOpened = () => {
+  const newIds = []
+
+  const collectIds = (nodes) => {
+    nodes.forEach(node => {
+      newIds.push(node.id)
+      if (node.children) collectIds(node.children)
+    })
+  }
+
+  collectIds(treesList.value)
+
+  // Ajoute seulement les nouveaux IDs dans opened
+  newIds.forEach(id => {
+    if (!opened.value.includes(id)) {
+      opened.value.push(id)
+    }
+  })
 }
 
 const lastClicked = ref({ acid: null, ensid: null })
