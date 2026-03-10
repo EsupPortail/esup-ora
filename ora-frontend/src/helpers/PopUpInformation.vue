@@ -1,14 +1,26 @@
 <template>
     <transition name="fade">
-        <div v-if="isVisible" :class="['popup', typeClass]" @mouseenter="pauseTimer" @mouseleave="resumeTimer">
+        <div 
+            v-show="popUpData.isVisible" 
+            :class="['popup', typeClass]" 
+            @mouseenter="pauseTimer" 
+            @mouseleave="resumeTimer"
+        >
             <div class="popup-content">
-                <span class="icon">
-                    <i :class="iconClass"></i>
-                </span>
-                <p class="message">{{ message }}</p>
+                <span class="icon"><i :class="iconClass"></i></span>
+                
+                <div class="message-container">
+                    <p 
+                        v-for="(line, index) in popUpData.message?.split('\n')" 
+                        :key="index" 
+                        class="message-line"
+                    >
+                        {{ line }}
+                    </p>
+                </div>
+
                 <span class="close-btn" @click="closePopup">&times;</span>
             </div>
-            <!-- Barre de progression -->
             <div class="progress-bar">
                 <div class="progress" :style="{ width: progressWidth + '%' }"></div>
             </div>
@@ -17,90 +29,77 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted } from 'vue';
-import PropTypes from 'vue-types';
+import { ref, computed, watch, onUnmounted } from 'vue';
+import { storeToRefs } from 'pinia';
 import { usePopUpStore } from '@/stores/popUp/PopUpStoreImplementation';
 
-const props = defineProps({
-    message: PropTypes.string.isRequired,
-    type: PropTypes.oneOf(['INFO', 'ERROR', 'WARNING', 'SUCCESS']).isRequired
-});
-
 const popUpStore = usePopUpStore();
+const { popUpData } = storeToRefs(popUpStore);
 
-const isVisible = ref(true);
-
-// Durée totale
 const totalTime = 6000;
+const progressWidth = ref(100);
 let timerId = null;
+let progressInterval = null;
 let remainingTime = totalTime;
 let startTime = null;
 
-const typeClass = computed(() => {
-    switch (props.type) {
-        case 'INFO': return 'popup-info';
-        case 'SUCCESS': return 'popup-success';
-        case 'ERROR': return 'popup-error';
-        case 'WARNING': return 'popup-warning';
-        default: return '';
-    }
-});
+const typeClass = computed(() => `popup-${popUpData.value.type?.toLowerCase() || 'info'}`);
 
 const iconClass = computed(() => {
-    switch (props.type) {
-        case 'INFO': return 'fas fa-info-circle';
-        case 'SUCCESS': return 'fas fa-check-circle';
-        case 'ERROR': return 'fas fa-exclamation-circle';
-        case 'WARNING': return 'fas fa-exclamation-triangle';
-        default: return '';
-    }
+    const icons = {
+        INFO: 'fas fa-info-circle',
+        SUCCESS: 'fas fa-check-circle',
+        ERROR: 'fas fa-exclamation-circle',
+        WARNING: 'fas fa-exclamation-triangle'
+    };
+    return icons[popUpData.value.type] || icons.INFO;
 });
 
+const stopAllTimers = () => {
+    clearTimeout(timerId);
+    clearInterval(progressInterval);
+};
+
 const closePopup = () => {
-    isVisible.value = false;
+    stopAllTimers();
     popUpStore.close();
 };
 
-// Progression (%)
-const progressWidth = ref(100);
-let progressInterval = null;
-
-const updateProgress = () => {
-    progressWidth.value = (remainingTime / totalTime) * 100;
-};
-
-// Timer principal
 const startTimer = () => {
+    stopAllTimers();
     startTime = Date.now();
+    
     timerId = setTimeout(() => {
         closePopup();
     }, remainingTime);
 
-    // Mise à jour de la barre toutes les 50ms
     progressInterval = setInterval(() => {
         const elapsed = Date.now() - startTime;
-        progressWidth.value = ((remainingTime - elapsed) / totalTime) * 100;
-    }, 50);
+        const currentProgress = ((remainingTime - elapsed) / totalTime) * 100;
+        progressWidth.value = Math.max(0, currentProgress);
+    }, 16); 
 };
 
 const pauseTimer = () => {
-    clearTimeout(timerId);
-    clearInterval(progressInterval);
-    remainingTime -= Date.now() - startTime;
+    stopAllTimers();
+    remainingTime -= (Date.now() - startTime);
 };
 
 const resumeTimer = () => {
-    startTimer();
+    if (remainingTime > 0) startTimer();
 };
 
-onMounted(() => {
-    startTimer();
-});
+watch(() => [popUpData.value.isVisible, popUpData.value.message], ([visible, message]) => {
+    if (visible && message) {
+        remainingTime = totalTime;
+        progressWidth.value = 100;
+        startTimer();
+    } else {
+        stopAllTimers();
+    }
+}, { immediate: true });
 
-onUnmounted(() => {
-    clearTimeout(timerId);
-    clearInterval(progressInterval);
-});
+onUnmounted(stopAllTimers);
 </script>
 
 <style scoped>
@@ -109,121 +108,55 @@ onUnmounted(() => {
 .popup {
     position: fixed;
     top: 20px;
-    right: 20px;
-    min-width: 300px;
-    max-width: 400px;
-    padding: 15px 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    min-width: 320px;
+    max-width: 90vw;
+    padding: 16px 20px;
     border-radius: 12px;
-    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
-    z-index: 1000;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    z-index: 9999;
     display: flex;
     flex-direction: column;
-    opacity: 0;
-    transform: translateY(-20px);
 }
 
 .popup-content {
     display: flex;
     align-items: center;
-    padding-left: 12px;
-    padding-right: 12px;
-    width: 100%;
-    position: relative;
+    gap: 12px;
 }
 
-.icon {
-    margin-right: 15px;
-    font-size: 24px;
-}
+.icon { font-size: 20px; }
+.message { flex: 1; margin: 0; font-weight: 500; }
+.close-btn { cursor: pointer; font-size: 22px; opacity: 0.7; }
+.close-btn:hover { opacity: 1; }
 
-.message {
-    flex: 1;
-    font-size: 16px;
-    color: inherit;
-}
-
-.close-btn {
-    position: absolute;
-    right: 0px;
-    cursor: pointer;
-    font-size: 20px;
-    color: inherit;
-    transition: color 0.3s;
-}
-
-.close-btn:hover {
-    color: #000;
-}
-
-/* Progress bar */
 .progress-bar {
-    position: relative;
     width: 100%;
     height: 4px;
+    background: rgba(255, 255, 255, 0.2);
+    margin-top: 12px;
     border-radius: 2px;
-    background: rgba(255,255,255,0.3);
     overflow: hidden;
-    margin-top: 10px;
 }
 
 .progress {
     height: 100%;
-    background: rgba(255,255,255,0.8);
-    transition: width 0.05s linear;
+    background: #fff;
+    transition: none; 
 }
 
-/* Types de popup */
-.popup-info {
-    background-color: #2196F3;
-    color: #ffffff;
-}
+.popup-info { background: #3182ce; color: white; }
+.popup-success { background: #38a169; color: white; }
+.popup-error { background: #e53e3e; color: white; }
+.popup-warning { background: #dd6b20; color: white; }
 
-.popup-success {
-    background-color: #4CAF50;
-    color: #ffffff;
-}
-
-.popup-error {
-    background-color: #F44336;
-    color: #ffffff;
-}
-
-.popup-warning {
-    background-color: #FF9800;
-    color: #ffffff;
-}
-
-/* Transitions */
 .fade-enter-active, .fade-leave-active {
-    transition: opacity 0.5s ease, transform 0.5s ease;
+    transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
-.fade-enter-from {
+.fade-enter-from, .fade-leave-to {
     opacity: 0;
-    transform: translateY(-20px);
-}
-
-.fade-enter-to {
-    opacity: 1;
-    transform: translateY(0);
-}
-
-.fade-leave-from {
-    opacity: 1;
-    transform: translateY(0);
-}
-
-.fade-leave-to {
-    opacity: 0;
-    transform: translateY(-20px);
-}
-
-/* Responsive */
-@media (max-width: 480px) {
-    .popup {
-        right: 10px;
-        left: 10px;
-        width: auto;
-    }
+    transform: translate(-50%, -30px);
 }
 </style>

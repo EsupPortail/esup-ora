@@ -27,7 +27,6 @@
         "
         rounded="xl"
       >
-        <!-- Header -->
         <v-card-title
           class="d-flex justify-space-between align-center"
           style="
@@ -62,12 +61,22 @@
             flex: 1;
           "
         >
-          <v-text-field
-            v-model="search"
-            label="Rechercher par nom d'élément constitutif"
-            prepend-inner-icon="mdi-magnify"
-            clearable
-          ></v-text-field>
+          <v-row>
+            <v-col cols="8">
+              <v-text-field
+                v-model="search"
+                variant="outlined"
+                density="compact"
+                label="Rechercher par nom d'élément constitutif"
+                prepend-inner-icon="mdi-magnify"
+                clearable
+              ></v-text-field>
+            </v-col>
+            <v-col cols="3">
+              <v-btn @click="resetFilters"> Réinitialiser les filtres </v-btn>
+            </v-col>
+          </v-row>
+
           <v-row>
             <v-col cols="5">
               <v-select
@@ -77,6 +86,8 @@
                 item-value="id"
                 label="Sélectionner une composante"
                 clearable
+                variant="outlined"
+                density="compact"
                 return-object
               ></v-select>
             </v-col>
@@ -86,13 +97,25 @@
                 :items="existingFormations"
                 item-title="libelle"
                 item-value="id"
+                variant="outlined"
+                density="compact"
                 label="Sélectionner une formation"
                 clearable
                 return-object
               ></v-select>
             </v-col>
-            <v-col cols="3">
-              <v-btn @click="resetFilters"> Réinitialiser les filtres </v-btn>
+            <v-col cols="3"> 
+              <v-select
+                v-model="selectedPeriod"
+                :items="periodesOfFormationSelected"
+                item-title="libelle"
+                item-value="id"
+                variant="outlined"
+                density="compact"
+                label="Sélectionner une période sur cette formation"
+                clearable
+                return-object
+              ></v-select>
             </v-col>
           </v-row>
         </div>
@@ -274,8 +297,10 @@ const expandedCards = ref([])
 
 const existingFormations = ref([])
 const existingComposantes = ref([])
+const periodesOfFormationSelected = ref([])
 const selectedComposante = ref(null)
 const selectedFormation = ref(null)
+const selectedPeriod = ref(null)
 const search = ref('')
 function normalizeText(text) {
   return text
@@ -296,12 +321,16 @@ const filteredEcs = computed(() => {
     }))
 
   // --- 2️⃣ Filtrage par formation sélectionnée ---
-  if (selectedFormation.value) {
-    ecs = ecs.filter((ec) => {
-      const formation = formationStore.formations.find((f) => f.id === ec.formation_id)
-      return formation?.composante_id === selectedFormation.value.composante_id
-    })
+    console.log(selectedFormation.value)
+    console.log(ecs)
+if (selectedFormation.value) { 
+    const targetFormationId = selectedFormation.value.id; 
+
+    ecs = ecs.filter((ec) => { 
+      return ec.formation.id === targetFormationId;
+    });
   }
+  console.log(ecs)
 
   // --- 3️⃣ Filtrage par recherche texte ---
   const query = normalizeText(search.value.trim())
@@ -323,6 +352,19 @@ const filteredEcs = computed(() => {
   // --- 5️⃣ Debug optionnel ---
   // console.log('Filtered ECs:', ecs)
 
+  // On ne veut pas les mutualisations de la formation courante
+  ecs = ecs.filter((ec) => ec.formation_id !== parcoursStore.versionSelected.formation_id)
+  console.log(ecs)
+
+  if( selectedPeriod.value !== null ) {
+    ecs = ecs.filter((ec) => {
+      console.log(ec.linked_periodes_maquette)
+      console.log(selectedPeriod.value)
+      console.log(periodesOfFormationSelected.value[selectedPeriod.value.id -1].libelle)
+      return ec.linked_periodes_maquette[0].libelle === periodesOfFormationSelected.value[selectedPeriod.value.id -1].libelle
+    })
+  }
+
   return ecs
 })
 
@@ -330,6 +372,7 @@ const resetFilters = () => {
   search.value = ''
   selectedComposante.value = null
   selectedFormation.value = null
+  selectedPeriod.value = null
 }
 const toggleExpanded = (id) => {
   const index = expandedCards.value.indexOf(id)
@@ -390,6 +433,20 @@ const initData = async () => {
 }
 
 initData()
+
+watch(selectedFormation, async () => {
+  selectedPeriod.value = null
+  periodesOfFormationSelected.value.length = 0;
+  const formationSelected = await formationStore.fetchOneFormationFromId(selectedFormation.value.id);
+  let tmp = []
+  for( let i = 0; i < formationSelected.duree; i++ ) {
+    tmp.push({
+      libelle: formationSelected.duree_unite + ' ' + (i + 1),
+      id: i + 1
+  })
+  }
+  periodesOfFormationSelected.value = tmp
+})
 watch(
   () => props.overlayShow,
   (val) => {

@@ -10,8 +10,12 @@ class AdministrationRoutes {
 
   intializeRoutes() {
     this.router.get("/users", administrationController.getUsers);
+    this.router.post("/addUser", administrationController.addUser);
+    this.router.post("/delete-user", administrationController.deleteUser);
     this.router.get("/roles", administrationController.getExistantsRoles);
     this.router.post("/changeRole", administrationController.changeRoleOfUser);
+    this.router.post("/addRole", administrationController.addRoleToUser);
+    this.router.post("/removeRole", administrationController.removeRoleFromUser);
   } 
 }
 

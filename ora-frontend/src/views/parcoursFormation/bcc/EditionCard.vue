@@ -1,5 +1,5 @@
 <template>
-  <v-container style="border-radius: 10px; border: 1px solid #707070; padding-top: 0px;">
+  <v-container style="border-radius: 10px; border: 1px solid #707070; padding-top: 0px;" class="elevation-4">
     <EnseignementEdition :data="data" v-if="data.type === 'enseignement'" @refreshTreeView="refreshTreeView" />
     <AMSEdition :data="data" v-else-if="data.type === 'AMS'" @refreshTreeView="refreshTreeView" />
     <PortfoliopEdition :data="data" v-else-if="data.type === 'Portfolio'" @refreshTreeView="$emit('refreshTreeView')"  />

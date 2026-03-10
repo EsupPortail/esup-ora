@@ -16,14 +16,13 @@ export class authentificationController {
                     'data': {}
                 });
             }
-            logger.info(req.body.username + ' logged in.');
             if (result.data !== undefined) {
                 res.cookie('access_token', result.data.access_token, {
                     httpOnly: false,
                     secure: process.env.COOKIE_DOMAIN === 'localhost' ? false : true,
                     domain: '.' + process.env.COOKIE_DOMAIN
                 });
-                res.cookie('expires_in', result.data.expires_in,{
+                res.cookie('expires_in', result.data.expires_in, {
                     httpOnly: false,
                     secure: process.env.COOKIE_DOMAIN === 'localhost' ? false : true,
                     domain: '.' + process.env.COOKIE_DOMAIN
@@ -45,7 +44,7 @@ export class authentificationController {
                     sn: result.data?.userInformations.lastName,
                     eppn: result.data?.userInformations.username,
                     email: result.data?.userInformations.email,
-                    role: result.data?.userInformations.roles[0]
+                    role: result.data?.userInformations.roles
                 };
                 req.session.save((err: any) => {
                     if (err) {
@@ -81,13 +80,12 @@ export class authentificationController {
             return response;
         });
 
-        logger.info(req.headers['x-user-eppn'] + ' logged in.');
         res.cookie('access_token', result.data.access_token, {
             httpOnly: false,
             secure: process.env.COOKIE_DOMAIN === 'localhost' ? false : true,
             domain: '.' + process.env.COOKIE_DOMAIN
         });
-        res.cookie('expires_in', result.data.expires_in,{
+        res.cookie('expires_in', result.data.expires_in, {
             httpOnly: false,
             secure: process.env.COOKIE_DOMAIN === 'localhost' ? false : true,
             domain: '.' + process.env.COOKIE_DOMAIN
@@ -126,16 +124,14 @@ export class authentificationController {
             });
         }
 
-
-        const isTokenValid = await KeycloakService.tokenIntrospection( req.cookies['access_token'] ).then( data => {
+        const isTokenValid = await KeycloakService.tokenIntrospection(req.cookies['access_token']).then(data => {
             return data;
-        }).catch( error => {
-            console.log(error);
+        }).catch(error => {
             return false;
         });
 
-        if( !isTokenValid ) {
-            
+        if (!isTokenValid) {
+
             return res.status(419).json({
                 code: 419,
                 response: 'Token invalide ou expiré. Authentication timeout.',
@@ -143,7 +139,7 @@ export class authentificationController {
         }
 
         return res.status(200).json({
-            data: { 
+            data: {
                 ...req.session.user
             }
         });
@@ -159,8 +155,6 @@ export class authentificationController {
     // Si login via local account
     // alors on le login via les credentials fournis dans le formulaire
     static async login(req: Request, res: Response, fromShibboleth: boolean, eppn?: string, firstname?: string, lastname?: string): Promise<Object> {
-
-        // Get keycloak token
         const access_token = await KeycloakService.getToken().then(data => {
             return data.access_token;
         });
@@ -168,11 +162,11 @@ export class authentificationController {
         let username = undefined;
         let password = undefined;
 
-        if( !fromShibboleth ) {
+        if (!fromShibboleth) {
             username = req.body.username || '';
             password = req.body.password || '';
             if (!username || !password) {
-                return {
+                return { 
                     isValid: false,
                     code: 400,
                     message: 'Username and password must be provided.'
@@ -184,22 +178,18 @@ export class authentificationController {
             try {
                 // Login via shibboleth & creation de compte utilisateur
                 if (resultUserInfo.code === 404) {
-                    logger.info('First connection for user ' + eppn + '. Creating user account.');
                     await KeycloakService.createAccount(access_token, eppn, firstname, lastname);
-                    logger.info('User account created with success. EPPN: ' + eppn);
                     resultUserInfo = await KeycloakService.getUserInformations(access_token, eppn);
                     let observateurRole = undefined;
                     const response = await KeycloakService.getExistantsRoles(access_token).then(roles => {
-                        return roles.data.find(role => role.name === 'observateur');
+                        return roles.data.find(role => role.name === 'enseignant');
                     })
-                    await KeycloakService.changeRoleOfUser( access_token, resultUserInfo[0].id, response.id);
-                    resultUserInfo = await KeycloakService.getUserInformations(access_token, eppn);                      
+                    await KeycloakService.changeRoleOfUser(access_token, resultUserInfo[0].id, response.id);
+                    resultUserInfo = await KeycloakService.getUserInformations(access_token, eppn);
 
                 }
             } catch (error) {
-                // console.error('Error checking user existence:', error.response ? error.response.data : error.message);
-                console.log(error);
-                throw error; 
+                throw error;
             }
         }
 
@@ -219,7 +209,6 @@ export class authentificationController {
                     };
                 }
             } catch (error) {
-                console.log(error);
                 throw error;
             }
         }
@@ -245,14 +234,27 @@ export class authentificationController {
             userInformations: resultUserInfo[0]
         }
         try {
-            const role = await KeycloakService.getRoleOfUser( access_token, resultUserInfo[0].id).then( data => {
-                return data;
-            });
-            dataR.userInformations.roles = role;
+            const userRoleNames = await KeycloakService.getRoleOfUser(
+                access_token,
+                resultUserInfo[0].id
+            );
+
+            const existingRoles = await KeycloakService.getExistantsRoles(access_token);
+
+            const roleNamesArray = Array.isArray(userRoleNames) ? userRoleNames : [userRoleNames];
+            const enrichedRoles = existingRoles.data.filter((role: any) =>
+                roleNamesArray.includes(role.displayName)
+            );
+
+            dataR.userInformations.roles = enrichedRoles;
+
         } catch (error) {
-                console.log(error);
-                throw error;
-            }
+            console.error(error);
+            throw error;
+        }
+
+
+
 
         return {
             isValid: true,
@@ -296,7 +298,7 @@ export class authentificationController {
                 secure: process.env.COOKIE_DOMAIN === 'localhost' ? false : true,
                 domain: '.' + process.env.COOKIE_DOMAIN
             });
-    
+
             // Détruire la session
             if (req.session) {
                 await new Promise<void>((resolve, reject) => {
@@ -305,12 +307,11 @@ export class authentificationController {
                             logger.error('Erreur lors de la destruction de la session :', err.message || err);
                             return reject(err);
                         }
-                        logger.info('Session détruite avec succès.');
                         resolve();
                     });
                 });
             }
-    
+
             // Redirection après déconnexion
             return res.redirect('https://' + process.env.SERVER_NAME + '/Shibboleth.sso/Logout');
         } catch (error) {
@@ -318,5 +319,5 @@ export class authentificationController {
             res.status(500).send('Erreur lors de la déconnexion.');
         }
     }
-    
+
 }

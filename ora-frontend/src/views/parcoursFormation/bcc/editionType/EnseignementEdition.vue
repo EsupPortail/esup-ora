@@ -260,6 +260,7 @@ import { useTagStore } from '@/stores/tagStore'
 import { useCompetenceStore } from '@/stores/competenceStore'
 import { useParcoursStore } from '@/stores/parcoursStore'
 import { useNiveauxApprentissagesStore } from '@/stores/niveauxApprentissagesStore'
+import { usePeriodeStore } from '@/stores/periodeStore'
 
 const props = defineProps({
   data: {
@@ -280,6 +281,7 @@ const ecStore = useEcStore()
 const competenceStore = useCompetenceStore()
 const enseignementStore = useEnseignementStore()
 const tagStore = useTagStore()
+const periodeStore = usePeriodeStore()
 
 enseignementStore.fetchEnseignements()
 competenceStore.fetchCompetences()
@@ -296,9 +298,17 @@ const beforeUpdate = ref(null)
 
 const ensOfUE = computed(() => {
   return ecStore.ecs.filter((ec) => {
-    return parcoursStore.versionSelected.id === ec.version_id
+    if (ec.version_id !== parcoursStore.versionSelected.id) return false
+
+    const enseignement = enseignementStore.enseignements
+      .find((ens) => ens.id === ec.enseignement_id)
+
+    if (!enseignement) return false
+
+    return enseignement.periode_id === periodeLinked.value?.id
   })
 })
+
 
 const updateData = async () => {
   await ecStore.updateEC(data.value)
@@ -306,6 +316,8 @@ const updateData = async () => {
 
 const competencesLinkedList = ref([])
 const acsLinkedList = ref([])
+
+const periodeLinked = ref(null)
 
 const initData = async () => {
   competencesLinkedList.value.length = 0
@@ -327,7 +339,8 @@ const initData = async () => {
       competencesLinkedList.value.push(competence)
     }
   })
-  console.log(data.value.parcours)
+  periodeLinked.value = periodeStore.periodes.find((p) => p.id === ensObject.periode_id)
+  console.log(periodeLinked.value)
 }
 
 const setModalite = () => {

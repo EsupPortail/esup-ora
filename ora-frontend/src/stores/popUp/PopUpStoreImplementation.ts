@@ -1,20 +1,20 @@
-import { ref, type Ref } from 'vue';
-import * as Types from './PopUpObject';
 import { defineStore } from 'pinia';
+import * as Types from './PopUpObject';
 
 export const usePopUpStore = defineStore('popupData', {
     state: () => ({
-        popUpData: null as Types.PopUpObject | null
+        popUpData: {
+            isVisible: false,
+            message: '',
+            type: 'INFO'
+        } as Types.PopUpObject
     }),
     actions: {
         print(popUpInformations: Types.PopUpObject) {
-            return new Promise((resolve) => {
-                this.popUpData = popUpInformations;
-                resolve(popUpInformations);
-            })
+            this.popUpData = { ...popUpInformations, isVisible: true };
         },
         close() {
-            this.popUpData = null;
+            this.popUpData.isVisible = false;
         }
     }
 });

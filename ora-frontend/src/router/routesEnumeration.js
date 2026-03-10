@@ -3,6 +3,7 @@ import { useConnectionStore } from '@/stores/connectionStore';
 
 //Components imports
 import HomeView from '@/views/HomeView.vue'
+import NotGranted from '@/components/NotGranted.vue';
 import NotFound from '@/components/NotFound.vue'
 import Logout from '@/views/LogoutView.vue';
 import RolesAdministration from '@/views/rolesAdministration/RolesAdministration.vue';
@@ -21,9 +22,13 @@ import GlobalParam from '@/views/Backoffice/views/GlobalParam.vue';
 import Configuration from '@/views/Backoffice/views/Configuration.vue';
 import Template from '@/views/Backoffice/views/Template.vue';
 import ParametreView from '@/views/Backoffice/views/ParametreView.vue';
+import RolesUtilisateurs from '@/views/Backoffice/views/RolesUtilisateurs.vue';
+import Indicateurs from '@/views/Backoffice/views/Indicateurs.vue';
+import MyProfile from '@/views/MyProfile.vue';
 
 export const paths = {
     root: "/home",
+    notGranted: "/403",
     login: "/login",
     logout: "/logout",
     export: "/export",
@@ -56,6 +61,7 @@ export const paths = {
     gestionsDesComposantes: '/gestions-des-composantes',
     administration: '/administration',
     aPropos: "/a-propos",
+    myProfile: "/mon-profil",
     contact: "/contact",
     planNavigation: "/plan-navigation",
     tableauPowerPointTMP: "/tableauTMP",
@@ -83,6 +89,7 @@ export const paths = {
     settings: "/settings",
     indicateurs: "/indicateurs",
     rolesEtUtilisateurs: "/roles-et-utilisateurs",
+    dataviz: '/datavisualisation'
 }
 
 export const routes = [
@@ -92,6 +99,14 @@ export const routes = [
         meta: {
             isProtectedRoute: false,
             titlePage: 'Redirection vers la page d\'accueil'
+        }
+    },
+    {
+        path: paths.notGranted,
+        component: NotGranted,
+        meta: {
+            isProtectedRoute: false,
+            titlePage: 'Accès interdit'
         }
     },
     {
@@ -141,7 +156,16 @@ export const routes = [
         }
     },
     {
-        name: "Formation - Version 1",
+        name: "Mon profil utilisateur",
+        path: paths.myProfile,
+        component: MyProfile,
+        meta: {
+            isProtectedRoute: true,
+            titlePage: "Mon profil utilisateur"
+        }   
+    },
+    {
+            name: "Formation - Version 1",
         path: paths.parcoursVersion,
         component: ParcoursVersion,
         meta: {
@@ -276,6 +300,28 @@ export const routes = [
         }
     },
     {
+        name: 'Indicateurs',
+        path: paths.dataviz,
+        component: Indicateurs,
+        meta: {
+            isProtectedRoute: false,
+            titlePage: 'Indicateurs',
+            isSettingsPage: true,
+            settingsPageIcon: "mdi-chart-line",
+        }
+    },
+    {
+        name: "Rôles et utilisateurs",
+        path: paths.rolesEtUtilisateurs,
+        component: RolesUtilisateurs,
+        meta: {
+            isProtectedRoute: false,
+            titlePage: 'Rôles et utilisateurs',
+            isSettingsPage: true,
+            settingsPageIcon: "mdi-account-multiple-outline",
+        }
+    },
+    {
         name: "Configuration",
         path: paths.configuration,
         component: Configuration,
@@ -394,16 +440,6 @@ export const routes = [
             isProtectedRoute: false,
             titlePage: 'Vérifications Page',
             settingsFather: paths.journauxEtLogs,
-        }
-    },
-    {
-        name: "Indicateurs",
-        path: paths.indicateurs,
-        component: ParametreView,
-        meta: {
-            isProtectedRoute: false,
-            titlePage: 'Indicateurs',
-            isSettingsPage: true
         }
     },
     {

@@ -1,5 +1,4 @@
   <template>
-  <!-- Racine -->
   <v-container style="padding-top: 12px; padding-left: 12px; background-color: white">
     <template v-if="root">
       <div
@@ -39,10 +38,9 @@
       </template>
     </template>
 
-    <!-- Affichage récursif -->
+
     <template v-else>
       <div v-for="(item, idx) in itemsRef" :key="item.name + idx">
-        <!-- Si l'item a des enfants -->
         <v-list-group
           v-if="item.children && item.children.length"
           :value="item.name"
@@ -75,13 +73,13 @@
             </v-list-item>
           </template>
 
-          <!-- Appel récursif sur enfants -->
+
           <div class="tree-children">
             <RecursivTree :items="item.children" :root="false" :expanded="expanded" />
           </div>
         </v-list-group>
 
-        <!-- Sinon, c'est une feuille -->
+
         <v-list-item v-else class="tree-node tree-node--leaf">
           <template #prepend>
             <v-icon>mdi-book-open-outline</v-icon>
@@ -115,7 +113,6 @@ const props = defineProps({
 const itemsRef = ref(props.items)
 const expanded = props.root ? ref([]) : props.expanded
 
-// 🧠 Fonction pour collecter les noms à ouvrir
 const collectGroupNames = (items) => {
   const names = []
   for (const item of items) {
@@ -127,7 +124,6 @@ const collectGroupNames = (items) => {
   return names
 }
 
-// 🔁 Initialisation automatique à la racine
 if (props.root) {
   watchEffect(() => {
     expanded.value = collectGroupNames(itemsRef.value)
@@ -138,10 +134,9 @@ if (props.root) {
 <style scoped>
 .tree-children {
   position: relative;
-  margin-left: 0px; /* réduit l'indentation */
+  margin-left: 0px;
   padding-left: 16px;
-  border-left: 2px solid #ccc; /* ligne verticale */
-}
+  border-left: 2px solid #ccc; 
 
 .tree-node {
   position: relative;
@@ -165,7 +160,7 @@ if (props.root) {
 .tree-node--group::before {
   content: '';
   position: absolute;
-  top: -12px; /* ou ajuste selon le padding du groupe */
+  top: -12px; 
   left: -18px;
   width: 28px;
   height: 2px;
@@ -179,11 +174,11 @@ if (props.root) {
   width: 28px;
   height: 2px;
   background-color: #ccc;
-  transform: translateY(-50%); /* centré verticalement */
+  transform: translateY(-50%); 
 }
 .v-icon {
   margin-right: 6px;
-  min-width: 20px; /* empêche les décalages d’icône */
+  min-width: 20px;
 }
 
 .v-list-item {

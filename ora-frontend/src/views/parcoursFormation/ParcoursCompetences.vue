@@ -9,21 +9,80 @@
       <div style="display: inline-block; margin-left: 12px">
         <AideBulles pageAsked="competences" />
       </div>
-
     </v-col>
     <v-col cols="2" offset="4">
       <ButtonExport pageAsked="Competences" />
     </v-col>
   </v-row>
+  <v-row>
+    <v-col cols="6">
+      <v-autocomplete
+        v-if="!currentFicheData"
+        v-model="selectedFiche"
+        v-model:search="searchInputText"
+        v-model:menu="isMenuOpen"
+        :items="rncpResults"
+        :loading="searchLoading"
+        item-title="intitule"
+        item-value="id"
+        label="Rechercher dans le référentiel RNCP"
+        variant="solo-filled"
+        flat
+        hide-no-data
+        return-object
+        :no-filter="true"
+        @update:model-value="onSelectFiche"
+      >
+        <template v-slot:item="{ props, item }">
+          <v-list-item v-bind="props" :title="item.raw.numeroFiche + ' - ' + item.raw.intitule">
+            <template v-slot:append>
+              <v-icon color="primary">mdi-import</v-icon>
+            </template>
+          </v-list-item>
+        </template>
+      </v-autocomplete>
 
-  <v-expansion-panels> </v-expansion-panels>
+      <v-card v-else variant="outlined" class="d-flex align-center pa-3" border color="primary">
+        <v-icon start icon="mdi-file-check" class="mr-3"></v-icon>
+        <div class="overflow-hidden">
+          <div class="text-subtitle-1 font-weight-bold">{{ currentFicheData.numeroFiche }}</div>
+          <div class="text-caption text-truncate">{{ currentFicheData.intitule }}</div>
+        </div>
+        <v-spacer></v-spacer>
+        <v-btn
+          icon="mdi-close"
+          variant="text"
+          color="error"
+          @click="showConfirmDelete = true"
+        ></v-btn>
+      </v-card>
+    </v-col>
+
+    <v-dialog v-model="showConfirmDelete" max-width="500px">
+      <v-card>
+        <v-card-title class="bg-error text-white">Confirmer la suppression</v-card-title>
+        <v-card-text class="pt-4">
+          Êtes-vous sûr de vouloir retirer cette fiche ?
+          <strong
+            >Tous les blocs de compétences associés seront supprimés de votre parcours.</strong
+          >
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer></v-spacer>
+          <v-btn variant="text" @click="showConfirmDelete = false">Annuler</v-btn>
+          <v-btn color="error" variant="flat" @click="confirmCancelImport">Confirmer</v-btn>
+        </v-card-actions>
+      </v-card>
+    </v-dialog>
+  </v-row>
   <v-row style="padding-left: 40px; padding-right: 40px">
     <v-col cols="12">
       <v-card
         v-for="(comp, index) in competencesList"
+        class="elevation-5"
         :key="index"
         :style="{
-          marginTop: '56px',
+          marginTop: '20px',
           borderLeft: `23px solid ${comp.color_hexadecimal}`,
           borderRadius: '15px 0px 0px 15px',
           paddingTop: '10px',
@@ -41,13 +100,55 @@
                         @blur="libChange(comp)"
                         @keyup.enter="libChange(comp)"
                         v-model="comp.libelle"
-                        label="Fiche RNCP"
+                        label="Libellé de la compétence"
                         variant="outlined"
                         density="compact"
                       ></v-text-field>
                     </v-col>
                   </v-row>
-                  <v-row>
+                  <v-card variant="outlined" class="mt-4">
+                    <v-expansion-panels>
+                      <v-expansion-panel elevation="0">
+                        <v-expansion-panel-title>
+                          <div class="text-subtitle-1 font-weight-medium">
+                            RNCP : Blocs de compétences disponibles
+                          </div>
+                        </v-expansion-panel-title>
+
+                        <v-expansion-panel-text>
+                          <v-row>
+                            <v-col cols="12">
+                              <v-list density="compact">
+                                <v-list-item
+                                  v-for="bcc in (currentFicheData?.blocsCompetences || []).sort(
+                                    (a, b) => a.code.localeCompare(b.code)
+                                  )"
+                                  :key="bcc.code"
+                                  class="pa-0 py-2"
+                                >
+                                  <template v-slot:title>
+                                    <div class="text-wrap" style="line-height: 1.4">
+                                      <span class="font-weight-bold">{{ bcc.code }}</span> -
+                                      {{ bcc.libelle }}
+                                    </div>
+                                  </template>
+
+                                  <template v-slot:prepend>
+                                    <v-checkbox-btn
+                                      :model-value="estRncpCheck(comp, bcc)"
+                                      @change="addBccRncp(comp, bcc, currentFicheData.numeroFiche)"
+                                      class="pe-2"
+                                    ></v-checkbox-btn>
+                                  </template>
+                                </v-list-item>
+                              </v-list>
+                            </v-col>
+                          </v-row>
+                        </v-expansion-panel-text>
+                      </v-expansion-panel>
+                    </v-expansion-panels>
+                  </v-card>
+                  <v-row style="margin-top: 8px">
                     <v-col cols="10">
                       <v-text-field
                         @blur="libChangeCompContext(comp)"
@@ -125,12 +226,16 @@
                   <v-icon @click="deleteCompetence(comp)" color="error" size="small"
                     >mdi-trash-can</v-icon
                   >
+                  <v-icon @click="() => (paletteColorOfSelectedComp = comp.id)" size="small"
+                    >mdi-palette</v-icon
+                  >
                 </v-col>
               </v-row>
             </v-col>
             <v-divider vertical :thickness="2"></v-divider>
             <v-col cols="5" style="padding-left: 80px; padding-top: 80px">
               <h3>Famille de situations</h3>
+
               <v-row
                 v-for="fdi in [...comp.famille_de_situations].sort((a, b) =>
                   a.libelle.localeCompare(b.libelle)
@@ -208,16 +313,20 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import router from '@/router/router'
+
+import Cookies from 'js-cookie'
 
 import { useCompetenceStore } from '@/stores/competenceStore'
 import { useParcoursStore } from '@/stores/parcoursStore'
 import { useFormationStore } from '@/stores/formationStore'
 import { useParametreStore } from '@/stores/parametreStore'
+import { useConnectionStore } from '@/stores/connectionStore'
 
 import ButtonExport from '@/views/parcoursFormation/exportExcelPDF/ButtonExport.vue'
 import AideBulles from '@/components/AideBulles.vue'
+import { config } from '@/environment/environment'
 
 const colors = [
   '#6BFA0A',
@@ -237,6 +346,15 @@ const colors = [
   '#B2C453',
   '#212153'
 ]
+
+const swatches = [
+  ['#6BFA0A', '#FA2B0A', '#5277A8', '#4E7E36', '#7C818A'],
+  ['#C256A1', '#CD55FA', '#55BFFA', '#FA7B55', '#E1A624'],
+  ['#287A8F', '#CE6A6B', '#91228D', '#B2C453', '#212153']
+]
+
+const paletteColorOfSelectedComp = ref(null)
+
 const vModelSituationPro = ref({})
 const competencesList = ref([])
 const versionId = router.currentRoute.value.params.idVersion
@@ -259,6 +377,7 @@ const competenceStore = useCompetenceStore()
 const parcoursStore = useParcoursStore()
 const formationStore = useFormationStore()
 const parametreStore = useParametreStore()
+const connectionStore = useConnectionStore()
 
 const init = async () => {
   await competenceStore.fetchCompetences()
@@ -266,6 +385,33 @@ const init = async () => {
   version.value = await formationStore.fetchVersionById(versionId)
   const formation = await formationStore.fetchOneFormationFromId(version.value.formation_id)
   parametre.value = formation.composante.parametre
+
+  let ficheRNCP = null
+  console.log(competencesList.value)
+  competencesList.value.forEach((comp) => {
+    if (comp.rncp_bccs && comp.rncp_bccs.length > 0) {
+      comp.rncp_bccs.forEach((bcc) => {
+        ficheRNCP = bcc.numero_fiche
+        return
+      })
+    }
+  })
+  console.log('Fiche RNCP liée trouvée :', ficheRNCP)
+  if (ficheRNCP) {
+    const response = await fetch(`${config.backend.url}/rncp/search?numeroFiche=${ficheRNCP}`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${Cookies.get('access_token')}`,
+        'X-Active-Role': connectionStore.selectedRole ? connectionStore.selectedRole.name : '',
+        Accept: 'application/json',
+        'Content-Type': 'application/json'
+      }
+    })
+    const ficheData = await response.json()
+    currentFicheData.value = ficheData[0]
+    importRNCPBlocs(ficheData[0])
+    isMenuOpen.value = false
+  }
 }
 init()
 
@@ -332,6 +478,7 @@ const deleteSituationPro = (fdi) => {
     })
   })
 }
+
 const updateSituationPro = (fdi) => {
   competenceStore.updateFamilleDeSituation({
     id: fdi.id,
@@ -399,6 +546,108 @@ const deleteCompetence = (comp) => {
   })
 }
 
+// Partie RNCP
+
+const estRncpCheck = (comp, bccToCheck) => {
+  return comp.rncp_bccs && comp.rncp_bccs.some((bcc) => bcc.code === bccToCheck.code)
+}
+
+const addBccRncp = async (competence, bcc, numeroFiche) => {
+  bcc.numero_fiche = numeroFiche
+  await competenceStore.linkBccRncpToCompetence(competence, bcc)
+}
+const isMenuOpen = ref(false)
+
+const selectedFiche = ref(null)
+const rncpResults = ref([])
+const searchLoading = ref(false)
+const currentFicheData = ref(null)
+const showConfirmDelete = ref(false)
+const searchInputText = ref('')
+
+let searchTimer = null
+
+const importRNCPBlocs = (fiche) => {
+  if (!fiche?.blocsCompetences) return
+
+  fiche.blocsCompetences.forEach((bloc) => {
+    competencesList.value.push({
+      id_rncp_source: fiche.numeroFiche,
+      libelle: `[${fiche.numeroFiche}] ${bloc.libelle}`,
+      color_hexadecimal: typeof takeColor === 'function' ? takeColor() : '#000000',
+      competence_contextualisee: '',
+      critere_exigences: [],
+      famille_de_situations: []
+    })
+  })
+}
+
+const confirmCancelImport = async () => {
+  if (currentFicheData.value) {
+    const codeToRemove = currentFicheData.value.numeroFiche
+
+    competencesList.value.map(async (comp) => {
+      await competenceStore.deleteRncpOfCompetence(comp)
+    })
+
+    currentFicheData.value = null
+    selectedFiche.value = null
+    searchInputText.value = ''
+    rncpResults.value = []
+    showConfirmDelete.value = false
+  }
+}
+
+// --- 2. LOGIQUE D'INTERFACE ---
+
+const onSelectFiche = (fiche) => {
+  if (fiche && typeof fiche === 'object') {
+    currentFicheData.value = fiche
+    console.log('Fiche sélectionnée :', fiche) // Debug
+    // importRNCPBlocs(fiche)
+    isMenuOpen.value = false
+  }
+}
+
+const executeSearch = async (query) => {
+  searchLoading.value = true
+  try {
+    const param = query.toUpperCase().startsWith('RNCP')
+      ? `numeroFiche=${query}`
+      : `intitule=${query}`
+
+    const accessToken = Cookies.get('access_token')
+    const response = await fetch(`${config.backend.url}/rncp/search?${param}`, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        'X-Active-Role': connectionStore.selectedRole ? connectionStore.selectedRole.name : '',
+        Accept: 'application/json',
+        'Content-Type': 'application/json'
+      }
+    })
+    const data = await response.json()
+    rncpResults.value = data || []
+
+    if (rncpResults.value.length > 0) isMenuOpen.value = true
+  } catch (e) {
+    console.error('Erreur API RNCP', e)
+  } finally {
+    searchLoading.value = false
+  }
+}
+
+// --- 3. WATCHERS ---
+
+watch(searchInputText, (newVal) => {
+  if (!newVal || (selectedFiche.value && newVal === selectedFiche.value.intitule)) return
+  if (newVal.length < 3) return
+
+  clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => {
+    executeSearch(newVal)
+  }, 600)
+})
 const nextStep = () => {
   router.push({ name: 'apprentissagesCritiquesParcours' })
 }

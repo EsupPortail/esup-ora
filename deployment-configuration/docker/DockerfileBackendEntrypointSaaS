@@ -1,32 +1,7 @@
-FROM ubuntu:20.04
+FROM ubuntu:26.04
 
-ARG NODE_VERSION=24.6.0
+ARG NODE_VERSION=25.6.0
 ENV NODE_VERSION=$NODE_VERSION
-
-RUN if [ -f ./deployment-configuration/proxy/.env_proxy ]; then \
-    COPY ./deployment-configuration/proxy/.env_proxy /; \
-fi
-COPY ./deployment-configuration/proxy/proxy.sh /
-RUN chmod +x /proxy.sh
-
-RUN sh /proxy.sh
-
-ARG HTTP_PROXY_CI 
-ENV http_proxy=$HTTP_PROXY_CI
-ENV https_proxy=$HTTP_PROXY_CI
-ENV HTTP_PROXY=$HTTP_PROXY_CI
-ENV HTTPS_PROXY=$HTTP_PROXY_CI
-
-
-# Vérifiez si la variable d'environnement http_proxy est définie
-RUN if [ -n "$http_proxy" ]; then \
-    # Si elle est définie, exécutez les commandes pour configurer le proxy
-    touch /etc/apt/apt.conf.d/05proxy; \
-    echo 'Acquire::HTTP::Proxy "'$http_proxy'";' >> /etc/apt/apt.conf.d/05proxy; \
-    echo 'Acquire::HTTPS::Prox "'$http_proxy'";' >> /etc/apt/apt.conf.d/05proxy; \
-    echo 'Acquire::ftp::Proxy "'$http_proxy'";' >> /etc/apt/apt.conf.d/05proxy; \
-    echo "Proxy configuré dans le système de packages avec la valeur $http_proxy" && true; \
-fi
 
 # Install Nodejs
 
@@ -36,6 +11,7 @@ RUN apt-get update && apt-get install -y \
     gnupg2 \
     tar \
     xz-utils \
+    libatomic1 \
     && rm -rf /var/lib/apt/lists/*
 
 RUN curl -fsSL https://nodejs.org/dist/v$NODE_VERSION/node-v$NODE_VERSION-linux-x64.tar.xz -o node.tar.xz \
@@ -69,9 +45,11 @@ RUN chmod u+x /packages.sh
 RUN apt-get install -y expect
 
 RUN sh /packages.sh
-RUN apt-get install -y apache2
-RUN apt-get install -y libapache2-mod-shib2
-RUN apt-get install -y supervisor
+RUN apt-get update && apt-get install -y \
+    apache2 \
+    libapache2-mod-shib \
+    supervisor && \
+    rm -rf /var/lib/apt/lists/*
 
 COPY ./deployment-configuration/service/conf-apache2/apache2-tmp.conf /etc/apache2/
 
@@ -88,8 +66,6 @@ RUN a2enconf ports
 
 ### Configuration WayF
 
-#Php for wayf
-RUN apt-get install -y php7.4-fpm php7.4-common php7.4-xml php7.4-mbstring libapache2-mod-php
 
 RUN a2enmod proxy_fcgi setenvif rewrite ssl proxy proxy_http
 
@@ -100,25 +76,9 @@ COPY ./deployment-configuration/shibboleth/security.conf /etc/apache2/conf-avail
 
 RUN a2enmod proxy_wstunnel
 
-RUN a2enconf wayf
 RUN a2enconf shib
 RUN a2enconf security
 
-# Packages for switchwayf
-RUN apt-get install -y imagemagick
-RUN apt-get install -y python3 python3-pip
-RUN pip3 install lxml
-RUN apt-get install -y libxml2-utils
-RUN apt-get install -y unzip
-RUN apt-get install -y wget
-
-# Integration of switchwayf
-RUN mkdir -p /var/www/html/switchwayf
-COPY ./deployment-configuration/shibboleth/switchwayf /var/www/html/switchwayf
-RUN chmod -R go=u-w /var/www/html/switchwayf
-
-
-### Fin Configuration WayF
 
 ### Configuration Shibboleth
 
@@ -131,47 +91,20 @@ RUN a2enmod shib
 
 ### Fin Configuration Shibboleth
 
-###### FIn Configuration Shibboleth
-
 # Cron
-RUN apt-get install -y cron
+RUN apt-get update && apt-get install -y cron
 RUN touch /var/log/crontab.logs 
 RUN chown www-data:www-data /var/log/crontab.logs
 RUN chmod 644 /var/log/crontab.logs
 
 
 # Supervisor
-RUN apt-get install -y supervisor
-RUN apt-get install -y gettext-base
+RUN apt-get update && apt-get install -y supervisor gettext-base
 RUN touch /var/log/supervisor/supervisord.log
 RUN chown www-data:www-data /var/log/supervisor/supervisord.log
 RUN chmod 644 /var/log/supervisor/supervisord.log
 
 COPY ./deployment-configuration/service/supervisord.conf /
-
-## Install libraries puppeteer for pdf generation
-RUN apt-get update && apt-get install -y \
-    libnss3 \
-    libxss1 \
-    libatk-bridge2.0-0 \
-    libatk1.0-0 \
-    libgtk-3-0 \
-    libdrm2 \
-    libgbm1 \
-    libasound2 \
-    libxshmfence1 \
-    libxcomposite1 \
-    libxrandr2 \
-    libxdamage1 \
-    libpango-1.0-0 \
-    libpangocairo-1.0-0 \
-    libcups2 \
-    libx11-xcb1 \
-    --no-install-recommends && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/*
-
-
 
 RUN mkdir -p /var/run/supervisor/
 RUN chmod -R 777 /var/run/supervisor/
@@ -197,12 +130,9 @@ COPY ./deployment-configuration/service/run-conf-and-launch.sh /
 RUN chown www-data:www-data /run-conf-and-launch.sh
 RUN chmod u+x /run-conf-and-launch.sh
 
-
-ENV HTTP_PROXY ""
-ENV HTTPS_PROXY ""
-ENV http_proxy ""
-ENV https_proxy ""
-RUN rm -f /etc/apt/apt.conf.d/05proxy
+ENV TZ=Europe/Paris
+RUN apt-get update && apt-get install -y tzdata && \
+    ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
 
 USER root
 

@@ -1,5 +1,71 @@
 # Notes de patchs
 
+## 1.15.=à compléter [DEBUG] [PREPARE FOR SaaS - Pré Release]
+- Suppression de la fiche RNCP entraine la suppression des rncps associées au compétence (DROP Cascade)
+- Fix bug sur la remontée des heures/crédits création formation
+- Fix effectif théorique quand pas de parcours
+- Les compétences RNCP sont désormais triées par code
+- On peut supprimer une compétence (CASCADE sur niveaux et rncp)
+
+## 1.13.6 (25/02/2026)
+- Finalisation du module RNCP
+    => le backend d'ORA fait un pont entre le front et le module RNCP distant
+    => possibilité de link une rncp sur une formation, puis de sélectionner les bccs de la rncp
+    => possibilité de unlink mais suppression des associations (non finalisé)
+- Page mon profil utilisateur
+- Fix bug filtrage formations en fonction des associations composantes/formations + owner + rôle
+- Fix bug Shibboleth arrivée avec le bon rôle
+- Remplacement titre agent de scolarité par gestionnaire de scolarité en display name
+- Fix de l'accès au backoffice depuis certains rôles 
+- Fix messages pas de compétences sur la page apprentissages critiques
+
+## 1.12.9 (12/02/2026)
+- Intégration des rôles : Observateur, Enseignant, Agent de Scolarité, Ingénieur Pédagogique, Administrateur Fonctionnel, Administrateur Technique
+- Création d'une vue pour promouvoir ou rétrograder des utilisateurs
+- Création d'une vue pour rattacher un utilisateur à une composante
+- Création d'une vue pour rattacher un utilisateur à une formation (contributeurs)
+- Page liste des formations (accueil) => filtrage des formations en fonction des droits (use case enseignant, agent de scolarité)
+- Ajout de champs rattachement et owner à formation et composante pour linker les users keycloak aux objets d'esup ora
+- On peut désormais ajouter plusieurs rôles à un utilisateur (UseCase VP => Observateur + Enseignant)
+- Route pour supprimer des rôles.
+- Patch rôle à injecter en bdd côté keycloak => ajout d'une hiérarchie entre les rôles
+- Possibilité de switch entre les différents rôles de l'utilisateur
+- ==> Debug le rôle agent de scolarite -> **besoin de l'injection du patch**
+
+
+- Indicateurs : 
+Ajout de la librairie graphiques vuetify à ESUP ORA pour préparer les indicateurs & tableaus de bord
+
+- Formation listing & création 
+=> ajout d'un moteur de recherche par libellé de la formation qui trie les formations par matching libellé
+=> overflow Y sur la liste des formations
+- Ajout d'une fonction pour supprimer les comptes ORA
+
+Clear:
+- Nettoyage de la pollution des logs backend
+
+Fixes : 
+- Bug 403 sur la sélection du rôle
+- Déconnexion après inactivité
+
+Montée de version de la stack applicative
+- Mise à jour de toutes les dépendances du backend NodeJS
+- Mise à jour de toutes les dépendances du frontend VueJS3
+Debugging applicatif concernant cette montée de version. Ajustement de Prisma pour le passage en v7 (fix)
+
+
+## 1.8.9 (19/11/2025)
+
+- Ajout de l'export Excel de la formation finale dans les tableaux de bord.
+- Mutualisation, filtrage par période de la formation sélectionnée en filtrage
+
+## 1.8.5 (18/11/2025)
+
+- Suppression coût équivalent TD
+- Fix ordre des niveaux dans le tree view de elements constitutifs 
+- Fix ouverture/fermeture des éléments dans le tree view EC quand un objet est modifié
+- Fix de la remontée des enseignements dans options => uniquement ceux de la période
+
 ## 1.8.3 [RELEASE] (13/11/2025)
 
 - Nettoyage modèle de données => suppression des éléments dépréciés + simplification de certains attributs

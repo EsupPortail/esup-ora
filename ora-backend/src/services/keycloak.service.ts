@@ -5,6 +5,106 @@ import { logger } from '../configs/logger';
 
 export class KeycloakService {
 
+    static async addRoleToUser(access_token: string, id_user: string, id_role: string): Promise<any> {
+        const roleURL = `${process.env.KEYCLOAK_HOST}admin/realms/${process.env.KEYCLOAK_REALM}/users/${id_user}/role-mappings/realm`;
+        const config = {
+            headers: {
+                'Accept': 'application/json',
+                'Authorization': `Bearer ${access_token}`,
+                'Content-Type': 'application/json',
+            }
+        };
+
+        const existingRoles = await this.getExistantsRoles(access_token);
+        const roleRepresentation = existingRoles.data.find((role: { id: string }) => role.id === id_role);
+
+        if (!roleRepresentation) {
+            return {
+                code: 404,
+                message: 'Role not found',
+            };
+        }
+
+        const data = [
+            {
+                id: id_role,
+                name: roleRepresentation.name,
+                composite: false,
+                clientRole: false,
+                containerId: roleRepresentation.containerId
+            }
+        ];
+
+        try {
+            const result = await axios.post(roleURL, data, config).then(r => {
+                return r;
+            })
+
+            return {
+                code: 200,
+                message: 'Role added successfully',
+                data: result.data,
+            };
+        } catch (err: any) {
+            logger.error('Error occurred:', err.message);
+            return {
+                code: 500,
+                message: 'An error occurred while adding role.',
+                error: err.message,
+            }
+        }
+    }
+
+    static async removeRoleFromUser(access_token: string, id_user: string, id_role: string): Promise<any> {
+        const roleURL = `${process.env.KEYCLOAK_HOST}admin/realms/${process.env.KEYCLOAK_REALM}/users/${id_user}/role-mappings/realm`;
+        const config = {
+            headers: {
+                'Accept': 'application/json',
+                'Authorization': `Bearer ${access_token}`,
+                'Content-Type': 'application/json',
+            }
+        };
+
+        const existingRoles = await this.getExistantsRoles(access_token);
+        const roleRepresentation = existingRoles.data.find((role: { id: string }) => role.id === id_role);
+
+        if (!roleRepresentation) {
+            return {
+                code: 404,
+                message: 'Role not found',
+            };
+        }
+
+        const data = [
+            {
+                id: id_role,
+                name: roleRepresentation.name,
+                composite: false,
+                clientRole: false,
+                containerId: roleRepresentation.containerId
+            }
+        ];
+
+        try {
+            const result = await axios.delete(roleURL, { data: data, ...config }).then(r => {
+                return r;
+            })
+
+            return {
+                code: 200,
+                message: 'Role removed successfully',
+                data: result.data,
+            };
+        } catch (err: any) {
+            logger.error('Error occurred:', err.message);
+            return {
+                code: 500,
+                message: 'An error occurred while removing role.',
+                error: err.message,
+            }
+        }
+    }
+
     static async changeRoleOfUser(access_token: string, id_user: string, id_role: string): Promise<any> {
         const roleURL = `${process.env.KEYCLOAK_HOST}admin/realms/${process.env.KEYCLOAK_REALM}/users/${id_user}/role-mappings/realm`;
         const config = {
@@ -62,7 +162,7 @@ export class KeycloakService {
         }
     }
 
-    static async revokeToken( access_token: string, user_id: string ) {
+    static async revokeToken(access_token: string, user_id: string) {
         const revokeTokenURL = `${process.env.KEYCLOAK_HOST}admin/realms/${process.env.KEYCLOAK_REALM}/users/${user_id}/logout`;
         const config = {
             headers: {
@@ -73,7 +173,6 @@ export class KeycloakService {
 
         try {
             await axios.post(revokeTokenURL, {}, config);
-            logger.info(`Token revoked for user ${user_id}`);
         } catch (err: any) {
             logger.error('Error revoking token:', err.message);
             throw err;
@@ -91,7 +190,6 @@ export class KeycloakService {
         };
 
         try {
-            logger.info('Fetching existing roles from Keycloak');
             const response = await axios.get(rolesURL, config);
             const roles = response.data
                 .filter((role: { id: string, name: string, description: string, attributes: { 'ora-roles': string[], 'display_name': string[] } }) => role.attributes?.['ora-roles']?.includes('true'))
@@ -100,6 +198,7 @@ export class KeycloakService {
                 }) => ({
                     id: role.id,
                     name: role.name,
+                    hierarchy: role.attributes?.hierarchy ? parseInt(role.attributes.hierarchy[0], 10) : null,
                     displayName: role.attributes?.display_name[0] || null,
                     description: role.description || null,
                 }));
@@ -118,7 +217,7 @@ export class KeycloakService {
         }
     }
 
-    static async getRoleOfUser( access_token: string, user_id: string ) {
+    static async getRoleOfUser(access_token: string, user_id: string) {
         const getRoleUserURL = `${process.env.KEYCLOAK_HOST}admin/realms/${process.env.KEYCLOAK_REALM}/users`;
         const endPointRole = '/role-mappings/realm';
         const config = {
@@ -130,7 +229,7 @@ export class KeycloakService {
         };
 
         try {
-            const rolesResponse = await axios.get(`${getRoleUserURL}/${user_id}${endPointRole}`, config).then( d => {
+            const rolesResponse = await axios.get(`${getRoleUserURL}/${user_id}${endPointRole}`, config).then(d => {
                 return d.data;
             })
             const existantsRoles = await this.getExistantsRoles(access_token);
@@ -141,7 +240,7 @@ export class KeycloakService {
             const filteredRoles = existantsRoles.data.filter((role: { id: string; name: string }) =>
                 roles.some((existantRole: { id: string }) => existantRole.id === role.id)
             );
-            return filteredRoles.map(ro => ro.displayName);
+            return filteredRoles.map((ro: any) => ro.displayName);
         } catch (err: any) {
             logger.error('Error occurred:', err.message);
             throw err;
@@ -208,8 +307,7 @@ export class KeycloakService {
         const data = qs.stringify({
             client_id: process.env.KEYCLOAK_CLIENT_ID,
             client_secret: process.env.KEYCLOAK_CLIENT_SECRET,
-            token: token_user_to_check,
-            grant_type: 'client_credentials'
+            token: token_user_to_check
         });
 
         const config = {
@@ -247,8 +345,45 @@ export class KeycloakService {
             const response = await axios.put(urlForEditingPasswordUser, data, config).then(response => { return response });
             return password;
         } catch (error: any) {
-            console.error('Error updating password:', error.message);
             return '';
+        }
+    }
+
+    static async createLocalAccount(access_token: string, username: string, email: string, password: string): Promise<any> {
+        const userURL = `${process.env.KEYCLOAK_HOST}admin/realms/${process.env.KEYCLOAK_REALM}/users`;
+        const config = {
+            headers: {
+                'Accept': 'application/json',
+                'Authorization': `Bearer ${access_token}`,
+                'Content-Type': 'application/json',
+            },
+        };
+
+        const data = {
+            username: username,
+            firstName: username,
+            lastName: username,
+            email: email,
+            enabled: true,
+            emailVerified: true,
+            credentials: [
+                {
+                    type: 'password',
+                    value: password,
+                    temporary: false,
+                }
+            ],
+            attributes: {
+                "fromShibboleth": ["false"]
+            }
+        };
+
+        try {
+            const result = await axios.post(userURL, data, config).then(response => {
+            });
+        } catch (err: any) {
+            logger.error('Error occurred:', err.message);
+            throw err;
         }
     }
 
@@ -270,12 +405,11 @@ export class KeycloakService {
             enabled: true,
             emailVerified: true,
             attributes: {
-                "fromShibboleth": "true"
+                "fromShibboleth": ["true"]
             }
         };
 
         try {
-            logger.info('Creating user account');
             const result = await axios.post(userURL, data, config).then(response => {
             });
             // return result.data;
@@ -285,7 +419,7 @@ export class KeycloakService {
         }
     }
 
-    static async refreshToken( refreshToken: string ): Promise<any> {
+    static async refreshToken(refreshToken: string): Promise<any> {
         const tokenUrl = process.env.KEYCLOAK_HOST + 'realms/' + process.env.KEYCLOAK_REALM + '/protocol/openid-connect/token';
         const data = qs.stringify({
             client_id: process.env.KEYCLOAK_CLIENT_ID,
@@ -325,7 +459,6 @@ export class KeycloakService {
                 'Content-Type': 'application/x-www-form-urlencoded',
             }
         };
-
         // Initialization keycloak connection and take a token
         let aToken = undefined;
         let expiresDelay = undefined;
@@ -374,7 +507,43 @@ export class KeycloakService {
             })
             return result;
         } catch (err: any) {
-            logger.error('Error occurred:', err.message);
+            logger.error('Error occurred: when getting user informations');
+        }
+    }
+
+    static async deleteUser(access_token: string, id_user: string): Promise<any> {
+        const userURL = `${process.env.KEYCLOAK_HOST}admin/realms/${process.env.KEYCLOAK_REALM}/users/${id_user}`;
+
+        const config = {
+            headers: {
+                'Accept': 'application/json',
+                'Authorization': `Bearer ${access_token}`,
+                'Content-Type': 'application/json',
+            }
+        };
+
+        try {
+            const result = await axios.delete(userURL, config);
+
+            return {
+                code: 204,
+                message: 'User deleted successfully',
+                data: result.data,
+            };
+        } catch (err: any) {
+            if (err.response && err.response.status === 404) {
+                return {
+                    code: 404,
+                    message: 'User not found',
+                };
+            }
+
+            logger.error('Error occurred during user deletion:', err.message);
+            return {
+                code: 500,
+                message: 'An error occurred while deleting user.',
+                error: err.message,
+            };
         }
     }
 

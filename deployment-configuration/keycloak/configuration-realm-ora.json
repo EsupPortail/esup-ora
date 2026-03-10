@@ -2067,6 +2067,16 @@
         }
       },
       {
+        "name": "agent_scolarite",
+        "description": "Rôle associé à un agent de scolarité pour la gestion des formations et des rattachements",
+        "clientRole": false,
+        "composite": false,
+        "attributes": {
+          "display_name": ["Agent de scolarité"],
+          "ora-roles": ["true"]
+        }
+      },
+      {
         "name": "ingenieur_pedagogique",
         "description": "Équivalent à administrateur fonctionnel",
         "clientRole": false,

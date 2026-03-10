@@ -109,16 +109,12 @@ export class SocketService {
 
       socket.on("notify-change-on-datamodel", ({ elementToNotify}) => {
         const data = this.socketUserMap.get(socket.id);
-        console.log("hello 1111 from back for notify", data?.room);
         if (!data) return;
 
         const { room, user } = data;
-        console.log("hello from back for notify", data?.room);
         if (!data) {
           return;
         }
-        console.log(room);
-        console.log(elementToNotify)
         SocketService.io
           .to(room)
           .emit("need-refresh", {

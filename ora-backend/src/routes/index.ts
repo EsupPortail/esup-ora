@@ -1,7 +1,8 @@
 import { Application, Request, Response } from "express";
 import baseRoutes from "./base.routes";
 import authRoutes from "./auth.routes";
-import exportRoutes from "./export.routes";
+import rncpRoutes from "./rncp.routes";
+// import exportRoutes from "./export.routes";
 import adminRoutes from "./admin.routes";
 import websocketRoutes from "./websocket.routes";
 import { logger } from "../configs/logger";
@@ -25,7 +26,9 @@ export default class Routes {
         // Auth routes
         app.use("/api/auth", authRoutes);
 
-        app.use("/api/export", exportRoutes);
+        // app.use("/api/export", exportRoutes);
+
+        app.use("/api/rncp", rncpRoutes);
 
         app.use("/api/websocket", websocketRoutes);
 

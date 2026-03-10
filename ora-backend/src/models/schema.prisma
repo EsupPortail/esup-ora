@@ -1,10 +1,10 @@
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
+  output   = "../generated/client"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("ORA_DATABASE_URL")
 }
 
 model User {
@@ -26,10 +26,9 @@ model users_socket_connected {
 }
 
 model application_informations_bulles {
-  id Int @id @default(autoincrement())
+  id                Int     @id @default(autoincrement())
   screen_associated String?
-  contenu String? @db.Text
-
+  contenu           String? @db.Text
 }
 
 model application_screens {
@@ -43,24 +42,33 @@ model competence {
   famille_de_situations     famille_de_situation[]
   color_hexadecimal         String?                @db.VarChar(7)
   critere_exigences         critere_exigence[]
-  linked_periodes_maquette periodes[]
+  linked_periodes_maquette  periodes[]
   element_constitutif       element_constitutif?
   version                   version                @relation(fields: [version_id], references: [id])
   version_id                Int
   niveau                    niveau[]
+  rncp_bccs                rncp_bcc[]             
   competence_contextualisee String?                @db.VarChar(255)
   created_at                DateTime               @default(now())
   updated_at                DateTime               @updatedAt
   deleted_at                DateTime?
 }
 
-model critere_exigence {
-  id                     Int                     @id @default(autoincrement())
-  libelle                String                  @db.VarChar(255)
-  competence             competence              @relation(fields: [competence_id], references: [id])
-  competence_id          Int
+model rncp_bcc {
+  id            Int        @id @default(autoincrement())
+  libelle       String     @db.VarChar(255)
+  code         String     @db.VarChar(255)
+  numero_fiche String     @db.VarChar(255)
+
+  competences competence[]
 }
 
+model critere_exigence {
+  id            Int        @id @default(autoincrement())
+  libelle       String     @db.VarChar(255)
+  competence    competence @relation(fields: [competence_id], references: [id])
+  competence_id Int
+}
 
 model ensemble_apprentissage_critique {
   id                      Int                      @id @default(autoincrement())
@@ -98,69 +106,67 @@ model famille_de_situation {
 }
 
 model element_constitutif_mutualised_imported {
-  id                        Int                   @id @default(autoincrement())
-  element_constitutif_id    Int
-  element_constitutif       element_constitutif   @relation(fields: [element_constitutif_id], references: [id])
+  id                     Int                 @id @default(autoincrement())
+  element_constitutif_id Int
+  element_constitutif    element_constitutif @relation(fields: [element_constitutif_id], references: [id])
 
-  render_order              Int?
+  render_order Int?
 
-  unites_enseignement       unites_enseignement?  @relation(fields: [unites_enseignement_id], references: [id])
-  unites_enseignement_id    Int?
+  unites_enseignement    unites_enseignement? @relation(fields: [unites_enseignement_id], references: [id])
+  unites_enseignement_id Int?
 
-  periode_id               Int?
-  periode                  periodes?             @relation(fields: [periode_id], references: [id])
+  periode_id Int?
+  periode    periodes? @relation(fields: [periode_id], references: [id])
 }
 
-
 model element_constitutif {
-  id                        Int                   @id @default(autoincrement())
-  libelle                   String                @db.VarChar(255)
-  competence                competence?           @relation(fields: [competence_id], references: [id])
-  competence_id             Int?                  @unique
+  id                           Int                                       @id @default(autoincrement())
+  libelle                      String                                    @db.VarChar(255)
+  competence                   competence?                               @relation(fields: [competence_id], references: [id])
+  competence_id                Int?                                      @unique
   ec_imported_by_mutualisation element_constitutif_mutualised_imported[]
-  version                   version?              @relation(fields: [version_id], references: [id])
-  version_id                Int?
-  parcours                  parcours[]
-  unites_enseignement       unites_enseignement?  @relation(fields: [unites_enseignement_id], references: [id])
-  unites_enseignement_id    Int?
-  periode                  periodes?             @relation("ElementConstitutifPeriode", fields: [periode_id], references: [id])
-  periode_id               Int?
-  linked_periodes_maquette periodes[]            @relation("ElementConstitutifLinkedPeriodes")
-  render_order              Int?
-  tags                      tags[]
-  est_mutualisable          Boolean?              @default(false)
-  type                      String                @default("Enseignement") @db.VarChar(255)
-  enseignement              enseignement?         @relation(fields: [enseignement_id], references: [id])
-  enseignement_id           Int? @unique
-  volume_horaire_tp         Int?
-  volume_horaire_td         Int?
-  volume_horaire_cm         Int?
-  volume_horaire_pt         Int?
-  volume_horaire_etudiant   Int?
-  volume_horaire_cm_td      Int?
-  credits_ects              Int?
-  travail_personnel         Int?
-  nb_etudiant_min           Int?
-  nb_etudiant_max           Int?
-  presentiel                Int                   @default(0)
-  est_presentiel            Boolean               @default(false)
-  est_distanciel            Boolean               @default(false)
-  est_hybride               Boolean               @default(false)
-  est_optionnel             Boolean?
+  version                      version?                                  @relation(fields: [version_id], references: [id])
+  version_id                   Int?
+  parcours                     parcours[]
+  unites_enseignement          unites_enseignement?                      @relation(fields: [unites_enseignement_id], references: [id])
+  unites_enseignement_id       Int?
+  periode                      periodes?                                 @relation("ElementConstitutifPeriode", fields: [periode_id], references: [id])
+  periode_id                   Int?
+  linked_periodes_maquette     periodes[]                                @relation("ElementConstitutifLinkedPeriodes")
+  render_order                 Int?
+  tags                         tags[]
+  est_mutualisable             Boolean?                                  @default(false)
+  type                         String                                    @default("Enseignement") @db.VarChar(255)
+  enseignement                 enseignement?                             @relation(fields: [enseignement_id], references: [id])
+  enseignement_id              Int?                                      @unique
+  volume_horaire_tp            Int?
+  volume_horaire_td            Int?
+  volume_horaire_cm            Int?
+  volume_horaire_pt            Int?
+  volume_horaire_etudiant      Int?
+  volume_horaire_cm_td         Int?
+  credits_ects                 Int?
+  travail_personnel            Int?
+  nb_etudiant_min              Int?
+  nb_etudiant_max              Int?
+  presentiel                   Int                                       @default(0)
+  est_presentiel               Boolean                                   @default(false)
+  est_distanciel               Boolean                                   @default(false)
+  est_hybride                  Boolean                                   @default(false)
+  est_optionnel                Boolean?
 
   obligatoire                         Boolean               @default(false)
   est_ouvert_etudiants_internationaux Boolean               @default(false)
   ams_connected                       element_constitutif?  @relation("AmsConnected", fields: [ams_connected_id], references: [id])
   ams_connected_id                    Int?
   ams_dependant                       element_constitutif[] @relation("AmsConnected")
-  ens_options element_constitutif[]   @relation("ECCluster")
-  connected_to element_constitutif[]  @relation("ECCluster")
+  ens_options                         element_constitutif[] @relation("ECCluster")
+  connected_to                        element_constitutif[] @relation("ECCluster")
   est_isole                           Boolean               @default(false)
   est_assoce                          Boolean               @default(false)
   description                         String?               @db.Text
   commentaire                         String?               @db.Text
 }
-
 
 model enseignement {
   id                                  Int                      @id @default(autoincrement())
@@ -192,42 +198,42 @@ model tags {
   libelle             String                @db.VarChar(255)
   enseignement        enseignement[]
   parametre           parametre[]
-  is_historized      Boolean               @default(false)
+  is_historized       Boolean               @default(false)
   element_constitutif element_constitutif[]
   deleted_at          DateTime?
 }
 
 model unites_enseignement {
-  id                    Int                   @id @default(autoincrement())
-  libelle               String                @db.VarChar(255)
-  periode               periodes?             @relation(fields: [periode_id], references: [id])
+  id                    Int                                       @id @default(autoincrement())
+  libelle               String                                    @db.VarChar(255)
+  periode               periodes?                                 @relation(fields: [periode_id], references: [id])
   periode_id            Int?
   render_order          Int?
   elements_constitutifs element_constitutif[]
-  ecs_imported element_constitutif_mutualised_imported[]
+  ecs_imported          element_constitutif_mutualised_imported[]
 }
 
 model periodes {
-  id                  Int                   @id @default(autoincrement())
-  libelle             String                @db.VarChar(255)
-  enseignements       enseignement[]
-  unites_enseignement unites_enseignement[]
-  competences         competence[] 
-  element_constitutif element_constitutif[]  @relation("ElementConstitutifPeriode")
-  linked_element_constitutif element_constitutif[] @relation("ElementConstitutifLinkedPeriodes")
-  version             version               @relation(fields: [version_id], references: [id])
-  version_id          Int
-  ec_imported_by_mutualisation  element_constitutif_mutualised_imported[]
+  id                           Int                                       @id @default(autoincrement())
+  libelle                      String                                    @db.VarChar(255)
+  enseignements                enseignement[]
+  unites_enseignement          unites_enseignement[]
+  competences                  competence[]
+  element_constitutif          element_constitutif[]                     @relation("ElementConstitutifPeriode")
+  linked_element_constitutif   element_constitutif[]                     @relation("ElementConstitutifLinkedPeriodes")
+  version                      version                                   @relation(fields: [version_id], references: [id])
+  version_id                   Int
+  ec_imported_by_mutualisation element_constitutif_mutualised_imported[]
 }
 
 model version {
-  id                            Int                   @id @default(autoincrement())
-  libelle                       String                @db.VarChar(255)
-  competences                   competence[]
-  element_constitutifs          element_constitutif[]
-  periodes                      periodes[]
-  formation                     formation             @relation(fields: [formation_id], references: [id])
-  formation_id                  Int
+  id                   Int                   @id @default(autoincrement())
+  libelle              String                @db.VarChar(255)
+  competences          competence[]
+  element_constitutifs element_constitutif[]
+  periodes             periodes[]
+  formation            formation             @relation(fields: [formation_id], references: [id])
+  formation_id         Int
 }
 
 model parcours {
@@ -242,46 +248,49 @@ model parcours {
 }
 
 model formation {
-  id                     Int            @id @default(autoincrement())
-  libelle                String         @db.VarChar(255)
-  duree                  Int?           @db.Integer
-  duree_unite            String?        @db.VarChar(255)
-  nb_credits             Int?           @db.Integer
-  nb_heures_enseignement Int?           @db.Integer
-  regime                 String?        @db.VarChar(255)
-  state                  String?        @default("En cours") @db.VarChar(255)
-  is_regime_fa           Boolean        @default(false)
-  is_regime_fi           Boolean        @default(false)
-  is_regime_fc           Boolean        @default(false)
-  noms_des_niveaux       String[]       @db.VarChar(255)
-  parcours               parcours[]
+  id                       Int            @id @default(autoincrement())
+  libelle                  String         @db.VarChar(255)
+  duree                    Int?           @db.Integer
+  duree_unite              String?        @db.VarChar(255)
+  nb_credits               Int?           @db.Integer
+  nb_heures_enseignement   Int?           @db.Integer
+  regime                   String?        @db.VarChar(255)
+  state                    String?        @default("En cours") @db.VarChar(255)
+  is_regime_fa             Boolean        @default(false)
+  is_regime_fi             Boolean        @default(false)
+  is_regime_fc             Boolean        @default(false)
+  noms_des_niveaux         String[]       @db.VarChar(255)
+  parcours                 parcours[]
   total_effectif_theorique Int?           @db.Integer
-  nombre_de_niveaux      Int?
-  enseignements          enseignement[]
-  composante             composante     @relation(fields: [composante_id], references: [id])
-  composante_id          Int
-  version                version[]
-  type_diplome           type_diplome?  @relation(fields: [type_diplome_id], references: [id])
-  type_diplome_id        Int?
-  parametres             parametre[]
-  created_at             DateTime       @default(now())
-  created_by             String?
-  updated_at             DateTime?      @updatedAt
-  updated_by             String?
-  deleted_at             DateTime?
-  deleted_by             String?
+  nombre_de_niveaux        Int?
+  enseignements            enseignement[]
+  composante               composante     @relation(fields: [composante_id], references: [id])
+  composante_id            Int
+  version                  version[]
+  type_diplome             type_diplome?  @relation(fields: [type_diplome_id], references: [id])
+  type_diplome_id          Int?
+  parametres               parametre[]
+  created_at               DateTime       @default(now())
+  created_by               String?
+  updated_at               DateTime?      @updatedAt
+  updated_by               String?
+  deleted_at               DateTime?
+  deleted_by               String?
+  owner_user_id            String?        @db.VarChar(255)
+  utilisateurs_rattaches   String[]       @db.VarChar(255)
 }
 
 model composante {
-  id               Int           @id @default(autoincrement())
-  code             String?       @unique @db.VarChar(255)
-  libelle          String        @db.VarChar(255)
-  formations       formation[]
-  is_historized  Boolean       @default(false)
-  parametre        parametre?    @relation(fields: [parametre_id], references: [id])
-  parametre_id     Int?
-  etablissement    etablissement @relation(fields: [etablissement_id], references: [id])
-  etablissement_id Int
+  id                     Int           @id @default(autoincrement())
+  code                   String?       @unique @db.VarChar(255)
+  libelle                String        @db.VarChar(255)
+  formations             formation[]
+  is_historized          Boolean       @default(false)
+  parametre              parametre?    @relation(fields: [parametre_id], references: [id])
+  parametre_id           Int?
+  etablissement          etablissement @relation(fields: [etablissement_id], references: [id])
+  etablissement_id       Int
+  utilisateurs_rattaches String[]      @db.VarChar(255)
 }
 
 model etablissement {
@@ -292,7 +301,6 @@ model etablissement {
   parametre_id Int?
   composantes  composante[]
 }
-
 
 model parametre {
   id                       Int             @id @default(autoincrement())
@@ -316,12 +324,12 @@ model parametre {
 }
 
 model type_diplome {
-  id         Int         @id @default(autoincrement())
-  libelle    String      @db.VarChar(255)
-  heures     Int?        @db.Integer
-  credits    Int?        @db.Integer
+  id            Int         @id @default(autoincrement())
+  libelle       String      @db.VarChar(255)
+  heures        Int?        @db.Integer
+  credits       Int?        @db.Integer
   is_historised Boolean     @default(false)
-  formations formation[]
-  parametres parametre[]
-  deleted_at DateTime?
+  formations    formation[]
+  parametres    parametre[]
+  deleted_at    DateTime?
 }

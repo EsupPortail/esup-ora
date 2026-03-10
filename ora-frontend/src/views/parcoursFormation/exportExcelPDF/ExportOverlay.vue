@@ -60,6 +60,8 @@ import ECOverlayExcel from './overlays/elements_constitutifs/ECOverlayExcel.vue'
 import ECOverlayPDF from './overlays/elements_constitutifs/ECOverlayPDF.vue'
 import MaquetteOverlayExcel from './overlays/maquette/MaquetteOverlayExcel.vue'
 import MaquetteOverlayPDF from './overlays/maquette/MaquetteOverlayPDF.vue'
+import FormationOverlayExcel from './overlays/tableaux_de_bord/FormationOverlayExcel.vue'
+import FormationOverlayPDF from './overlays/tableaux_de_bord/FormationOverlayPDF.vue'
 
 const props = defineProps({
     overlayShow: {
