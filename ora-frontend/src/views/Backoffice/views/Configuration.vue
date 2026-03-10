@@ -21,7 +21,6 @@ import CardEtablissement from '@/views/Backoffice/views/configuration/CardEtabli
 import CardComposantes from '@/views/Backoffice/views/configuration/CardComposantes.vue'
 import CardTypeDiplome from '@/views/Backoffice/views/configuration/CardTypeDiplome.vue'
 import CardTags from '@/views/Backoffice/views/configuration/CardTags.vue'
-import CardEquivalentTD from '@/views/Backoffice/views/configuration/CardEquivalentTD.vue'
 import CardParametreItems from '@/views/Backoffice/views/configuration/CardParametreItems.vue'
 
 const route = useRoute()

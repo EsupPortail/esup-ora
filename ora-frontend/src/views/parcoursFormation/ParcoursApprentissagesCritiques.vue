@@ -23,7 +23,8 @@
         reverse-transition="fade-transition"
         style="background-color: #fcfcfc; border-radius: 16px; padding: 24px"
       >
-        <v-carousel-item v-for="(chunk, i) in chunkedCompetences" :key="i" :ripple="false">
+        <v-carousel-item v-for="(chunk, i) in chunkedCompetences" :key="i" :ripple="false"  transition="slide-x-transition"
+  reverse-transition="slide-x-reverse-transition">
           <v-row style="padding-top: 12px">
             <v-col
               v-for="(item, index) in chunk"
@@ -114,7 +115,7 @@
       </v-card>
     </v-col>
   </v-row>
-  <v-row>
+  <v-row v-if="competenceStore.competences.length === 0" style="margin-top: 32px">
     <v-col cols="12">
       <h4>
         Veuillez ajouter des compétences à l'étape précédente et en sélectionner une dans le

@@ -26,8 +26,6 @@ services:
         a2disconf ports &&        
         apachectl configtest &&
 
-        a2dismod shib &&
-        a2disconf shib &&
         a2dissite default-ssl &&
 
         /usr/bin/supervisord -n -c /supervisord.conf
@@ -108,6 +106,7 @@ services:
       - ora-back-db-network
       - ora-back-iam-network
       - ora-back-service-network
+      - rncp
     command: bash -c '/generate-env.sh && npm install && npm cache clean --force && npm run dev'
     environment:
       NODE_ENV: ${DEPLOYMENT_MODE:-development}
@@ -160,6 +159,7 @@ services:
       - ora-back-iam-network
     volumes:
       - ./deployment-configuration/keycloak/configuration-realm-ora.json:/opt/keycloak/data/import/001-import-config-ora.json
+      - ./deployment-configuration/keycloak/patchs-roles.sh:/opt/keycloak/data/patchs-roles.sh
       - ./application-data/keycloak_data:/opt/keycloak/data
       - ./application-data/keycloak_logs:/opt/keycloak/log
       - ./tmp/:/tmp/export-realms/
@@ -202,6 +202,8 @@ networks:
     driver: bridge
   ora-back-service-network:
     driver: bridge
+  rncp:
+    external: true
 
 
 volumes:

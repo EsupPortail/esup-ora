@@ -6,6 +6,8 @@ export const config = {
         protocole: 'http'
     },
     rncp: {
-        url: 'https://tabular-api.data.gouv.fr/api/resources/f2981d6f-e55c-42cd-8eba-3e891777e222/data/'
+        url: 'http://localhost:80/',
+        clientId: 'b61d6d4d6e12f278cff9',
+        clientSecret: '438fe006bbbf0f56df49006a82ae51463e6496e0' // temporaire le temps de mettre une route en backend
     }
 };

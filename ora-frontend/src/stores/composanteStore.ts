@@ -50,16 +50,55 @@ export const useComposanteStore = defineStore('composante', {
         delete composante.parametre
         this.create(this.entity, composante)
           .then((res) => {
-            this.composantes.push(res.data)
-            const thisComposante = this.composantes.find(
-              (composante) => composante.libelle === res.data.libelle
-            )
-            this.fetchComposanteByEtablissement(thisComposante.etablissement.id)
+            this.fetchComposantes()
             resolve(res.data)
           })
           .catch((err) => {
             reject(err)
           })
+      })
+    },
+    updateUserAttachment(composante: any) {
+      return new Promise(async (resolve, reject) => {
+        try {
+          // On ne garde QUE ce qui doit être envoyé au backend
+          const payload = {
+            id: composante.id,
+            utilisateurs_rattaches: composante.utilisateurs_rattaches
+          }
+
+          // On appelle la fonction update de ton store générique
+          this.update(this.entity, payload)
+            .then((res) => {
+              // On recharge les composantes après modification
+              this.fetchComposantes()
+              resolve(res.data)
+            })
+            .catch(reject)
+        } catch (err) {
+          reject(err)
+        }
+      })
+    },
+    updateIsHistorized(composante: any) {
+      return new Promise(async (resolve, reject) => {
+        try {
+          // On ne garde QUE ce qui doit être envoyé au backend
+          const payload = {
+            id: composante.id,
+            is_historized: composante.is_historized
+          }
+
+          // On appelle la fonction update de ton store générique
+          this.update(this.entity, payload)
+            .then((res) => {
+              this.fetchComposantes()
+              resolve(res.data.id)
+            })
+            .catch(reject)
+        } catch (err) {
+          reject(err)
+        }
       })
     },
     updateComposante(composante: any) {
@@ -83,15 +122,18 @@ export const useComposanteStore = defineStore('composante', {
         .then((res) => {
           this.composantes = this.composantes.filter((e) => e.id !== composante.id)
         })
-        .catch((err) => {})
+        .catch((err) => { })
     },
 
     fetchComposantes() {
       return new Promise((resolve, reject) => {
-        this.getCollection(this.entity, { include: { 
-          etablissement: true, parametre: {
-          include: { type_diplomes: true }
-        } } })
+        this.getCollection(this.entity, {
+          include: {
+            etablissement: true, parametre: {
+              include: { type_diplomes: true }
+            }
+          }
+        })
           .then((res) => {
             this.composantes = res.data
             resolve(res.data)

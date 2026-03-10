@@ -1,17 +1,17 @@
-import { Router } from "express";
-import { exportController } from "../controllers/export.controller";
+// import { Router } from "express";
+// import { exportController } from "../controllers/export.controller";
 
-class ExportRoutes {
-  router = Router();
+// class ExportRoutes {
+//   router = Router();
 
-  constructor() {
-    this.intializeRoutes();
-  }
+//   constructor() {
+//     this.intializeRoutes();
+//   }
 
-  intializeRoutes() {
-    this.router.get("/getFormationAsPDF", exportController.getExportByPDF);
-    this.router.get("/getFormationAsExcel", exportController.getExportByExcel);
-  } 
-} 
-  
-export default new ExportRoutes().router;
+//   intializeRoutes() {
+//     this.router.get("/getFormationAsPDF", exportController.getExportByPDF);
+//     this.router.get("/getFormationAsExcel", exportController.getExportByExcel);
+//   }
+// }
+
+// export default new ExportRoutes().router;

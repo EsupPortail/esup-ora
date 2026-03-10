@@ -16,9 +16,25 @@
     <v-col cols="12">
       <v-card>
         <v-card-title>
-          <h3 style="color: #12255b; font-weight: normal">Liste des formations</h3>
+          <v-row>
+            <v-col cols="2">
+              <h3 style="color: #12255b; font-weight: normal">Liste des formations</h3>
+            </v-col>
+            <v-col cols="4">
+              <v-text-field
+                v-model="search"
+                label="Rechercher une formation"
+                prepend-icon="mdi-magnify"
+                class="mb-4"
+                clearable
+                variant="outlined"
+                density="compact"
+              />
+            </v-col>
+          </v-row>
         </v-card-title>
         <v-card-text>
+          <div style="overflow-y: auto; max-height: 600px; padding-right: 18px">
           <v-table style="color: #878787" class="formation-table">
             <thead>
               <tr>
@@ -31,9 +47,7 @@
             </thead>
             <tbody>
               <tr
-                v-for="formation in formationStore.getFormations
-                  .slice()
-                  .sort((a, b) => a.libelle.localeCompare(b.libelle))"
+                v-for="formation in sortedFormations"
                 :key="formation.id"
               >
                 <td>{{ composanteStore.getComposanteLibelleById(formation.composante_id) }}</td>
@@ -144,6 +158,7 @@
             </template>
           </v-table>
 
+        </div>
           <v-btn
             @click="toggleFormationCard"
             :color="showFormationCard ? 'error' : 'success'"
@@ -382,7 +397,7 @@
                   disabled
                   density="compact"
                   variant="outlined"
-                  v-model="currentFormation.type_diplome.heures"
+                  v-model="currentFormation.nb_heures_enseignement"
                   label="Nombre d'heures d'enseignement"
                   type="number"
                 />
@@ -392,7 +407,7 @@
                   density="compact"
                   variant="outlined"
                   disabled
-                  v-model="currentFormation.type_diplome.credits"
+                  v-model="currentFormation.nb_credits"
                   label="Nombre de crédits"
                   type="number"
                 />
@@ -506,7 +521,9 @@ import { useSocketStore } from '@/stores/socketStore'
 import { usePopUpStore } from '@/stores/popUp/PopUpStoreImplementation'
 
 import SearchEngine from '@/components/SearchEngine.vue'
+import { useUserAccessStore } from '@/stores/usersAccessStore'
 
+const userAccessStore = useUserAccessStore()
 const connectionStore = useConnectionStore()
 const formationStore = useFormationStore()
 const composanteStore = useComposanteStore()
@@ -515,6 +532,8 @@ const parcoursStore = useParcoursStore()
 const etablissementStore = useEtablissementStore()
 const socketStore = useSocketStore()
 const popUpStore = usePopUpStore()
+
+const search = ref('')
 
 const refMissingValues = ref([])
 const showMissingValuesError = () => {
@@ -554,9 +573,11 @@ const fetchUsers = async () => {
 }
 
 const init = async () => {
+  await userAccessStore.fetchUsers()
   await etablissementStore.fetchEtablissements()
   await composanteStore.fetchComposantes()
   await formationStore.fetchFormation()
+
   await typeDiplomeStore.fetchTypeDiplomes()
   await parcoursStore.fetchParcours()
   await fetchUsers()
@@ -567,7 +588,10 @@ const currentFormation = ref({
   state: '',
   nb_heures_enseignement: null,
   nb_credits: null,
-  type_diplome: {},
+  type_diplome: {
+    heures: 0,
+    credits: 0
+  },
   duree: null,
   duree_unite: null,
   noms_des_niveaux: [],
@@ -586,20 +610,22 @@ const showFormationCard = ref(false)
 const composantesOrderedByEtablissement = computed(() => {
   const map = new Map()
 
-  composanteStore.composantes.forEach((c) => {
-    const etabId = c.etablissement.id
-    const etabLibelle = c.etablissement.libelle
+  composanteStore.composantes
+    .filter((c) => !c.is_historized)
+    .forEach((c) => {
+      const etabId = c.etablissement.id
+      const etabLibelle = c.etablissement.libelle
 
-    if (!map.has(etabId)) {
-      map.set(etabId, { title: etabLibelle, children: [] })
-    }
+      if (!map.has(etabId)) {
+        map.set(etabId, { title: etabLibelle, children: [] })
+      }
 
-    map.get(etabId).children.push({
-      libelle: c.libelle,
-      value: c.id,
-      isHeader: false
+      map.get(etabId).children.push({
+        libelle: c.libelle,
+        value: c.id,
+        isHeader: false
+      })
     })
-  })
 
   const groups = Array.from(map.values()).sort((a, b) => a.title.localeCompare(b.title))
 
@@ -624,6 +650,10 @@ const toggleFormationCard = () => {
       state: '',
       nb_heures_enseignement: null,
       nb_credits: null,
+      type_diplome: {
+        heures: 0,
+        credits: 0
+      },
       duree: null,
       duree_unite: null,
       noms_des_niveaux: [],
@@ -643,7 +673,6 @@ const toggleFormationCard = () => {
 
 const showUpdateFormation = (formation) => {
   currentFormation.value = formationStore.formations.find((f) => f.id === formation.id)
-  console.log(currentFormation.value)
   showFormationCard.value = true
   formMode.value = 'update'
 }
@@ -711,7 +740,6 @@ const updateFormation = async () => {
     showMissingValuesError()
     return
   }
-
 
   // Logique pour modifier une formation
   const oldFormation = await formationStore
@@ -791,7 +819,6 @@ const updateFormation = async () => {
     //     }
     // }
   }
-  console.log(currentFormation.value)
   formationStore.updateFormation(formationToUpdate)
 
   currentFormation.value.parcours.forEach((p) => {
@@ -859,8 +886,11 @@ const createFormation = () => {
     return
   }
   // Logique pour créer une formation
+  const me = userAccessStore.users.find((u) => u.username === connectionStore.user.eppn)
   const formationToCreate = {
+    owner_user_id: me.id,
     libelle: currentFormation.value.libelle,
+    total_effectif_theorique: currentFormation.value.total_effectif_theorique,
     nb_heures_enseignement: currentFormation.value.nb_heures_enseignement,
     nb_credits: typesDiplomes.value.find((t) => t.id === currentFormation.value.type_diplome_id)
       .credits,
@@ -926,6 +956,57 @@ const changeCreditAndHours = () => {
     (t) => t.id === currentFormation.value.type_diplome_id
   ).heures
 }
+
+const sortedFormations = computed(() => {
+  const role = connectionStore.selectedRole?.name || null
+  console.log(role)
+
+  const me = userAccessStore.users.find(
+    (u) => u.username === connectionStore.user.eppn
+  )
+
+  const myComposanteIds = composanteStore.composantes
+  .filter((c) => c.utilisateurs_rattaches?.includes(me.id))
+  .map((c) => c.id);
+
+  return formationStore.getFormations
+    .filter((f) => {
+      if( role === 'administrateur_technique' || role === 'administrateur_fonctionnel' || role === 'observateur') return true;
+      if (me.id === f.owner_user_id) return true;
+
+      if( role === 'agent_scolarite' && myComposanteIds.length > 0 && myComposanteIds.includes(f.composante_id)) return true;
+
+      return f.utilisateurs_rattaches?.includes(me.id)
+    })
+    // 🔍 TRI PAR PERTINENCE
+    .slice()
+    .sort((a, b) => {
+      const scoreA = matchScore(a.libelle, search.value)
+      const scoreB = matchScore(b.libelle, search.value)
+
+      if (scoreA !== scoreB) {
+        return scoreB - scoreA // score le plus élevé d'abord
+      }
+
+      // fallback : tri alphabétique
+      return a.libelle.localeCompare(b.libelle)
+    })
+})
+
+const matchScore = (libelle, search) => {
+  if (!search) return 0
+
+  const l = libelle.toLowerCase()
+  const s = search.toLowerCase()
+
+  if (l === s) return 100
+  if (l.startsWith(s)) return 75
+  if (l.includes(s)) return 50
+
+  return 0
+}
+
+
 </script>
 
 <style scoped>

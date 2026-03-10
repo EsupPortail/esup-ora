@@ -1,47 +1,46 @@
 import { fileURLToPath, URL } from 'node:url'
-
-import { defineConfig } from 'vite'
-import vueDevtools from 'vite-plugin-vue-devtools'
+import { defineConfig, type UserConfig } from 'vite'
 import fs from "fs"
-
 import vue from '@vitejs/plugin-vue'
 import vueJsx from '@vitejs/plugin-vue-jsx'
 
-// import VuetifyPlugin from './src/plugins/vite-plugin-vuetify.js';
-
-// https://vitejs.dev/config/
-export default defineConfig({
-  base: '/',
-  define: {
-    __APP_VERSION__: JSON.stringify(
-      fs.readFileSync("/app/app.module.version", "utf8")
-    )
-  },
-  server: {
-    allowedHosts: ['ora-frontend']
-  },
-  build: {
-    chunkSizeWarningLimit: 1000, //1Mo,
-    minify: false
-  },
-  plugins: [
+export default defineConfig(async ({ command }): Promise<UserConfig> => {
+  
+  const plugins: any[] = [
     vue(),
     vueJsx(),
-    vueDevtools(),
-    // VuetifyPlugin()
-  ],
-  resolve: {
-    alias: {
-      '@': fileURLToPath(new URL('./src', import.meta.url)),
-    }
-  },
-css: {
-  preprocessorOptions: {
-    scss: {
-      // ici tu peux mettre des variables globales, des includePaths, etc.
-      // Vite ne prend pas en charge "sassOptions", donc on retire ça
-      additionalData: '', // facultatif
-    }
+  ];
+  let appVersion = "0.0.0";
+  try {
+    appVersion = fs.readFileSync("./app.module.version", "utf8").trim();
+  } catch (e) {
+    appVersion = "dev-build";
   }
+
+  return {
+    base: '/',
+    define: {
+      __APP_VERSION__: JSON.stringify(appVersion)
+    },
+    server: {
+      allowedHosts: ['localhost', 'ora-frontend', 'ora-backend'],
+    },
+    build: {
+      chunkSizeWarningLimit: 1000,
+      minify: false
+    },
+    plugins: plugins,
+    resolve: {
+      alias: {
+        '@': fileURLToPath(new URL('./src', import.meta.url)),
+      }
+    },
+    css: {
+      preprocessorOptions: {
+        scss: {
+          additionalData: '',
+        }
+      }
+    }
   }
 })

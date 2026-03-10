@@ -31,6 +31,7 @@ export const useCompetenceStore = defineStore('competence', {
           include: {
             contexte_evaluation: true,
             famille_de_situations: true,
+            rncp_bccs: true,
             niveau: {
               include: {
                 apprentissage_critique: {
@@ -56,6 +57,7 @@ export const useCompetenceStore = defineStore('competence', {
           include: {
             critere_exigences: true,
             famille_de_situations: true,
+            rncp_bccs: true,
             niveau: {
               include: {
                 apprentissage_critique: true
@@ -85,6 +87,7 @@ export const useCompetenceStore = defineStore('competence', {
             version_id: parcoursStore.versionSelected.id
           },
           include: {
+            rncp_bccs: true,
             critere_exigences: true,
             famille_de_situations: true,
             niveau: {
@@ -231,8 +234,29 @@ export const useCompetenceStore = defineStore('competence', {
           })
       })
     },
+    deleteRncpOfCompetence( competence: any ) {
+      return new Promise((resolve, reject) => {
+        if( competence.rncp_bccs.length === 0 || !competence.rncp_bccs ) {
+          resolve(null)
+          return
+        }
+        competence.rncp_bccs.forEach((bcc: any) => {
+          this.delete('rncp_bcc', bcc)
+        })
+        const socketStore = useSocketStore()
+            socketStore.notifyChange('competence')
+      })
+    },
     deleteCompetence(competence: any) {
       return new Promise((resolve, reject) => {
+        competence.niveau.forEach((niveau: any) => {
+          this.delete('niveau', niveau)
+        })
+
+        competence.rncp_bccs.forEach((bcc: any) => {
+          this.delete('rncp_bcc', bcc)
+        })
+
         this.delete(this.entity, competence)
           .then((res) => {
             const socketStore = useSocketStore()
@@ -245,6 +269,37 @@ export const useCompetenceStore = defineStore('competence', {
           })
       })
     },
+async linkBccRncpToCompetence(competence: any, bccData: any) {
+  const socketStore = useSocketStore();
+  
+  // 1. On cherche si la BCC est déjà liée (comparaison par code)
+  const existingBcc = competence.rncp_bccs?.find((b: any) => b.code === bccData.code);
+
+  try {
+    // 2. Construction du payload atomique
+    // On utilise un tableau [] pour les opérations de relation pour éviter l'écrasement global
+    const payload = {
+      id: competence.id,
+      rncp_bccs: existingBcc 
+        ? { delete: [ { id: existingBcc.id } ] } // Suppression ciblée
+        : { create: [ {
+            libelle: bccData.libelle,
+            code: bccData.code,
+            numero_fiche: bccData.numero_fiche
+          } ] }
+    };
+
+    const res = await this.update(this.entity, payload);
+    
+    socketStore.notifyChange('competence');
+    
+    return res.data;
+
+  } catch (err) {
+    console.error("Erreur Toggle BCC:", err);
+    throw err;
+  }
+},
     addCritereExigence(critereExigence: any) {
       return new Promise((resolve, reject) => {
         this.create('critere_exigence', critereExigence)

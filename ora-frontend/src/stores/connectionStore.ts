@@ -13,11 +13,11 @@ export const useConnectionStore = defineStore('connection', {
     state: () => ({
         token: {} as Record<string, any>,
         user: {} as Record<string, any>,
+        selectedRole: {} as Record<string, any>,
         isAuthenticated: false as boolean,
         loading: false as boolean,
         error: false as boolean | Object
     }),
-
 
     getters: {
     },
@@ -39,7 +39,12 @@ export const useConnectionStore = defineStore('connection', {
                     this.user.eppn = response.data.data.eppn
                     this.user.givenname = response.data.data.givenname
                     this.user.sn = response.data.data.sn
-                    this.user.roles = Array.isArray(response.data.data.role) ? response.data.data.role[0] : response.data.data.role;
+                    this.user.roles = response.data.data.role;
+                    this.selectedRole = this.user.roles[0]
+
+                    localStorage.setItem('selectedRole', JSON.stringify(this.selectedRole))
+                    console.log('Rôle sélectionné après login :', this.selectedRole);
+
                     const establissementStore = useEtablissementStore()
                     await establissementStore.fetchEtablissements()
                     this.user.etablissementSelected = establissementStore.etablissements[0]
@@ -48,37 +53,34 @@ export const useConnectionStore = defineStore('connection', {
                 }
             } catch (error) {
                 this.error = error as any
+                console.log('Erreur lors de la récupération des informations utilisateur :', error);
             } finally {
                 this.loading = false
-                router.push({path: paths.parcoursFormation});
+                console.log('Redirection après login');
+                router.push({ path: paths.parcoursFormation });
             }
         },
 
         async completeCookie() {
-            // Récupération des cookies nécessaires
             const accessToken = Cookies.get('access_token');
             const expiresIn = Cookies.get('expires_in');
             const refreshToken = Cookies.get('refresh_token');
             const refreshExpiresIn = Cookies.get('refresh_expires_in');
-        
-            // Vérifiez si tous les cookies sont présents
+
             if (!accessToken || !expiresIn || !refreshToken || !refreshExpiresIn) {
                 console.warn('One or more required cookies are missing');
                 return;
             }
-        
-            // Stockage des cookies récupérés dans l'objet
+
             this.token = {
                 access_token: accessToken,
                 expires_in: parseInt(expiresIn, 10),
                 refresh_token: refreshToken,
                 refresh_expires_in: parseInt(refreshExpiresIn, 10),
             };
-            console.log(this.token);
         },
 
         async localLogin(username: string, password: string) {
-            console.log('localLogin');
             const body = {
                 username: username,
                 password: password
@@ -86,7 +88,7 @@ export const useConnectionStore = defineStore('connection', {
             const result = await postApiRequest(config.backend.url + backendRoutes.login, body).then((response) => {
                 return response;
             });
-            if( result.code !== 200 ) {
+            if (result.code !== 200) {
                 return {
                     isValid: false,
                     code: 401,
@@ -96,33 +98,41 @@ export const useConnectionStore = defineStore('connection', {
                 await this.completeCookie();
                 await this.login();
             }
-        }, 
+        },
 
         async logout() {
             this.loading = true;
-        
-            console.log('hello')
-            this.token = {};
-            this.user = {};
-            this.isAuthenticated = false;
-        
+            
             try {
+                // Appel API logout si nécessaire
                 await axios.get(config.backend.url + '/auth/logout');
-                
-                const cookies = document.cookie.split(';');
-                for (const cookie of cookies) {
-                    Cookies.remove(cookie);
-                }
             } catch (error) {
-                this.error = error as any;
+                console.error('Erreur lors du logout API', error);
             } finally {
-                this.loading = false;
-                window.location.reload();
+                // --- DÉSTRUCTURATION ET RÉINITIALISATION COMPLÈTE ---
+                this.$patch({
+                    token: {},
+                    user: {},
+                    selectedRole: {},
+                    isAuthenticated: false,
+                    loading: false,
+                    error: false
+                });
+
+                // Nettoyage Storage
+                localStorage.removeItem('selectedRole');
+                localStorage.removeItem('connection'); // Si utilisé par pinia-plugin-persistedstate
+
+                // Nettoyage de TOUS les cookies connus
+                const allCookies = Cookies.get();
+                Object.keys(allCookies).forEach(cookieName => Cookies.remove(cookieName));
+
+                // Hard reload pour purger tous les états restants
+                window.location.href = paths.login;
             }
-        }
-        
+        },
     },
     persist: {
-        pick: ['isAuthenticated', 'user', 'token']
+        pick: ['isAuthenticated', 'user', 'token', 'selectedRole']
     }
 })

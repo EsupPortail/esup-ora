@@ -1,4 +1,4 @@
-export const postApiRequest =  async ( url, body = {} ) => {
+export const postApiRequest = async (url, body = {}) => {
     const requestOptions = {
         method: 'POST',
         headers: {
@@ -15,15 +15,14 @@ export const postApiRequest =  async ( url, body = {} ) => {
             'Content-Type': 'application/json',
         }
     })
-        .then( response => {
+        .then(response => {
             return response.json()
         })
-        .then( dataJson => {
+        .then(dataJson => {
             return dataJson;
         });
-    if( dataR.redirect !== undefined && dataR.redirect === true ) {
-        console.log('Redirection asked');
-        navigateTo( dataR.redirectPath );
+    if (dataR.redirect !== undefined && dataR.redirect === true) {
+        navigateTo(dataR.redirectPath);
     }
     return dataR;
 }

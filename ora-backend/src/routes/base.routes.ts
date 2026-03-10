@@ -11,7 +11,6 @@ class BaseRoutes {
   intializeRoutes() {
     this.router.get("/", welcome);
 
-    // handle all CRUD routes for prisma entities
     this.router.post('/parametreWithElement', entityController.parametreWithElement)
     this.router.use(entityController.handleRoute)
   }

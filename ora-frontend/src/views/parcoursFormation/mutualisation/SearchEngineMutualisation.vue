@@ -23,7 +23,6 @@
   
   const input = ref('')
   
-  // Fonction de scoring
   function getRelevanceScore(libelle, query) {
     const str = libelle.toLowerCase()
     const q = query.toLowerCase()
@@ -33,7 +32,6 @@
     return 0
   }
   
-  // À chaque changement de l'input
   watch(input, (val) => {
     const sorted = [...props.itemsList]
       .map(item => ({
@@ -41,7 +39,7 @@
         _score: getRelevanceScore(item.libelle, val)
       }))
       .sort((a, b) => b._score - a._score)
-      .map(({ _score, ...item }) => item) // On nettoie les scores avant de renvoyer
+      .map(({ _score, ...item }) => item)
   
     emit('input-change', sorted)
   })

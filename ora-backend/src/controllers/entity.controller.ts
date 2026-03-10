@@ -7,14 +7,23 @@ const excludedEntity : Array<string> = [];
 
 export class entityController {
 
-  static handleRoute(req: Request, res: Response, next: NextFunction) {
+static handleRoute(req: Request, res: Response, next: NextFunction) {
     const reqParams = Parser.getParamsOfRequest(req);
     const entity = reqParams.baseRoute;
 
-    if (excludedEntity.includes(entity) || !isPrismaEntity(entity)) {
-      return next()
+
+    if (excludedEntity.includes(entity)) {
+        return next();
     }
+
+    if (!isPrismaEntity(entity)) {
+        return next(); // C'est ici que vous finissez en 404 si la condition échoue
+    }
+
     const model = getModel(entity);
+    if (!model) {
+        return next();
+    }
     
     entityController.dispatchRequest(model, reqParams)
     .then((data) => {

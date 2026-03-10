@@ -77,27 +77,27 @@ const changeEdit = (id) => {
 const viewsList = ref([
   {
     screenName: 'export',
-    defaultContent: 'Contenu par défaut de la bulle export'
+    defaultContent: 'Vous pouvez exporter l’ensemble des données saisies, soit au format Excel, soit au format PDF.'
   },
   {
     screenName: 'competences',
-    defaultContent: 'Contenu par défaut de la bulle compétences'
+    defaultContent: 'Reprenez les blocs de compétences issus des fiches RNCP, puis, si nécessaire, adaptez-les au contexte de votre formation. Vous pouvez ensuite ajouter des critères d’exigence (formulés avec des verbes au gérondif) afin de faciliter l’élaboration des critères d’évaluation. Pensez également à préciser, pour chaque compétence, les familles de situations, c’est-à-dire les contextes dans lesquels vous évaluerez les compétences attendues.'
   },
   {
     screenName: 'apprentissages-critiques',
-    defaultContent: 'Contenu par défaut de la bulle apprentissages critiques'
+    defaultContent: 'Ajoutez les apprentissages par niveau et par compétence déjà renseignés. Astuce : vous pouvez réorganiser les apprentissages pour mieux visualiser la progression'
   },
   {
     screenName: 'maquette',
-    defaultContent: 'Contenu par défaut de la bulle maquette'
+    defaultContent: 'Deux vues, deux approches : une vue par semestre, qui permet d’organiser la maquette de formation semestre par semestre, et une vue en BCC, qui permet de structurer la formation par blocs de connaissances et de compétences. Il est possible de basculer de l’une à l’autre pour une meilleure visualisation. Pour chaque élément, complétez les champs nécessaires afin d’alimenter le tableau de bord.'
   },
   {
     screenName: 'elements-constitutifs',
-    defaultContent: 'Contenu par défaut de la bulle éléments constitutifs'
+    defaultContent: 'Saisissez les enseignements par semestre, mois ou année (selon votre paramétrage), puis associez-les, dans la matrice, aux apprentissages renseignés au préalable.'
   },
   {
     screenName: 'tableaux-de-bord',
-    defaultContent: 'Contenu par défaut de la bulle tableaux de bord'
+    defaultContent: 'Cette page permet de visualiser les données saisies lors de la complétion de l’offre de formation.'
   }
 ])
 

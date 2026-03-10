@@ -1,7 +1,7 @@
 <template>
   <v-layout>
     <ToolbarLayout @toggleDrawer="toggleDrawer" />
-    <DrawerMenuLayout drawer="drawer" />
+    <DrawerMenuLayout :drawer="drawer" />
     <v-main
       ref="content"
       class="align-center justify-center"
@@ -17,13 +17,8 @@
         }"
         class="r-view align-center justify-center"
       >
-        <PopUpInformation
-          v-if="popUpStore.popUpData && popUpStore.popUpData.isVisible"
-          class="popup-information"
-          :message="popUpStore.popUpData.message"
-          :type="popUpStore.popUpData.type"
-        />
         <router-view />
+<PopUpInformation />
       </v-container>
     </v-main>
   </v-layout>
@@ -31,112 +26,99 @@
 
 <script setup>
 import { ref, onMounted, nextTick } from 'vue'
-
+import { useRoute } from 'vue-router'
 import axios from 'axios'
+import Cookies from 'js-cookie'
 
-import { config as env } from './environment/environment'
-
-import { useAppStore } from '@/stores/appStore'
+import { usePopUpStore } from '@/stores/popUp/PopUpStoreImplementation'
 import { useFormationStore } from '@/stores/formationStore'
 import { useElementSize } from '@vueuse/core'
 import { useSocketStore } from './stores/socketStore'
-import { usePopUpStore } from '@/stores/popUp/PopUpStoreImplementation'
 import { useConnectionStore } from './stores/connectionStore'
 
 import ToolbarLayout from '@/layout/ToolbarLayout.vue'
-import FooterLayout from '@/layout/FooterLayout.vue'
 import DrawerMenuLayout from '@/layout/DrawerMenuLayout.vue'
 import PopUpInformation from '@/helpers/PopUpInformation.vue'
 import ArianeParcoursPath from '@/components/ArianeParcoursPath.vue'
 
-const appStore = useAppStore()
 const connectionStore = useConnectionStore()
 const formationStore = useFormationStore()
 const socketStore = useSocketStore()
-
-onMounted(async () => {
-  await nextTick()
-  try {
-    const response = await axios.get(`${env.backend.url}/auth/me`, {
-      withCredentials: true,
-      headers: {
-        Authorization: `Bearer ${connectionStore.token.access_token}`
-      }
-    })
-
-    if (response.status === 419) {
-      connectionStore.logout()
-    }
-  } catch (error) {
-    if (axios.isAxiosError(error)) {
-      console.error('Axios error:', error.response?.status, error.message)
-
-      if (error.response?.status === 419) {
-        connectionStore.logout()
-      }
-    } else {
-      console.error('Unexpected error:', error)
-    }
-  }
-})
-
-axios.interceptors.request.use(
-  async (config) => {
-    try {
-      if (!connectionStore.token) {
-        return config
-      }
-
-      if (config.url.includes('/auth/me') || config.url.includes('/auth/logout')) {
-        return config
-      }
-
-      const response = await axios.get(`${env.backend.url}/auth/me`, {
-        withCredentials: true,
-        headers: {
-          Authorization: `Bearer ${connectionStore.token.access_token}`
-        }
-      })
-
-      if (response.status === 401) {
-        connectionStore.logout()
-      } else {
-        config.headers.Authorization = `Bearer ${connectionStore.token.access_token}`
-      }
-    } catch (error) {
-      console.error('Erreur lors de la vérification du token:', error)
-      connectionStore.logout()
-    }
-
-    if (['post', 'put', 'delete'].includes(config.method)) {
-      if (formationStore.formationSelected) {
-        config.data = {
-          ...config.data,
-          metadata: {
-            formationId: formationStore.formationSelected
-          }
-        }
-      }
-    }
-
-    if (socketStore.isConnected === false && localStorage.getItem('roomId') !== null) {
-      await socketStore.connect(
-        localStorage.getItem('roomId'),
-        connectionStore.user.givenname,
-        connectionStore.user.sn
-      )
-    }
-    return config
-  },
-  (error) => {
-    return Promise.reject(error)
-  }
-)
+const route = useRoute()
 
 const drawer = ref(false)
 const content = ref(null)
-const popUpStore = usePopUpStore()
-const { width, height } = useElementSize(content)
+const { width } = useElementSize(content)
+
+onMounted(async () => {
+  if (route.path === '/authentication-return') return
+  
+  await nextTick()
+  
+  const token = Cookies.get('access_token')
+  const userExists = !!connectionStore.user?.givenname
+
+  if (!token && userExists) {
+    console.warn('Session expirée (cookie manquant)')
+    connectionStore.logout()
+  }
+})
+
+axios.interceptors.request.use(async (config) => {
+  const excludedUrls = ['/auth/logout', '/auth/local'];
+  if (excludedUrls.some(url => config.url.includes(url))) {
+    return config;
+  }
+
+  const accessToken = Cookies.get('access_token')
+  if (accessToken) {
+    config.headers.Authorization = `Bearer ${accessToken}`
+    if (connectionStore.selectedRole) {
+      config.headers['X-Active-Role'] = connectionStore.selectedRole.name
+    }
+  }
+
+  const isMutation = ['post', 'put', 'delete'].includes(config.method?.toLowerCase())
+  if (isMutation && formationStore.formationSelected) {
+    config.data = {
+      ...config.data,
+      metadata: { formationId: formationStore.formationSelected }
+    }
+  }
+
+  if (!socketStore.isConnected && localStorage.getItem('roomId') && connectionStore.user?.givenname) {
+    socketStore.connect(
+      localStorage.getItem('roomId'),
+      connectionStore.user.givenname,
+      connectionStore.user.sn
+    )
+  }
+
+  return config
+}, (error) => Promise.reject(error))
+
+axios.interceptors.response.use(
+  (res) => res,
+  (error) => {
+    const status = error.response ? error.response.status : null;
+
+    if (status === 403) {
+      console.log("Intercepteur : Traitement de la 403");
+      const popUpStore = usePopUpStore()
+
+      popUpStore.print({
+        message: "Action refusée : Vous n'avez pas les droits nécessaires.",
+        type: 'ERROR' 
+      });
+    }
+
+    if (status === 419 || (error.response?.data?.message?.includes('token expired'))) {
+      connectionStore.logout();
+    }
+
+    return Promise.reject(error);
+  }
+);
 const toggleDrawer = () => {
   drawer.value = !drawer.value
 }
@@ -152,7 +134,6 @@ const toggleDrawer = () => {
   top: 80px;
   left: 50%;
   transform: translateX(-50%);
-
-  opacity: 1;
+  z-index: 9999;
 }
 </style>

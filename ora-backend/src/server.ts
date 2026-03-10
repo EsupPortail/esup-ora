@@ -1,5 +1,4 @@
-import loadEnv from "./middlewares/loader";
-loadEnv()
+import './pre-start';
 
 import fs from "fs";
 import express, { Application } from "express";
@@ -7,7 +6,6 @@ import http from "http";
 import https from "https";
 import {logger} from "./configs/logger";
 import Server from "./app";
-// import { Server as SocketIOServer } from 'socket.io';
 import { SocketService } from "./services/socket.service";
 
 const app: Application = express();
@@ -31,8 +29,9 @@ if( ssl ) {
     logger.info('SSL is activated.');
 }
 
-//Init du singleton SocketService
 SocketService.initInstance(server);
+
+server.setMaxListeners(20);
 
 if( process.env.NODE_ENV !== 'test' ) {
     logger.info('Starting server...');
@@ -41,7 +40,7 @@ if( process.env.NODE_ENV !== 'test' ) {
             logger.info(`Server is running on port ${BACKEND_HOST}:${PORT}`);
         });
     } else if( process.env.NODE_ENV === 'development' ) {
-        server.listen(PORT, () => {
+        server.listen(PORT, '0.0.0.0', () => {
             logger.info(`Server is running on port ${BACKEND_HOST}:${PORT}`);
         });
     };

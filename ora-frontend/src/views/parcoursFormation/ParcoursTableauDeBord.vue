@@ -10,7 +10,7 @@
       </div>
     </v-col>
     <v-col offset="2" cols="2">
-      <ButtonExport pageAsked="Maquette" />
+      <ButtonExport pageAsked="Formation" />
     </v-col>
 
   </v-row>

@@ -1,9 +1,7 @@
 <template>
   <v-container v-if="etablissementSelectedRef !== null">
     <v-data-table
-      :items="composantesOfEtab.sort((a, b) => a.libelle.localeCompare(b.libelle)).filter((c) =>
-        showHistorises ? true : !c.is_historized
-      )"
+      :items="sortedItems"
       item-key="id"
       :headers="headers"
       class="elevation-1"
@@ -101,7 +99,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { ref, watch, computed, nextTick } from 'vue'
 
 import { useParametreStore } from '@/stores/parametreStore'
 import { useEtablissementStore } from '@/stores/etablissementStore'
@@ -117,9 +115,32 @@ const composantesOfEtab = ref([])
 
 const showHistorises = ref(false)
 
+const sortedItems = computed(() => {
+  let list = [...composantesOfEtab.value]
+
+  if (!showHistorises.value) {
+    list = list.filter(c => !c.is_historized);
+  }
+  if (!editEtabId.value) {
+    list.sort((a, b) => a.libelle.localeCompare(b.libelle));
+  } else {
+    const editItem = list.find(c => c.id === editEtabId.value);
+    console.log('Item en édition :', editItem);
+    if (editItem) {
+      list = [editItem, ...list.filter(c => c.id !== editEtabId.value)];
+    }
+  }
+  return list;
+});
+
 const historize = async (item) => {
   item.is_historized = !item.is_historized
-  await saveEdition(item)
+  await composantesStore.updateIsHistorized(item)
+  await composantesStore
+    .fetchComposanteByEtablissement(etablissementSelectedRef.value)
+    .then((d) => {
+      composantesOfEtab.value = [...d]
+    })
 }
 
 const changeEdit = (id) => {
@@ -148,10 +169,14 @@ const addNewComposante = async () => {
     libelle: 'Nouvelle composante',
     etablissement: { connect: { id: etablissementSelectedRef.value } }
   }
-  console.log(etablissementSelectedRef.value)
   await composantesStore.createComposante(newComposante).then((res) => {
     editEtabId.value = res.id
   })
+  await composantesStore
+    .fetchComposanteByEtablissement(etablissementSelectedRef.value)
+    .then((d) => {
+      composantesOfEtab.value = [...d]
+    })
 }
 
 const initData = async () => {

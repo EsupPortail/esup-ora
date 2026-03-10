@@ -1,20 +1,39 @@
-import { Prisma, PrismaClient } from '@prisma/client';
+import { Pool } from 'pg';
+import { Prisma, PrismaClient } from '../generated/client/client';
+import { PrismaPg } from '@prisma/adapter-pg';
 import { getParamsOfRequestResponse, Parser } from './parser.service';
 import { Request, Response, NextFunction } from 'express';
 import { logger } from '../configs/logger';
 import { time } from 'console';
 
 type ModelName = keyof PrismaClient;
-// type ModelDelegate = PrismaClient[ModelName];
 
-const prisma = new PrismaClient();
+const pool = new Pool({ 
+  connectionString: process.env.ORA_DATABASE_URL
+});
 
-export function getModel(baseRoute: string): any {
-    return prisma[baseRoute as ModelName] as any
-}
+const adapter = new PrismaPg(pool);
+export const prisma = new PrismaClient({ adapter });
+let availableModels: string[] = [];
+
+export const getAvailableModels = (): string[] => {
+    if (availableModels.length > 0) return availableModels;
+    
+    availableModels = Object.keys(prisma).filter(
+        (key) => !key.startsWith('$') && !key.startsWith('_')
+    );
+    return availableModels;
+};
 
 export function isPrismaEntity(entity: string): boolean {
-    return entity in prisma
+    const models = getAvailableModels();
+    return models.some(m => m.toLowerCase() === entity.toLowerCase());
+}
+
+export function getModel(baseRoute: string): any {
+    const models = getAvailableModels();
+    const modelKey = models.find(m => m.toLowerCase() === baseRoute.toLowerCase());
+    return modelKey ? (prisma as any)[modelKey] : null;
 }
 
 export function getEntity(model: any, reqParams: getParamsOfRequestResponse): Promise<any> {
@@ -44,35 +63,25 @@ export function getEntity(model: any, reqParams: getParamsOfRequestResponse): Pr
 
 export function getEntityCollection(model: any, reqParams: getParamsOfRequestResponse): Promise<any> {
     return new Promise((resolve, reject) => {
-        const opt = {
-            where: {},
-            include: {}
-        } as any
-        const paramObject = Parser.transformObject(reqParams.getParams)
-        // console.log(JSON.stringify(Parser.transformObject(reqParams.getParams)))
-        if (Object.keys(reqParams.getParams).length > 0) {
-            for (const param in reqParams.getParams) {
-                if (param.includes('where')) {
-                    opt.where = paramObject.where ?? {}
-                }
-                if (param.includes('include')) {
-                    opt.include = paramObject.include ?? {}
-                    // const includes = param.split('[')[1].split(']')[0]
-                    // opt.include[includes] = (reqParams.getParams[param] === "true") ? true : false
-                }
-            }
-        }
-        console.log(opt)
-        if (isFieldExist(model, 'deleted_at')) {
+        const paramObject = Parser.transformObject(reqParams.getParams);
+        
+        // Initialisation propre
+        const opt: any = {
+            where: paramObject.where || {},
+            include: paramObject.include || {}
+        };
+
+        const modelName = reqParams.baseRoute; // ex: 'etablissement'
+        
+        // On ne rajoute le filtre que si le champ existe VRAIMENT
+        if (isFieldExist(modelName, 'deleted_at')) {
             opt.where.deleted_at = null;
         }
-        model.findMany(opt).then((data: any) => {
-            resolve(data)
-        })
-            .catch((error: any) => {
-                reject(error)
-            })
-    })
+
+        model.findMany(opt)
+            .then(resolve)
+            .catch(reject);
+    });
 }
 
 export async function createEntity(model: any, reqParams: getParamsOfRequestResponse): Promise<any> {
@@ -89,7 +98,6 @@ export async function createEntity(model: any, reqParams: getParamsOfRequestResp
 }
 
 export function updateEntity(model: any, reqParams: getParamsOfRequestResponse): Promise<any> {
-    // remove id from postParams
     delete reqParams.postParams.id;
 
     return model.update({
@@ -101,9 +109,6 @@ export function updateEntity(model: any, reqParams: getParamsOfRequestResponse):
 }
 
 export function deleteEntity(model: any, reqParams: getParamsOfRequestResponse): Promise<any> {
-
-    // if model has a property deleted_at, we archive the entity instead of deleting it
-    console.log(isFieldExist(model, 'deleted_at'))
     if (isFieldExist(model, 'deleted_at')) {
         return archiveEntity(model, reqParams);
     } else {
@@ -115,37 +120,41 @@ export function deleteEntity(model: any, reqParams: getParamsOfRequestResponse):
     }
 }
 
-// Do we need it ?
 export function archiveEntity(model: any, reqParams: getParamsOfRequestResponse): Promise<any> {
     return model.update({
         where: {
             id: parseInt(reqParams.urlParams[0])
         },
         data: {
-            // What property should be updated to archive the entity?
             deleted_at: new Date()
         }
     })
 }
 
-function isFieldExist(model: any, fieldToFind: string): boolean {
-    const prismaModels = Prisma.dmmf.datamodel.models;
-    for (const mod of prismaModels) {
-        const modelName = mod.name as string;
-        if (modelName === model.name) {
-            for (const field of mod.fields) {
-                const fieldName = field.name as string;
-                if (fieldName === fieldToFind) {
-                    return true;
-                }
-            }
-        }
-    }
-    return false
-}
+/**
+ * Vérifie si un champ existe dans le modèle
+ * @param modelName Le nom du modèle (ex: 'User')
+ * @param fieldToFind Le champ à chercher (ex: 'deleted_at')
+ */
+function isFieldExist(modelName: string, fieldToFind: string): boolean {
+    const dmmf = (Prisma as any).dmmf || (prisma as any)._dmmf;
+    if (!dmmf) return false;
 
+    // Trouver le modèle en ignorant la casse
+    const targetModel = dmmf.datamodel.models.find(
+        (m: any) => m.name.toLowerCase() === modelName.toLowerCase()
+    );
+
+    if (!targetModel) {
+        return false;
+    }
+
+    // Vérifier si le champ existe EXACTEMENT
+    const exists = targetModel.fields.some((f: any) => f.name === fieldToFind);
+    
+    return exists;
+}
 function normalizeProperties(reqParams: getParamsOfRequestResponse): Record<string, string> {
-    // const model = prisma.dm
     const model = getModel(reqParams.baseRoute)
     if (!model) {
         throw new Error(`Entity ${reqParams.baseRoute} not found in Prisma schema.`);
@@ -159,15 +168,12 @@ function normalizeProperties(reqParams: getParamsOfRequestResponse): Record<stri
             } else {
                 normalizedProperties[key] = reqParams.getParams[key];
             }
-        } else {
-            // handlePrismaError(new Error(`Property ${key} not found in entity ${reqParams.baseRoute}.`), req, res, next);
         }
     }
     const properties: Record<string, string> = {};
     return properties;
 }
 
-// Custom handler for Prisma errors ?
 function handlePrismaError(error: any, req: Request, res: Response, next: NextFunction) {
     logger.error(`Prisma`, error);
     res.status(400).json({
