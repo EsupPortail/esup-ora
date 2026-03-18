@@ -1,13 +1,21 @@
 # Notes de patchs
 
-## 1.15.=à compléter [DEBUG] [PREPARE FOR SaaS - Pré Release]
+## 1.16.5 (18/03/2026)
+- Ajout des composantes auquel l'utilisateur est rattaché dans la vue "Mon profil"
+- Filtrage du backoffice en fonction du rôle et des droits associés (notamment la partie rattachement composantes/formations)
+- Ajout du rôle 'Directeur de Composante' et intégration de ses droits associés
+- Ajout d'un système d'attribution de rôle en console ora côté backend
+- Fix du trie sur la configuration backoffice des tags et types de diplomes
+
+## 1.15.1 (08/03/2026)  
+
 - Suppression de la fiche RNCP entraine la suppression des rncps associées au compétence (DROP Cascade)
 - Fix bug sur la remontée des heures/crédits création formation
 - Fix effectif théorique quand pas de parcours
 - Les compétences RNCP sont désormais triées par code
 - On peut supprimer une compétence (CASCADE sur niveaux et rncp)
 
-## 1.13.6 (25/02/2026)
+## 1.13.6 (25/02/2026)
 - Finalisation du module RNCP
     => le backend d'ORA fait un pont entre le front et le module RNCP distant
     => possibilité de link une rncp sur une formation, puis de sélectionner les bccs de la rncp
@@ -66,7 +74,7 @@ Debugging applicatif concernant cette montée de version. Ajustement de Prisma p
 - Fix ouverture/fermeture des éléments dans le tree view EC quand un objet est modifié
 - Fix de la remontée des enseignements dans options => uniquement ceux de la période
 
-## 1.8.3 [RELEASE] (13/11/2025)
+##  1.8.3 [RELEASE] (13/11/2025)
 
 - Nettoyage modèle de données => suppression des éléments dépréciés + simplification de certains attributs
 - Export PDF/Excel page maquette => remontée des enseignements par période.
