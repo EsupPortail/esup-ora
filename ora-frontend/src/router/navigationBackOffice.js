@@ -5,11 +5,11 @@ export const navigationBackOffice = [
         name: "Paramètres",
         icon: "mdi-cog-outline",
         path: paths.globalParams,
-        grants: ['observateur', 'agent_scolarite', 'administrateur_technique', 'administrateur_fonctionnel', 'ingenieur_pedagogique'],
+        grants: ['observateur', 'agent_scolarite', 'administrateur_technique', 'administrateur_fonctionnel', 'ingenieur_pedagogique', 'directeur_composante'],
         children: [
             {
                 title: "Paramètres globaux",
-                grants: ['observateur', 'agent_scolarite', 'administrateur_technique', 'administrateur_fonctionnel', 'ingenieur_pedagogique'],
+                grants: ['observateur', 'agent_scolarite', 'administrateur_technique', 'administrateur_fonctionnel', 'ingenieur_pedagogique', 'directeur_composante'],
             }
         ]
     },
@@ -61,22 +61,22 @@ export const navigationBackOffice = [
     {
         name: "Rôles et utilisateurs",
         icon: "mdi-account-multiple-outline",
-        grants: ['observateur', 'administrateur_technique', 'administrateur_fonctionnel', 'agent_scolarite', 'ingenieur_pedagogique'],
+        grants: ['observateur', 'administrateur_technique', 'administrateur_fonctionnel', 'agent_scolarite', 'ingenieur_pedagogique', 'directeur_composante'],
         path: paths.rolesEtUtilisateurs,
         children: [
             {
                 title: 'Gestion des utilisateurs',
-                grants: ['observateur', 'administrateur_technique', 'administrateur_fonctionnel'],
+                grants: ['observateur', 'administrateur_technique', 'administrateur_fonctionnel', 'directeur_composante'],
 
             },
             {
                 title: 'Rattachement utilisateurs - composantes',
-                grants: ['observateur', 'administrateur_technique', 'administrateur_fonctionnel', 'agent_scolarite', 'ingenieur_pedagogique'],
+                grants: ['observateur', 'administrateur_technique', 'administrateur_fonctionnel', 'agent_scolarite', 'ingenieur_pedagogique', 'directeur_composante'],
 
             },
             {
                 title: 'Association utilisateurs - formations',
-                grants: ['observateur', 'administrateur_technique', 'administrateur_fonctionnel', 'agent_scolarite', 'ingenieur_pedagogique'],
+                grants: ['observateur', 'administrateur_technique', 'administrateur_fonctionnel', 'agent_scolarite', 'ingenieur_pedagogique', 'directeur_composante'],
 
             }
         ]

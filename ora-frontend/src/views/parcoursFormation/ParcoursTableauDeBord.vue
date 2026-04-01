@@ -109,7 +109,7 @@
         <v-row>
           <v-col cols="5">
             <div :style="{ backgroundColor: competence.color_hexadecimal }" class="rounded pa-3">
-              <span style="color: white">{{ competence.libelle }}</span>
+              <span style="color: white">{{ competence.competence_contextualisee || competence.libelle }}</span>
             </div>
           </v-col>
           <v-col cols="7">

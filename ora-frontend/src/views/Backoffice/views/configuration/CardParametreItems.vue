@@ -5,7 +5,8 @@
       :headers="headers"
       item-key="id"
       class="elevation-1"
-      hide-default-footer
+      :items-per-page="10"
+      :sort-by="[{ key: 'id', order: 'asc' }]"
     >
       <template v-slot:top>
         <v-toolbar flat>
@@ -14,7 +15,7 @@
           <v-spacer />
         </v-toolbar>
       </template>
-      <template v-slot:bottom>
+      <template v-slot:footer.prepend>
         <v-row>
           <v-col cols="2" offset="10" style="margin-bottom: 16px">
             <v-btn color="success" @click="createParametre"

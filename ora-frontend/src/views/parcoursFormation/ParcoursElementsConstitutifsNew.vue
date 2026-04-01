@@ -87,7 +87,7 @@
                   >
                     <v-checkbox
                       v-model="competencesSelected"
-                      :label="competence.libelle"
+                      :label="competence.competence_contextualisee || competence.libelle"
                       :value="competence.id"
                       @change="selectCompetences(competencesSelected)"
                       hide-details

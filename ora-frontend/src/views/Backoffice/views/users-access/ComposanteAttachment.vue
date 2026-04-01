@@ -233,7 +233,46 @@ const initData = async () => {
   console.log('STORE composantes:', composanteStore.composantes)
   console.log('STORE users:', userAccessStore.users)
 
+  const role = connectionStore.selectedRole?.name || null
+  const me = userAccessStore.users.find((u) => u.username === connectionStore.user.eppn)
+  const myComposanteIds = composanteStore.composantes
+    .filter((c) => c.utilisateurs_rattaches?.includes(me.id))
+    .map((c) => c.id)
+
+
   dataTable.value = (composanteStore.composantes || [])
+.filter((f) => {
+      if (
+          role === 'administrateur_technique' ||
+          role === 'administrateur_fonctionnel' ||
+          role === 'observateur'
+        )
+          return true
+        if (me.id === f.owner_user_id) return true
+
+        if (
+          role === 'agent_scolarite' &&
+          myComposanteIds.length > 0 &&
+          myComposanteIds.includes(f.composante_id)
+        )
+          return true
+        
+        if (
+          role === 'ingenieur_pedagogique' &&
+          myComposanteIds.length > 0 &&
+          myComposanteIds.includes(f.composante_id)
+        )
+          return true
+        
+          if (
+          role === 'directeur_composante' &&
+          myComposanteIds.length > 0 &&
+          myComposanteIds.includes(f.composante_id)
+        )
+          return true
+
+        return f.utilisateurs_rattaches?.includes(me.id)
+    })
     .filter((c) => c.is_historized === false)
     .map((c) => {
       const attachedUsers = c.utilisateurs_rattaches || []

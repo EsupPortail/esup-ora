@@ -201,7 +201,7 @@ const initData = async () => {
     let tree = {
       id: 'comp-' + competence.id,
       idCompetence: competence.id,
-      title: competence.libelle,
+      title: competence.competence_contextualisee || competence.libelle,
       color: competence.color_hexadecimal,
       icon: 'mdi-bullseye',
       children: []

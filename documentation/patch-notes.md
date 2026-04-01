@@ -1,5 +1,12 @@
 # Notes de patchs
 
+## 1.16.12 (24/03/2026)
+- Fix bug rattachement composante
+- fix bug affichage menu drawer
+- Suppression formation par créateur, admin fonc et techn
+- Fix autour de la compétence contextualisée
+
+
 ## 1.16.5 (18/03/2026)
 - Ajout des composantes auquel l'utilisateur est rattaché dans la vue "Mon profil"
 - Filtrage du backoffice en fonction du rôle et des droits associés (notamment la partie rattachement composantes/formations)

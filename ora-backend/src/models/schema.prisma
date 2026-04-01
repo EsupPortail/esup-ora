@@ -224,6 +224,10 @@ model periodes {
   version                      version                                   @relation(fields: [version_id], references: [id])
   version_id                   Int
   ec_imported_by_mutualisation element_constitutif_mutualised_imported[]
+  is_fi Boolean                                  @default(false)
+  is_fa Boolean                                  @default(false)
+  is_fc Boolean                                  @default(false)
+  effectif_theorique              Int?                                      @db.Integer
 }
 
 model version {

@@ -3,8 +3,9 @@
     <v-autocomplete
       density="compact"
       variant="outlined"
-      v-model="selectedItems"
+      v-model="modelValue"
       :items="itemsList"
+      item-value="id"
       :label="label"
       clearable
       multiple
@@ -27,10 +28,9 @@ const props = defineProps({
   label: {
     type: String,
     required: true
-  }
-});
+  }});
 
-const selectedItems = ref([])
+const modelValue = defineModel()
 
 // Fonction qui affiche "FirstName Lastname - Email"
 const renderFieldLink = (item) => {
