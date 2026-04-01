@@ -35,130 +35,126 @@
         </v-card-title>
         <v-card-text>
           <div style="overflow-y: auto; max-height: 600px; padding-right: 18px">
-          <v-table style="color: #878787" class="formation-table">
-            <thead>
-              <tr>
-                <th>Composante</th>
-                <th>Formation</th>
-                <th>Version</th>
-                <th style="text-align: center">Parcours</th>
-                <th style="text-align: center">Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                v-for="formation in sortedFormations"
-                :key="formation.id"
-              >
-                <td>{{ composanteStore.getComposanteLibelleById(formation.composante_id) }}</td>
-                <td class="toSelect" @click="toFormation(formation)">
-                  {{ formation.libelle }}
-                </td>
-                <td>
-                  <v-chip-group>
-                    <v-chip
-                      v-for="version in formation.version"
-                      :key="version.id"
-                      color="primary"
-                      @click="toVersion(formation, version)"
-                    >
-                      {{ version.libelle }}
-                    </v-chip>
-                  </v-chip-group>
-                </td>
-                <td>
-                  <v-table class="parcours-table" style="color: #878787">
-                    <tbody>
-                      <tr v-for="parcours in formation.parcours" :key="parcours.id">
-                        <td>{{ parcours.libelle }}</td>
-                      </tr>
-                    </tbody>
-                  </v-table>
-                </td>
-                <td style="vertical-align: middle; text-align: center">
-                  <v-menu>
-                    <template v-slot:activator="{ props }">
-                      <v-btn
-                        style="color: #000000"
-                        icon="mdi-dots-vertical"
-                        variant="text"
-                        v-bind="props"
-                      ></v-btn>
-                    </template>
+            <v-table style="color: #878787" class="formation-table">
+              <thead>
+                <tr>
+                  <th>Composante</th>
+                  <th>Formation</th>
+                  <th>Version</th>
+                  <th style="text-align: center">Parcours</th>
+                  <th style="text-align: center">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="formation in sortedFormations" :key="formation.id">
+                  <td>{{ composanteStore.getComposanteLibelleById(formation.composante_id) }}</td>
+                  <td class="toSelect" @click="toFormation(formation)">
+                    {{ formation.libelle }}
+                  </td>
+                  <td>
+                    <v-chip-group>
+                      <v-chip
+                        v-for="version in formation.version"
+                        :key="version.id"
+                        color="primary"
+                        @click="toVersion(formation, version)"
+                      >
+                        {{ version.libelle }}
+                      </v-chip>
+                    </v-chip-group>
+                  </td>
+                  <td>
+                    <v-table class="parcours-table" style="color: #878787">
+                      <tbody>
+                        <tr v-for="parcours in formation.parcours" :key="parcours.id">
+                          <td>{{ parcours.libelle }}</td>
+                        </tr>
+                      </tbody>
+                    </v-table>
+                  </td>
+                  <td style="vertical-align: middle; text-align: center">
+                    <v-menu>
+                      <template v-slot:activator="{ props }">
+                        <v-btn
+                          style="color: #000000"
+                          icon="mdi-dots-vertical"
+                          variant="text"
+                          v-bind="props"
+                        ></v-btn>
+                      </template>
 
-                    <v-list>
-                      <v-list-item link @click="showUpdateFormation(formation)">
-                        <v-list-item-title> Modifier </v-list-item-title>
-                        <template v-slot:append>
-                          <v-icon icon="mdi-pencil"></v-icon>
-                        </template>
-                      </v-list-item>
-                      <v-list-item link @click="dupplicateFormation(formation)">
-                        <v-list-item-title>Duppliquer</v-list-item-title>
-                        <template v-slot:append>
-                          <v-icon icon="mdi-content-copy"></v-icon>
-                        </template>
-                      </v-list-item>
-                      <v-dialog v-model="confirmDelete" width="auto">
-                        <template v-slot:activator="{ props: activatorProps }">
-                          <v-list-item link v-bind="activatorProps">
-                            <v-list-item-title>Supprimer</v-list-item-title>
-                            <template v-slot:append>
-                              <v-icon icon="mdi-delete"></v-icon>
-                            </template>
-                          </v-list-item>
-                        </template>
-                        <v-card
-                          max-width="400"
-                          prepend-icon="mdi-trash-can"
-                          :text="`Êtes-vous sûr de vouloir supprimer la formation ${formation.libelle} ?`"
-                          title="Confirmation"
-                        >
-                          <template v-slot:actions>
-                            <v-btn
-                              color="error"
-                              variant="elevated"
-                              text="Supprimer"
-                              @click="deleteFormation(formation)"
-                            ></v-btn>
-                            <v-btn
-                              text="Annuler"
-                              color="info"
-                              @click="confirmDelete = false"
-                            ></v-btn>
+                      <v-list>
+                        <v-list-item link @click="showUpdateFormation(formation)">
+                          <v-list-item-title> Modifier </v-list-item-title>
+                          <template v-slot:append>
+                            <v-icon icon="mdi-pencil"></v-icon>
                           </template>
-                        </v-card>
-                      </v-dialog>
-                    </v-list>
-                  </v-menu>
-                  <v-chip
-                    class="ma-2"
-                    :style="{
-                      backgroundColor: formation.state === 'Terminé' ? '#E2F1B8' : '#B8C2F1',
-                      borderRadius: '12px',
-                      cursor: 'pointer',
-                      opacity: 1
-                    }"
-                  >
-                    <span style="color: black">{{ formation.state }}</span>
-                  </v-chip>
-                  <v-btn
-                    icon="mdi-arrow-right-circle"
-                    variant="text"
-                    style="color: #000000"
-                    @click="toFormation(formation)"
-                  ></v-btn>
-                </td>
-              </tr>
-            </tbody>
-            <template v-slot:item.action="{ item }">
-              <v-btn color="info" @click="navigateTo(paths.FORMATION_DETAIL, { id: item.id })">
-                Détails
-              </v-btn>
-            </template>
-          </v-table>
-
-        </div>
+                        </v-list-item>
+                        <v-list-item link @click="dupplicateFormation(formation)">
+                          <v-list-item-title>Duppliquer</v-list-item-title>
+                          <template v-slot:append>
+                            <v-icon icon="mdi-content-copy"></v-icon>
+                          </template>
+                        </v-list-item>
+                        <v-dialog v-model="confirmDelete" width="auto">
+                          <template v-slot:activator="{ props: activatorProps }">
+                            <v-list-item link v-bind="activatorProps">
+                              <v-list-item-title>Supprimer</v-list-item-title>
+                              <template v-slot:append>
+                                <v-icon icon="mdi-delete"></v-icon>
+                              </template>
+                            </v-list-item>
+                          </template>
+                          <v-card
+                            max-width="400"
+                            prepend-icon="mdi-trash-can"
+                            :text="`Êtes-vous sûr de vouloir supprimer la formation ${formation.libelle} ?`"
+                            title="Confirmation"
+                          >
+                            <template v-slot:actions>
+                              <v-btn
+                                color="error"
+                                variant="elevated"
+                                text="Supprimer"
+                                @click="deleteFormation(formation)"
+                              ></v-btn>
+                              <v-btn
+                                text="Annuler"
+                                color="info"
+                                @click="confirmDelete = false"
+                              ></v-btn>
+                            </template>
+                          </v-card>
+                        </v-dialog>
+                      </v-list>
+                    </v-menu>
+                    <v-chip
+                      class="ma-2"
+                      :style="{
+                        backgroundColor: formation.state === 'Terminé' ? '#E2F1B8' : '#B8C2F1',
+                        borderRadius: '12px',
+                        cursor: 'pointer',
+                        opacity: 1
+                      }"
+                    >
+                      <span style="color: black">{{ formation.state }}</span>
+                    </v-chip>
+                    <v-btn
+                      icon="mdi-arrow-right-circle"
+                      variant="text"
+                      style="color: #000000"
+                      @click="toFormation(formation)"
+                    ></v-btn>
+                  </td>
+                </tr>
+              </tbody>
+              <template v-slot:item.action="{ item }">
+                <v-btn color="info" @click="navigateTo(paths.FORMATION_DETAIL, { id: item.id })">
+                  Détails
+                </v-btn>
+              </template>
+            </v-table>
+          </div>
           <v-btn
             @click="toggleFormationCard"
             :color="showFormationCard ? 'error' : 'success'"
@@ -391,7 +387,59 @@
                 />
               </v-col>
             </v-row>
-            <v-row>
+            <!-- <template
+              v-for="unite in currentFormation.duree"
+              :key="unite"
+              v-if="
+                currentFormation.duree > 0 && periodeConfiguration.length === currentFormation.duree
+              "
+            >
+              <div class="dividerForm" style="border-top: 1px dashed #707070" />
+
+              <v-row>
+                <v-col cols="1">
+                  <p>{{ currentFormation.duree_unite }} - {{ unite }}</p>
+                </v-col>
+                <v-col cols="5">
+                  <div style="display: flex; align-items: center; gap: 16px">
+                    <v-checkbox
+                      v-model="periodeConfiguration[unite - 1].is_fc"
+                      label="FC"
+                      class="rounded-checkbox"
+                      hide-details
+                      inline
+                    />
+                    <v-checkbox
+                      v-model="periodeConfiguration[unite - 1].is_fi"
+                      label="FI"
+                      class="rounded-checkbox"
+                      hide-details
+                      inline
+                    />
+                    <v-checkbox
+                      v-model="periodeConfiguration[unite - 1].is_fa"
+                      label="FA"
+                      class="rounded-checkbox"
+                      hide-details
+                      inline
+                    />
+                  </div>
+                </v-col>
+                <v-col cols="3">
+                  <v-text-field
+                    density="compact"
+                    variant="outlined"
+                    v-model.number="periodeConfiguration[unite - 1].effectif_theorique"
+                    label="Effectif théorique de la période"
+                    type="number"
+                  />
+                </v-col>
+              </v-row>
+            </template> -->
+
+            <div class="dividerForm" style="border-top: 1px dashed #707070" />
+
+            <v-row style="margin-top: 10px">
               <v-col cols="6">
                 <v-text-field
                   disabled
@@ -481,6 +529,7 @@
               <v-col cols="6">
                 <SearchEngine
                   :itemsList="users"
+                  v-model="usersSelectedInList"
                   label="Ajouter des utilisateurs pour contribuer à cette formation"
                   renderField="email"
                 />
@@ -504,7 +553,7 @@
 </template>
 
 <script setup>
-import { effect, ref, computed, onMounted, nextTick } from 'vue'
+import { effect, ref, computed, onMounted, nextTick, watch } from 'vue'
 import axios from 'axios'
 import router from '@/router/router'
 import { config } from '@/environment/environment'
@@ -519,6 +568,7 @@ import { useEtablissementStore } from '@/stores/etablissementStore'
 import { useParcoursStore } from '@/stores/parcoursStore'
 import { useSocketStore } from '@/stores/socketStore'
 import { usePopUpStore } from '@/stores/popUp/PopUpStoreImplementation'
+import { usePeriodeStore } from '@/stores/periodeStore'
 
 import SearchEngine from '@/components/SearchEngine.vue'
 import { useUserAccessStore } from '@/stores/usersAccessStore'
@@ -532,6 +582,7 @@ const parcoursStore = useParcoursStore()
 const etablissementStore = useEtablissementStore()
 const socketStore = useSocketStore()
 const popUpStore = usePopUpStore()
+const periodeStore = usePeriodeStore()
 
 const search = ref('')
 
@@ -550,6 +601,7 @@ onMounted(async () => {
   await init()
 })
 
+const usersSelectedInList = ref([])
 const users = ref([])
 const fetchUsers = async () => {
   await axios
@@ -583,6 +635,14 @@ const init = async () => {
   await fetchUsers()
 }
 const formMode = ref('create')
+/**
+ * tableaux de confs de périodes
+ * [0].effectif_theorique
+ * [0].is_fi
+ * [0].is_fc
+ * [0].is_fa
+ */
+const periodeConfiguration = ref([])
 const currentFormation = ref({
   libelle: '',
   state: '',
@@ -674,6 +734,7 @@ const toggleFormationCard = () => {
 const showUpdateFormation = (formation) => {
   currentFormation.value = formationStore.formations.find((f) => f.id === formation.id)
   showFormationCard.value = true
+  usersSelectedInList.value = currentFormation.value.utilisateurs_rattaches.map((u) => u)
   formMode.value = 'update'
 }
 
@@ -729,10 +790,26 @@ const toVersion = (formation, version) => {
 }
 
 const deleteFormation = (formation) => {
-  // Logique pour supprimer une formation
-  formationStore.deleteFormation(formation)
-  confirmDelete.value = false
-  showFormationCard.value = false
+  if (
+    connectionStore.selectedRole.name === 'administrateur_technique' ||
+    connectionStore.selectedRole.name === 'administrateur_fonctionnel' ||
+    formation.owner_user_id === connectionStore.user.id
+  ) {
+    formationStore.deleteFormation(formation)
+    confirmDelete.value = false
+    showFormationCard.value = false
+  } else {
+    popUpStore.print({
+      isVisible: true,
+      message:
+        'Vous ne pouvez pas supprimer la formation.\nSeul les propriétaires de la formation ou les administrateurs peuvent supprimer une formation.',
+      type: 'ERROR'
+    })
+    confirmDelete.value = false
+    showFormationCard.value = false 
+    
+    return false
+  }
 }
 
 const updateFormation = async () => {
@@ -824,8 +901,13 @@ const updateFormation = async () => {
   currentFormation.value.parcours.forEach((p) => {
     parcoursStore.updateParcours(p)
   })
+  await formationStore.updateUserAttachment({
+    id: currentFormation.value.id,
+    utilisateurs_rattaches: usersSelectedInList.value
+  })
 
   toggleFormationCard()
+
   // Update versions et periodes
 }
 
@@ -917,7 +999,8 @@ const createFormation = () => {
       createMany: {
         data: currentFormation.value.parcours
       }
-    }
+    },
+    utilisateurs_rattaches: usersSelectedInList.value
   }
   formationStore.createFormation(formationToCreate).then(() => {
     formationStore.fetchFormation()
@@ -961,37 +1044,80 @@ const sortedFormations = computed(() => {
   const role = connectionStore.selectedRole?.name || null
   console.log(role)
 
-  const me = userAccessStore.users.find(
-    (u) => u.username === connectionStore.user.eppn
-  )
+  const me = userAccessStore.users.find((u) => u.username === connectionStore.user.eppn)
 
   const myComposanteIds = composanteStore.composantes
-  .filter((c) => c.utilisateurs_rattaches?.includes(me.id))
-  .map((c) => c.id);
+    .filter((c) => c.utilisateurs_rattaches?.includes(me.id))
+    .map((c) => c.id)
 
-  return formationStore.getFormations
-    .filter((f) => {
-      if( role === 'administrateur_technique' || role === 'administrateur_fonctionnel' || role === 'observateur') return true;
-      if (me.id === f.owner_user_id) return true;
+  return (
+    formationStore.getFormations
+      .filter((f) => {
+        if (
+          role === 'administrateur_technique' ||
+          role === 'administrateur_fonctionnel' ||
+          role === 'observateur'
+        )
+          return true
+        if (me.id === f.owner_user_id) return true
 
-      if( role === 'agent_scolarite' && myComposanteIds.length > 0 && myComposanteIds.includes(f.composante_id)) return true;
+        if (
+          role === 'agent_scolarite' &&
+          myComposanteIds.length > 0 &&
+          myComposanteIds.includes(f.composante_id)
+        )
+          return true
 
-      return f.utilisateurs_rattaches?.includes(me.id)
-    })
-    // 🔍 TRI PAR PERTINENCE
-    .slice()
-    .sort((a, b) => {
-      const scoreA = matchScore(a.libelle, search.value)
-      const scoreB = matchScore(b.libelle, search.value)
+        if (
+          role === 'ingenieur_pedagogique' &&
+          myComposanteIds.length > 0 &&
+          myComposanteIds.includes(f.composante_id)
+        )
+          return true
 
-      if (scoreA !== scoreB) {
-        return scoreB - scoreA // score le plus élevé d'abord
-      }
+        if (
+          role === 'directeur_composante' &&
+          myComposanteIds.length > 0 &&
+          myComposanteIds.includes(f.composante_id)
+        )
+          return true
 
-      // fallback : tri alphabétique
-      return a.libelle.localeCompare(b.libelle)
-    })
+        return f.utilisateurs_rattaches?.includes(me.id)
+      })
+      // 🔍 TRI PAR PERTINENCE
+      .slice()
+      .sort((a, b) => {
+        const scoreA = matchScore(a.libelle, search.value)
+        const scoreB = matchScore(b.libelle, search.value)
+
+        if (scoreA !== scoreB) {
+          return scoreB - scoreA // score le plus élevé d'abord
+        }
+
+        // fallback : tri alphabétique
+        return a.libelle.localeCompare(b.libelle)
+      })
+  )
 })
+
+watch(
+  () => currentFormation.value,
+  async (newFormation) => {
+    if (!newFormation?.duree) {
+      return
+    }
+    console.log('Mise à jour de la configuration pour la durée :', newFormation.duree)
+
+    periodeConfiguration.value = Array.from({ length: newFormation.duree }, () => ({
+      is_fc: false,
+      is_fi: false,
+      is_fa: false,
+      effectif_theorique: 0
+    }))
+    console.log(periodeConfiguration.value)
+  },
+  { deep: true, immediate: true } // 3. Options cruciales
+)
 
 const matchScore = (libelle, search) => {
   if (!search) return 0
@@ -1005,8 +1131,6 @@ const matchScore = (libelle, search) => {
 
   return 0
 }
-
-
 </script>
 
 <style scoped>

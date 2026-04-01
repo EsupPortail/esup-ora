@@ -1,11 +1,12 @@
 <template>
   <v-container>
     <v-data-table
-      :items="[...tagStore.tags].sort((a, b) => a.libelle.localeCompare(b.libelle))"
+      :items="[...tagStore.tags].sort((a, b) => a.id - b.id)"
       :headers="headers"
       item-key="id"
+      :items-per-page="10"
+      :sort-by="[{ key: 'id', order: 'asc' }]"
       class="elevation-1"
-      hide-default-footer
     >
       <template v-slot:top>
         <v-toolbar flat>
@@ -22,7 +23,7 @@
           <v-spacer />
         </v-toolbar>
       </template>
-      <template v-slot:bottom>
+      <template v-slot:footer.prepend>
         <v-row>
           <v-col cols="2" offset="10" style="margin-bottom: 16px">
             <v-btn color="success" @click="createNewTag">Ajouter un tag</v-btn>
@@ -85,7 +86,7 @@ const editTag = ref(null)
 const showHistorises = ref(false)
 
 const headers = [
-  { title: 'Nom tag', value: 'name' },
+  { title: 'Nom tag', value: 'name', sortable: false },
   { title: 'Actions', value: 'actions', sortable: false }
 ]
 

@@ -78,7 +78,7 @@
   <v-row style="padding-left: 40px; padding-right: 40px">
     <v-col cols="12">
       <v-card
-        v-for="(comp, index) in competencesList"
+        v-for="(comp, index) in competencesList.sort((a, b) => a.id - b.id)"
         class="elevation-5"
         :key="index"
         :style="{
@@ -97,10 +97,11 @@
                   <v-row>
                     <v-col class="pt-0 pb-0" cols="12">
                       <v-text-field
-                        @blur="libChange(comp)"
-                        @keyup.enter="libChange(comp)"
-                        v-model="comp.libelle"
-                        label="Libellé de la compétence"
+                        @blur="libChangeCompContext(comp) && libChange(comp)"
+                        @keyup.enter="libChangeCompContext(comp) && libChange(comp)"
+                        v-model="comp.competence_contextualisee"
+                        :disabled="!comp.id"
+                        label="Ajouter une compétence contextualisée"
                         variant="outlined"
                         density="compact"
                       ></v-text-field>
@@ -109,9 +110,41 @@
                   <v-card variant="outlined" class="mt-4">
                     <v-expansion-panels>
                       <v-expansion-panel elevation="0">
-                        <v-expansion-panel-title>
+                        <v-expansion-panel-title @click.stop="togglePanel(comp.id)">
                           <div class="text-subtitle-1 font-weight-medium">
-                            RNCP : Blocs de compétences disponibles
+                            <span v-if="!blocCheckedInComp(comp)"
+                              >RNCP :
+                              <b
+                                >{{ currentFicheData?.blocsCompetences.length }} blocs de
+                                compétences disponibles</b
+                              ></span
+                            >
+                            <v-list density="compact" v-else>
+                              <template
+                                v-for="bcc in (currentFicheData?.blocsCompetences || []).sort(
+                                  (a, b) => a.code.localeCompare(b.code)
+                                )"
+                                :key="bcc.code"
+                              >
+                                <v-list-item v-if="estRncpCheck(comp, bcc)" class="pa-0 py-2">
+                                  <template v-slot:title>
+                                    <div class="text-wrap" style="line-height: 1.4">
+                                      <span class="font-weight-bold">{{ bcc.code }}</span> -
+                                      {{ bcc.libelle }}
+                                    </div>
+                                  </template>
+
+                                  <template v-slot:prepend>
+                                    <v-checkbox-btn
+                                      disabled="true"
+                                      :model-value="estRncpCheck(comp, bcc)"
+                                      @change="addBccRncp(comp, bcc, currentFicheData.numeroFiche)"
+                                      class="pe-2"
+                                    ></v-checkbox-btn>
+                                  </template>
+                                </v-list-item>
+                              </template>
+                            </v-list>
                           </div>
                         </v-expansion-panel-title>
 
@@ -148,27 +181,6 @@
                       </v-expansion-panel>
                     </v-expansion-panels>
                   </v-card>
-                  <v-row style="margin-top: 8px">
-                    <v-col cols="10">
-                      <v-text-field
-                        @blur="libChangeCompContext(comp)"
-                        @keyup.enter="libChangeCompContext(comp)"
-                        v-model="comp.competence_contextualisee"
-                        :disabled="!comp.id"
-                        label="Ajouter une compétence contextualisée"
-                        variant="outlined"
-                        density="compact"
-                      ></v-text-field>
-                    </v-col>
-                    <v-col cols="2">
-                      <v-btn
-                        @click="libChangeCompContext(comp)"
-                        color="success"
-                        :disabled="!comp.id"
-                        >Ajouter</v-btn
-                      >
-                    </v-col>
-                  </v-row>
                   <v-row v-for="critExig in comp.critere_exigences" style="margin-top: 10px">
                     <v-col cols="10" style="padding-top: 0px; padding-bottom: 0px">
                       <div v-if="!(showInputCritEx === critExig.id)">{{ critExig.libelle }}</div>
@@ -372,6 +384,16 @@ const Ncomp = ref({
   critere_exigences: [],
   famille_de_situations: []
 })
+const rncpPanelIdOpen = ref([])
+const togglePanel = (id) => {
+  const isAlreadyOpen = rncpPanelIdOpen.value.includes(id)
+
+  if (isAlreadyOpen) {
+    rncpPanelIdOpen.value = rncpPanelIdOpen.value.filter((item) => item !== id)
+  } else {
+    rncpPanelIdOpen.value = [...rncpPanelIdOpen.value, id]
+  }
+}
 
 const competenceStore = useCompetenceStore()
 const parcoursStore = useParcoursStore()
@@ -445,12 +467,15 @@ const duplicateCompetence = (comp) => {
   competenceStore.duplicateCompetence(comp, formationStore.formationSelected.noms_des_niveaux)
 }
 const preAddCompetence = () => {
-  competencesList.value.push({
+  let comp = {
     libelle: '',
     color_hexadecimal: takeColor(),
     critere_exigences: [],
     famille_de_situations: []
-  })
+  }
+  comp.version_id = versionId
+  competenceStore.createCompetence(comp, formationStore.formationSelected.noms_des_niveaux)
+  competenceStore.fetchCompetences()
 }
 
 const addSituationPro = (comp) => {
@@ -469,6 +494,10 @@ const addSituationPro = (comp) => {
     })
     vModelSituationPro.value[comp.id] = ''
   }
+}
+
+const blocCheckedInComp = (comp) => {
+  return comp.rncp_bccs && comp.rncp_bccs.length > 0
 }
 
 const deleteSituationPro = (fdi) => {

@@ -53,24 +53,24 @@ export const useFormationStore = defineStore('formation', {
       })
     },
     updateUserAttachment(formation: any) {
-  return new Promise(async (resolve, reject) => {
-    try {
-      const payload = {
-        id: formation.id,
-        utilisateurs_rattaches: formation.utilisateurs_rattaches
-      }
+      return new Promise(async (resolve, reject) => {
+        try {
+          const payload = {
+            id: formation.id,
+            utilisateurs_rattaches: formation.utilisateurs_rattaches
+          }
 
-      this.update(this.entity, payload)
-        .then((res) => {
-          this.fetchFormation()
-          resolve(res.data)
-        })
-        .catch(reject)
-    } catch (err) {
-      reject(err)
-    }
-  })
-},
+          this.update(this.entity, payload)
+            .then((res) => {
+              this.fetchFormation()
+              resolve(res.data)
+            })
+            .catch(reject)
+        } catch (err) {
+          reject(err)
+        }
+      })
+    },
     getFormationFromParcoursId(parcoursId: number) {
       return new Promise((resolve, reject) => {
         this.getCollection(this.entity, {

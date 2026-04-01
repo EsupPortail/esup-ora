@@ -42,7 +42,7 @@
           </template>
         </template>
       </v-list>
-      <v-list-item>
+      <v-list-item v-if="drawer">
         <template #append>
           <span style="font-size: 12px; color: #888">
             Core {{ versions.APPLICATION_VERSION }}

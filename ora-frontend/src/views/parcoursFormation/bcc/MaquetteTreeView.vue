@@ -646,7 +646,7 @@ const treeList = computed(() => {
     .map((comp) => ({
       id: 'competence-' + comp.id,
       key: 'competence-' + comp.id,
-      title: comp.libelle,
+      title: comp.competence_contextualisee || comp.libelle,
       type: 'competence',
 
       // à l’intérieur, tu réutilises la même logique que pour les périodes

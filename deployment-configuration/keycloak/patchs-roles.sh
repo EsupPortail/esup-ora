@@ -9,8 +9,9 @@ declare -A ROLES_HIERARCHY=(
   ["enseignant"]=2
   ["agent_scolarite"]=3
   ["ingenieur_pedagogique"]=4
-  ["administrateur_fonctionnel"]=5
-  ["administrateur_technique"]=6
+  ["directeur_composante"]=5
+  ["administrateur_fonctionnel"]=6
+  ["administrateur_technique"]=7
 )
 
 echo "🔐 Authenticating to Keycloak..."
@@ -46,12 +47,19 @@ for ROLE in "${!ROLES_HIERARCHY[@]}"; do
         -s "composite=false" \
         -s 'attributes.display_name=["Gestionnaire de scolarité"]' \
         -s 'attributes.ora-roles=["true"]'
-      ROLE_ID=$(../bin/kcadm.sh get "roles/$ROLE" -r "$KEYCLOAK_REALM" --fields id --format csv)
+    # Spécifique pour directeur_composante
+    elif [ "$ROLE" == "directeur_composante" ]; then
+      ../bin/kcadm.sh create roles -r "$KEYCLOAK_REALM" -s "name=$ROLE" \
+        -s 'description=Rôle associé à un directeur de composante pour la supervision de sa structure' \
+        -s "clientRole=false" \
+        -s "composite=false" \
+        -s 'attributes.display_name=["Directeur de composante"]' \
+        -s 'attributes.ora-roles=["true"]'
     else
       # Crée un rôle simple pour les autres
       ../bin/kcadm.sh create roles -r "$KEYCLOAK_REALM" -s "name=$ROLE"
-      ROLE_ID=$(../bin/kcadm.sh get "roles/$ROLE" -r "$KEYCLOAK_REALM" --fields id --format csv)
     fi
+    ROLE_ID=$(../bin/kcadm.sh get "roles/$ROLE" -r "$KEYCLOAK_REALM" --fields id --format csv)
   fi
 
   echo "→ Updating role attributes for '$ROLE'"
@@ -61,6 +69,11 @@ for ROLE in "${!ROLES_HIERARCHY[@]}"; do
     ../bin/kcadm.sh update "roles/$ROLE" -r "$KEYCLOAK_REALM" \
       -s "attributes.hierarchy=[\"$LEVEL\"]" \
       -s 'attributes.display_name=["Gestionnaire de scolarité"]' \
+      -s 'attributes.ora-roles=["true"]'
+  elif [ "$ROLE" == "directeur_composante" ]; then
+    ../bin/kcadm.sh update "roles/$ROLE" -r "$KEYCLOAK_REALM" \
+      -s "attributes.hierarchy=[\"$LEVEL\"]" \
+      -s 'attributes.display_name=["Directeur de composante"]' \
       -s 'attributes.ora-roles=["true"]'
   else
     ../bin/kcadm.sh update "roles/$ROLE" -r "$KEYCLOAK_REALM" \

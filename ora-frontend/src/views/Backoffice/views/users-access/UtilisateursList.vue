@@ -13,12 +13,13 @@
         <v-list density="compact">
           <v-list-item><b>Observateur</b> : lecture seule</v-list-item>
           <v-list-item><b>Enseignant</b> : gestion de ses formations</v-list-item>
-          <v-list-item><b>Agent de scolarité</b> : gestion rattachements</v-list-item>
+          <v-list-item><b>Gestionnaire de scolarité</b> : gestion rattachements formation/enseignants</v-list-item>
+          <v-list-item><b>Ingénieur pédagogique</b> : gestion composante</v-list-item>
         </v-list>
       </v-col>
       <v-col cols="6">
         <v-list density="compact">
-          <v-list-item><b>Ingénieur pédago.</b> : gestion composante</v-list-item>
+          <v-list-item><b>Directeur de Composante</b> : attribution des rôles dans sa composante et ajout d'utilisateurs</v-list-item>
           <v-list-item><b>Admin fonctionnel</b> : gestion globale application</v-list-item>
           <v-list-item><b>Admin technique</b> : gestion technique</v-list-item>
         </v-list>
@@ -143,12 +144,17 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import axios from 'axios'
+
 import { config } from '@/environment/environment'
+
 import { useConnectionStore } from '@/stores/connectionStore'
+import { useComposanteStore } from '@/stores/composanteStore'
 import { useUserAccessStore } from '@/stores/usersAccessStore'
+
 import AddUserForm from '@/views/Backoffice/views/users-access/AddUserForm.vue'
 
 const connectionStore = useConnectionStore()
+const composanteStore = useComposanteStore()
 const userAccessStore = useUserAccessStore()
 
 const isAddingLocalUser = ref(false)
@@ -173,10 +179,11 @@ const headers = ref([
 const rolesAvailable = ref([
   { id: null, weight: 1, name: 'enseignant', displayName: 'Enseignant' },
   { id: null, weight: 2, name: 'ingenieur_pedagogique', displayName: 'Ingénieur pédagogique' },
-  { id: null, weight: 3, name: 'agent_scolarite', displayName: 'Agent de scolarité' },
+  { id: null, weight: 3, name: 'agent_scolarite', displayName: 'Gestionnaire de scolarité' },
   { id: null, weight: 4, name: 'observateur', displayName: 'Observateur' },
-  { id: null, weight: 5, name: 'administrateur_fonctionnel', displayName: 'Administrateur fonctionnel' },
-  { id: null, weight: 6, name: 'administrateur_technique', displayName: 'Administrateur technique' }
+  { id: null, weight: 5, name: 'directeur_composante', displayName: 'Directeur de composante' },
+  { id: null, weight: 6, name: 'administrateur_fonctionnel', displayName: 'Administrateur fonctionnel' },
+  { id: null, weight: 7, name: 'administrateur_technique', displayName: 'Administrateur technique' }
 ])
 
 // --- COMPUTED ---
@@ -311,6 +318,7 @@ const refreshUserList = async () => {
 const initData = async () => {
   try {
     await userAccessStore.fetchUsers()
+    await composanteStore.fetchComposantes()
     await userAccessStore.fetchRoles()
     
     const roleOptions = userAccessStore.roles || []
@@ -320,8 +328,36 @@ const initData = async () => {
       const match = roleOptions.find((r) => r.name === role.name)
       return { ...role, id: match ? match.id : null }
     })
+      const role = connectionStore.selectedRole?.name || null
+  const me = userAccessStore.users.find((u) => u.username === connectionStore.user.eppn)
+  const myComposanteIds = composanteStore.composantes
+    .filter((c) => c.utilisateurs_rattaches?.includes(me.id))
+    .map((c) => c.id)
 
-    dataTable.value = userAccessStore.users.map((u) => {
+
+    dataTable.value = userAccessStore.users
+    .filter((u)=> {
+      if( u.id === me.id) return false;
+      if (
+          role === 'administrateur_technique' ||
+          role === 'administrateur_fonctionnel' ||
+          role === 'observateur'
+        )
+          return true
+
+      const composantesOfCurrentUser = composanteStore.composantes
+      .filter((c) => c.utilisateurs_rattaches?.includes(u.id))
+      .map((c) => c.id);
+
+          if (role === 'directeur_composante' && myComposanteIds.length > 0) {
+    const userComposanteIds = composanteStore.composantes
+      .filter((c) => c.utilisateurs_rattaches?.includes(u.id))
+      .map((c) => c.id);
+
+    return userComposanteIds.some((id) => myComposanteIds.includes(id));
+  }
+    })
+    .map((u) => {
       const highestRole = u.roles.reduce((max, r) => {
         const match = rolesAvailable.value.find((ar) => ar.name === r.name)
         return match && match.weight > max.weight ? match : max

@@ -1,12 +1,13 @@
 <template>
   <v-container>
     <v-data-table
-      :items="[...typeDiplomeStore.typeDiplomes].sort((a, b) => a.libelle.localeCompare(b.libelle))"
+      :items="[...typeDiplomeStore.typeDiplomes].sort((a, b) => a.id - b.id)"
       :headers="headers"
       item-key="id"
       class="elevation-1"
-      hide-default-footer
-    >
+      :items-per-page="10"
+      :sort-by="[{ key: 'id', order: 'asc' }]"
+  >
       <template v-slot:top>
         <v-toolbar flat>
           <v-toolbar-title>
@@ -23,7 +24,7 @@
           <v-spacer />
         </v-toolbar>
       </template>
-      <template v-slot:bottom>
+      <template v-slot:footer.prepend>
         <v-row>
           <v-col cols="3" offset="8" style="margin-bottom: 16px">
             <v-btn color="success" @click="createNewTypeDiplome" style="margin-right: 16px"

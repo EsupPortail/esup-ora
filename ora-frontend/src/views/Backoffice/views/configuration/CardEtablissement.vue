@@ -4,8 +4,9 @@
       :items="etablissementStore.etablissements"
       item-key="id"
       :headers="headers"
-      class="elevation-1"
-      hide-default-footer
+      class="elevation-1"      
+      :items-per-page="10"
+      :sort-by="[{ key: 'id', order: 'asc' }]"
     >
       <template v-slot:top>
         <v-toolbar flat>
@@ -14,7 +15,7 @@
           <v-spacer />
         </v-toolbar>
       </template>
-      <template v-slot:bottom>
+      <template v-slot:footer.prepend>
         <v-btn color="primary" @click="addNewEtab">Ajouter un établissement</v-btn>
       </template>
       <template v-slot:item="{ item }">

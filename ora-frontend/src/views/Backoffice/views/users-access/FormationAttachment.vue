@@ -86,10 +86,12 @@ import { ref, computed } from 'vue'
 
 import { useConnectionStore } from '@/stores/connectionStore'
 import { useFormationStore } from '@/stores/formationStore'
+import { useComposanteStore } from '@/stores/composanteStore'
 import { useUserAccessStore } from '@/stores/usersAccessStore'
 
 const connectionStore = useConnectionStore()
 const formationStore = useFormationStore()
+const composanteStore = useComposanteStore()
 const userAccessStore = useUserAccessStore()
 
 const headers = ref([
@@ -219,12 +221,51 @@ const initData = async () => {
   try {
     await formationStore.fetchFormation()
     await userAccessStore.fetchUsers()
+    await composanteStore.fetchComposantes()
     await userAccessStore.fetchRoles()
   } catch (e) {
     console.error('Erreur fetch stores', e)
   }
 
+  const role = connectionStore.selectedRole?.name || null
+  const me = userAccessStore.users.find((u) => u.username === connectionStore.user.eppn)
+  const myComposanteIds = composanteStore.composantes
+    .filter((c) => c.utilisateurs_rattaches?.includes(me.id))
+    .map((c) => c.id)
+
   dataTable.value = (formationStore.formations || [])
+    .filter((f) => {
+      if (
+          role === 'administrateur_technique' ||
+          role === 'administrateur_fonctionnel' ||
+          role === 'observateur'
+        )
+          return true
+        if (me.id === f.owner_user_id) return true
+
+        if (
+          role === 'agent_scolarite' &&
+          myComposanteIds.length > 0 &&
+          myComposanteIds.includes(f.composante_id)
+        )
+          return true
+        
+        if (
+          role === 'ingenieur_pedagogique' &&
+          myComposanteIds.length > 0 &&
+          myComposanteIds.includes(f.composante_id)
+        )
+          return true
+        
+          if (
+          role === 'directeur_composante' &&
+          myComposanteIds.length > 0 &&
+          myComposanteIds.includes(f.composante_id)
+        )
+          return true
+
+        return f.utilisateurs_rattaches?.includes(me.id)
+    })
     .map((f) => {
       const attachedUsers = f.utilisateurs_rattaches || []
 

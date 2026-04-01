@@ -26,7 +26,8 @@
     "clean-publication": "rm -rf ./packed-project",
     "pack-dependancies": "node ./pack-dependancies.cjs",
     "publish-version": "npm run clean-publication && npm run pack-dependancies && npm publish",
-    "reset:db": "ts-node src/models/cleanAll-warning.ts"
+    "reset:db": "ts-node src/models/cleanAll-warning.ts",
+    "users:change-role": " tsx src/console/change-role.ts"
   },
   "author": "Romain AMBROISE, Anthony GAUTREAU @ Université de Caen, Normandie",
   "license": "ISC",
@@ -45,6 +46,7 @@
     "fs-extra": "^11.3.3",
     "helmet": "^8.1.0",
     "http-proxy-middleware": "^3.0.5",
+    "inquirer": "^13.3.2",
     "install": "^0.13.0",
     "jsonwebtoken": "^9.0.3",
     "node-pg-migrate": "^8.0.4",

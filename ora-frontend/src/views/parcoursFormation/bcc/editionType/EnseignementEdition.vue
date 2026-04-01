@@ -25,7 +25,7 @@
           <span>Compétence</span>
           <ul style="margin: 0; padding-left: 16px; font-size: 1rem">
             <li v-for="competence in competencesLinkedList" :key="competence.id">
-              {{ competence.libelle }}
+              {{ competence.competence_contextualisee || competence.libelle }}
             </li>
           </ul>
         </h3>
