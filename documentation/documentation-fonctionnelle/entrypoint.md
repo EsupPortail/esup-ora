@@ -4,6 +4,8 @@
 
 <img height="80" src="../ressources/logo-avenir.svg" alt="logo unicaen" />
 
+<img height="80" src="https://www.reussites-plurielles.fr/wp-content/uploads/sites/161/2022/11/logo_RP_couleur.png" alt="logo rp" />
+
 ## Aperçu du projet
 
 ESUP ORA est un projet open-source porté par l'Université de Caen, Normandie.  
