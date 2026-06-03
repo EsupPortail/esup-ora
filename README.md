@@ -19,7 +19,7 @@ La [`liste des changements`](./documentation/patch-notes.md) est disponible ici 
 
 ## Documentation
 
-Une [`documentation utilisateur`](./documentation/usage-documentation.md) est à votre disposition pour la configuration et la découverte de l'application.
+Une [`documentation utilisateur`](./documentation/documentation-fonctionnelle/entrypoint.md) est à votre disposition pour la configuration et la découverte de l'application.
 
 Une [`documentation technique de l'application`](./documentation/technical-application-informations.md) concernant l'application est également présente.
 
