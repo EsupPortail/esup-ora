@@ -5,10 +5,9 @@
         <v-icon left>mdi-school-outline</v-icon>
         {{ parametre.semantique_ec || 'Éléments constitutifs' }}
       </h3>
-            <div style="display: inline-block; margin-left: 12px">
+      <div style="display: inline-block; margin-left: 12px">
         <AideBulles pageAsked="elements-constitutifs" />
       </div>
-
     </v-col>
     <v-col cols="2">
       <ButtonExport pageAsked="EC" />
@@ -37,7 +36,7 @@
           </v-card-title>
           <v-expand-transition>
             <div v-show="dureeExpanded">
-              <v-card-text style=" padding: 15px 8px 8px 15px !important;">
+              <v-card-text style="padding: 15px 8px 8px 15px !important">
                 <v-row style="padding-bottom: 12px">
                   <v-col
                     v-for="periode in periodes"
@@ -64,7 +63,7 @@
         </v-card>
       </v-col>
       <v-col cols="3">
-        <v-card outlined style="border: 1px solid #707070; border-radius: 15px; padding: 0px;">
+        <v-card outlined style="border: 1px solid #707070; border-radius: 15px; padding: 0px">
           <v-card-title style="text-align: center">
             <span>
               <v-icon left>mdi-bullseye</v-icon>
@@ -77,7 +76,7 @@
           </v-card-title>
           <v-expand-transition>
             <div v-show="competencesExpanded">
-              <v-card-text style=" padding: 15px 8px 8px 15px !important;">
+              <v-card-text style="padding: 15px 8px 8px 15px !important">
                 <v-row style="padding-bottom: 12px">
                   <v-col
                     v-for="competence in competencesListOfSelectedVersion"
@@ -93,7 +92,7 @@
                       hide-details
                       density="comfortable"
                       style="max-width: 320px !important"
-                      />
+                    />
                   </v-col>
                 </v-row>
               </v-card-text>
@@ -115,7 +114,7 @@
           </v-card-title>
           <v-expand-transition>
             <div v-show="niveauxExpanded">
-              <v-card-text style="display: 0px;  padding: 15px 8px 8px 15px !important;">
+              <v-card-text style="display: 0px; padding: 15px 8px 8px 15px !important">
                 <v-row style="padding-bottom: 12px">
                   <v-col
                     v-for="niveau in [...niveauxRef].sort((a, b) => a.id - b.id)"
@@ -163,6 +162,7 @@
           <ECAddEnseignement
             :parcours="parcoursSelected"
             :version="versionSelected"
+            :title="periodeObj.libelle"
             :periode="periodeObj"
             @refresh-enseignements="refreshEnseignements"
           />
@@ -223,7 +223,7 @@ const dureeExpanded = ref(true)
 const periodesSelected = ref([])
 
 const refreshTreeView = async () => {
-  await refreshEnseignements();
+  await refreshEnseignements()
 }
 
 const competencesExpanded = ref(true)
@@ -279,7 +279,7 @@ const getDureeEnUnit = async () => {
     idSelect++
   }
   periodeSelected.value = periodesInSelectList.value[0]?.id ?? null
-  selectPeriodes()
+  selectPeriodes(periodeSelected.value?.periodesObjects?.map((p) => p.id) ?? [])
 }
 
 const fetchCompetence = async () => {
@@ -312,7 +312,7 @@ const init = async () => {
   await selectNiveaux(niveauxSelected.value)
   await nextTick()
   parametre.value = formationStore.formationSelected.composante.parametre
-  validerSelection();
+  validerSelection()
 }
 init()
 
@@ -379,14 +379,8 @@ const validerSelection = () => {
 
 watch(
   () => chunkedPeriodesSelected.value,
-  (newVal) => {
-  }
+  (newVal) => {}
 )
-
-// watch(() => competenceStore.competences, (newCompetences) => {
-//     console.log('watch competences from apprentissages', newCompetences);
-//     competencesListOfSelectedVersion.value = newCompetences;
-// });
 </script>
 
 <style scoped>

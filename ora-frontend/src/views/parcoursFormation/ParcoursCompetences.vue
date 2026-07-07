@@ -78,9 +78,9 @@
   <v-row style="padding-left: 40px; padding-right: 40px">
     <v-col cols="12">
       <v-card
-        v-for="(comp, index) in competencesList.sort((a, b) => a.id - b.id)"
+        v-for="comp in sortedCompetences"
         class="elevation-5"
-        :key="index"
+        :key="comp.id"
         :style="{
           marginTop: '20px',
           borderLeft: `23px solid ${comp.color_hexadecimal}`,
@@ -90,6 +90,66 @@
         }"
       >
         <v-card-text>
+          <v-row density="comfortable">
+            <v-col cols="12" class="d-flex align-center ga-3 pe-4">
+              <v-tooltip text="Dupliquer" location="top">
+                <template #activator="{ props }">
+                  <v-icon v-bind="props" size="small" @click="duplicateCompetence(comp)">
+                    mdi-content-duplicate
+                  </v-icon>
+                </template>
+              </v-tooltip>
+
+              <v-menu
+                :model-value="isColourPickerOpenForComp === comp.id"
+                @update:model-value="(val) => !val && (isColourPickerOpenForComp = null)"
+                :close-on-content-click="false"
+                location="bottom end"
+              >
+                <template #activator="{ props }">
+                  <v-tooltip text="Éditer couleur" location="top">
+                    <template #activator="{ tooltipProps }">
+                      <v-icon
+                        v-bind="{ ...props, ...tooltipProps }"
+                        size="small"
+                        :color="comp.color_hexadecimal"
+                        @click="changeColor(comp)"
+                      >
+                        mdi-palette
+                      </v-icon>
+                    </template>
+                  </v-tooltip>
+                </template>
+
+                <v-card min-width="320" class="pa-3">
+                  <v-color-picker
+                    v-model="newColorPicker"
+                    :swatches="swatches"
+                    show-swatches
+                    mode="hex"
+                    elevation="0"
+                  ></v-color-picker>
+                  <v-card-actions class="pa-0 pt-2">
+                    <v-spacer></v-spacer>
+                    <v-btn variant="text" size="small" @click="isColourPickerOpenForComp = null">
+                      Annuler
+                    </v-btn>
+                    <v-btn color="success" variant="flat" size="small" @click="applyColor(comp)">
+                      Appliquer
+                    </v-btn>
+                  </v-card-actions>
+                </v-card>
+              </v-menu>
+
+              <v-tooltip text="Supprimer" location="top">
+                <template #activator="{ props }">
+                  <v-icon v-bind="props" color="error" size="small" @click="deleteCompetence(comp)">
+                    mdi-trash-can
+                  </v-icon>
+                </template>
+              </v-tooltip>
+            </v-col>
+          </v-row>
           <v-row>
             <v-col cols="6">
               <v-row>
@@ -126,7 +186,13 @@
                                 )"
                                 :key="bcc.code"
                               >
-                                <v-list-item v-if="estRncpCheck(comp, bcc)" class="pa-0 py-2">
+                                <v-list-item
+                                  v-if="estRncpCheck(comp, bcc)"
+                                  style="
+                                    padding-top: 0px !important;
+                                    padding-bottom: 0px !important;
+                                  "
+                                >
                                   <template v-slot:title>
                                     <div class="text-wrap" style="line-height: 1.4">
                                       <span class="font-weight-bold">{{ bcc.code }}</span> -
@@ -136,7 +202,6 @@
 
                                   <template v-slot:prepend>
                                     <v-checkbox-btn
-                                      disabled="true"
                                       :model-value="estRncpCheck(comp, bcc)"
                                       @change="addBccRncp(comp, bcc, currentFicheData.numeroFiche)"
                                       class="pe-2"
@@ -157,7 +222,10 @@
                                     (a, b) => a.code.localeCompare(b.code)
                                   )"
                                   :key="bcc.code"
-                                  class="pa-0 py-2"
+                                  style="
+                                    padding-top: 0px !important;
+                                    padding-bottom: 0px !important;
+                                  "
                                 >
                                   <template v-slot:title>
                                     <div class="text-wrap" style="line-height: 1.4">
@@ -230,17 +298,6 @@
                       >
                     </v-col>
                   </v-row>
-                </v-col>
-                <v-col cols="1" class="d-flex justify-end">
-                  <v-icon size="small" @click="duplicateCompetence(comp)"
-                    >mdi-content-duplicate</v-icon
-                  >
-                  <v-icon @click="deleteCompetence(comp)" color="error" size="small"
-                    >mdi-trash-can</v-icon
-                  >
-                  <v-icon @click="() => (paletteColorOfSelectedComp = comp.id)" size="small"
-                    >mdi-palette</v-icon
-                  >
                 </v-col>
               </v-row>
             </v-col>
@@ -366,10 +423,10 @@ const swatches = [
 ]
 
 const paletteColorOfSelectedComp = ref(null)
-
+const sortedCompetences = computed(() => [...competencesList.value].sort((a, b) => a.id - b.id))
 const vModelSituationPro = ref({})
 const competencesList = ref([])
-const versionId = router.currentRoute.value.params.idVersion
+const versionId = ref(null)
 const version = ref(null)
 const toggleHelp = ref(null)
 const showInputCritEx = ref(0)
@@ -384,6 +441,9 @@ const Ncomp = ref({
   critere_exigences: [],
   famille_de_situations: []
 })
+const isColourPickerOpenForComp = ref(false)
+const newColorPicker = ref('')
+
 const rncpPanelIdOpen = ref([])
 const togglePanel = (id) => {
   const isAlreadyOpen = rncpPanelIdOpen.value.includes(id)
@@ -401,15 +461,21 @@ const formationStore = useFormationStore()
 const parametreStore = useParametreStore()
 const connectionStore = useConnectionStore()
 
+const changeColor = (comp) => {
+  isColourPickerOpenForComp.value = comp.id
+  newColorPicker.value = comp.color_hexadecimal
+}
+
 const init = async () => {
-  await competenceStore.fetchCompetences()
-  competencesList.value = competenceStore.getCompetenceByVersion(versionId)
-  version.value = await formationStore.fetchVersionById(versionId)
+  await competenceStore.fetchCompetenceForSelectedVersion()
+  versionId.value = parcoursStore.versionSelected.id;
+  competencesList.value = competenceStore.competences
+  console.log('competencesList.value', competencesList.value)
+  version.value = parcoursStore.versionSelected;
   const formation = await formationStore.fetchOneFormationFromId(version.value.formation_id)
   parametre.value = formation.composante.parametre
-
-  let ficheRNCP = null
   console.log(competencesList.value)
+  let ficheRNCP = null
   competencesList.value.forEach((comp) => {
     if (comp.rncp_bccs && comp.rncp_bccs.length > 0) {
       comp.rncp_bccs.forEach((bcc) => {
@@ -418,7 +484,6 @@ const init = async () => {
       })
     }
   })
-  console.log('Fiche RNCP liée trouvée :', ficheRNCP)
   if (ficheRNCP) {
     const response = await fetch(`${config.backend.url}/rncp/search?numeroFiche=${ficheRNCP}`, {
       method: 'GET',
@@ -431,7 +496,6 @@ const init = async () => {
     })
     const ficheData = await response.json()
     currentFicheData.value = ficheData[0]
-    importRNCPBlocs(ficheData[0])
     isMenuOpen.value = false
   }
 }
@@ -461,11 +525,25 @@ const takeColor = () => {
   return availableColor
 }
 
-const duplicateCompetence = (comp) => {
-  comp.version_id = parseInt(versionId, 10)
-  comp.color_hexadecimal = takeColor()
-  competenceStore.duplicateCompetence(comp, formationStore.formationSelected.noms_des_niveaux)
+const duplicateCompetence = async (comp) => {
+  const source = {
+    ...comp,
+    version_id: parseInt(versionId.value, 10),
+    color_hexadecimal: takeColor()
+  }
+  await competenceStore.duplicateCompetence(
+    source,
+    formationStore.formationSelected.noms_des_niveaux
+  )
+  await competenceStore.fetchCompetences()
 }
+
+const applyColor = (comp) => {
+  comp.color_hexadecimal = newColorPicker.value
+  competenceStore.updateCompetence(comp)
+  isColourPickerOpenForComp.value = null
+}
+
 const preAddCompetence = () => {
   let comp = {
     libelle: '',
@@ -473,7 +551,7 @@ const preAddCompetence = () => {
     critere_exigences: [],
     famille_de_situations: []
   }
-  comp.version_id = versionId
+  comp.version_id = versionId.value
   competenceStore.createCompetence(comp, formationStore.formationSelected.noms_des_niveaux)
   competenceStore.fetchCompetences()
 }
@@ -546,7 +624,7 @@ const libChange = (comp) => {
     if (comp.id) {
       competenceStore.updateCompetence(comp)
     } else {
-      comp.version_id = versionId
+      comp.version_id = versionId.value
       competenceStore
         .createCompetence(comp, formationStore.formationSelected.noms_des_niveaux)
         .then((nComp) => {
@@ -562,7 +640,7 @@ const libChangeCompContext = (comp) => {
     if (comp.id) {
       competenceStore.updateCompetence(comp)
     } else {
-      comp.version_id = versionId
+      comp.version_id = versionId.value
       competenceStore.createCompetence(comp, formationStore.formationSelected.noms_des_niveaux)
     }
   }
@@ -596,21 +674,6 @@ const searchInputText = ref('')
 
 let searchTimer = null
 
-const importRNCPBlocs = (fiche) => {
-  if (!fiche?.blocsCompetences) return
-
-  fiche.blocsCompetences.forEach((bloc) => {
-    competencesList.value.push({
-      id_rncp_source: fiche.numeroFiche,
-      libelle: `[${fiche.numeroFiche}] ${bloc.libelle}`,
-      color_hexadecimal: typeof takeColor === 'function' ? takeColor() : '#000000',
-      competence_contextualisee: '',
-      critere_exigences: [],
-      famille_de_situations: []
-    })
-  })
-}
-
 const confirmCancelImport = async () => {
   if (currentFicheData.value) {
     const codeToRemove = currentFicheData.value.numeroFiche
@@ -632,8 +695,6 @@ const confirmCancelImport = async () => {
 const onSelectFiche = (fiche) => {
   if (fiche && typeof fiche === 'object') {
     currentFicheData.value = fiche
-    console.log('Fiche sélectionnée :', fiche) // Debug
-    // importRNCPBlocs(fiche)
     isMenuOpen.value = false
   }
 }
@@ -684,8 +745,7 @@ const nextStep = () => {
 watch(
   () => competenceStore.competences,
   (newCompetences) => {
-    delete competencesList.value
-    competencesList.value = competenceStore.getCompetenceByVersion(versionId)
+    competencesList.value = competenceStore.getCompetenceByVersion(versionId.value)
   }
 )
 </script>

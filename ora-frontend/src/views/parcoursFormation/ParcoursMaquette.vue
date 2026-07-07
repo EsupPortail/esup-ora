@@ -117,7 +117,6 @@ const ajouterEnseignementPeriode = async (periodeId, enseignementId) => {
   try {
     await ecStore.createECEnseignementInPeriodeByLink(periodeId, enseignementId)
   } catch (error) {
-    console.error('Error adding teaching to period:', error)
   }
 }
 
@@ -152,19 +151,16 @@ let refId = 0
 const enseignementsImportation = async () => {
   // si un import est déjà en cours, on sort
   if (lockImportation.value) {
-    console.log('Importation déjà en cours...')
     return
   }
 
   // on marque le début de notre exécution
   lockImportation.value = true
   const myId = ++refId
-  console.log(`🟢 [${myId}] Début importation`)
 
   try {
     await nextTick()
 
-    console.log('Importation des enseignements dans la maquette...')
 
     // récupère la liste d’enseignements attendus
     const expectedEnseignementsId = enseignementStore.enseignements
@@ -195,15 +191,11 @@ const enseignementsImportation = async () => {
     for (const missingCurrentEnsId of diff) {
       // 💡 sécurité : si un autre import a repris le lock, on annule celui-ci
       if (myId !== refId) {
-        console.log(`⛔ [${myId}] Annulé (nouvel import détecté)`)
         return
       }
 
       const linkedEns = enseignementStore.enseignements.find((e) => e.id === missingCurrentEnsId)
       if (linkedEns) {
-        console.log(
-          `➕ [${myId}] Ajout de l’enseignement ${missingCurrentEnsId} dans la période ${linkedEns.periode_id}`
-        )
         await ajouterEnseignementPeriode(linkedEns.periode_id, missingCurrentEnsId)
       }
     }
@@ -211,18 +203,14 @@ const enseignementsImportation = async () => {
     // rafraîchit la vue
 
     await refreshTreeView()
-    console.log(`✅ [${myId}] Importation terminée`)
+    console.warn(`✅ [${myId}] Importation terminée`)
   } catch (err) {
     console.error(`❌ [${myId}] Erreur lors de l’importation`, err)
   } finally {
     // libère le lock seulement si c’est toujours le même import
     if (myId === refId) {
       lockImportation.value = false
-      console.log(`🔓 [${myId}] Lock libéré`)
-    } else {
-      console.log(`⚠️ [${myId}] Lock déjà repris par un nouvel import`)
-    }
-  }
+    }   }
 }
 
 const initData = async () => {

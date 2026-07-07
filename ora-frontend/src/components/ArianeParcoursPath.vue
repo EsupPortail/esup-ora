@@ -1,8 +1,9 @@
 <template>
+  <v-app-bar class=".r-view" elevation="6" style="height: 50px !important;">
   <v-sheet
     width="100%"
     class="d-flex justify-center align-center"
-    style="height: 50px;"
+    style="height: 50px !important;"
   >
       <v-breadcrumbs
       style="padding: 0px;"
@@ -14,6 +15,7 @@
         </template>
       </v-breadcrumbs>
   </v-sheet>
+  </v-app-bar>
 </template>
 
 <script setup>
@@ -35,3 +37,9 @@ const arianeRoutes = routes.filter((r) => {
 //   {title: "Données globales", href: paths.globalData, disabled: false, order: 6 }
 // ])
 </script>
+
+<style scoped>
+.r-view {
+  min-height: calc(100vh - 50px);
+}
+</style>

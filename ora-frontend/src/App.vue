@@ -18,7 +18,7 @@
         class="r-view align-center justify-center"
       >
         <router-view />
-<PopUpInformation />
+        <PopUpInformation />
       </v-container>
     </v-main>
   </v-layout>
@@ -52,9 +52,9 @@ const { width } = useElementSize(content)
 
 onMounted(async () => {
   if (route.path === '/authentication-return') return
-  
+
   await nextTick()
-  
+
   const token = Cookies.get('access_token')
   const userExists = !!connectionStore.user?.givenname
 
@@ -64,61 +64,67 @@ onMounted(async () => {
   }
 })
 
-axios.interceptors.request.use(async (config) => {
-  const excludedUrls = ['/auth/logout', '/auth/local'];
-  if (excludedUrls.some(url => config.url.includes(url))) {
-    return config;
-  }
-
-  const accessToken = Cookies.get('access_token')
-  if (accessToken) {
-    config.headers.Authorization = `Bearer ${accessToken}`
-    if (connectionStore.selectedRole) {
-      config.headers['X-Active-Role'] = connectionStore.selectedRole.name
+axios.interceptors.request.use(
+  async (config) => {
+    const excludedUrls = ['/auth/logout', '/auth/local']
+    if (excludedUrls.some((url) => config.url.includes(url))) {
+      return config
     }
-  }
 
-  const isMutation = ['post', 'put', 'delete'].includes(config.method?.toLowerCase())
-  if (isMutation && formationStore.formationSelected) {
-    config.data = {
-      ...config.data,
-      metadata: { formationId: formationStore.formationSelected }
+    const accessToken = Cookies.get('access_token')
+    if (accessToken) {
+      config.headers.Authorization = `Bearer ${accessToken}`
+      if (connectionStore.selectedRole) {
+        config.headers['X-Active-Role'] = connectionStore.selectedRole.name
+      }
     }
-  }
 
-  if (!socketStore.isConnected && localStorage.getItem('roomId') && connectionStore.user?.givenname) {
-    socketStore.connect(
-      localStorage.getItem('roomId'),
-      connectionStore.user.givenname,
-      connectionStore.user.sn
-    )
-  }
+    const isMutation = ['post', 'put', 'delete'].includes(config.method?.toLowerCase())
+    if (isMutation && formationStore.formationSelected) {
+      config.data = {
+        ...config.data,
+        metadata: { formationId: formationStore.formationSelected }
+      }
+    }
 
-  return config
-}, (error) => Promise.reject(error))
+    if (
+      !socketStore.isConnected &&
+      localStorage.getItem('roomId') &&
+      connectionStore.user?.givenname
+    ) {
+      socketStore.connect(
+        localStorage.getItem('roomId'),
+        connectionStore.user.givenname,
+        connectionStore.user.sn
+      )
+    }
+
+    return config
+  },
+  (error) => Promise.reject(error)
+)
 
 axios.interceptors.response.use(
   (res) => res,
   (error) => {
-    const status = error.response ? error.response.status : null;
+    const status = error.response ? error.response.status : null
 
     if (status === 403) {
-      console.log("Intercepteur : Traitement de la 403");
       const popUpStore = usePopUpStore()
 
       popUpStore.print({
         message: "Action refusée : Vous n'avez pas les droits nécessaires.",
-        type: 'ERROR' 
-      });
+        type: 'ERROR'
+      })
     }
 
-    if (status === 419 || (error.response?.data?.message?.includes('token expired'))) {
-      connectionStore.logout();
+    if (status === 419 || error.response?.data?.message?.includes('token expired')) {
+      connectionStore.logout()
     }
 
-    return Promise.reject(error);
+    return Promise.reject(error)
   }
-);
+)
 const toggleDrawer = () => {
   drawer.value = !drawer.value
 }

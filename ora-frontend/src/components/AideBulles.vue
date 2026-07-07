@@ -55,7 +55,6 @@ const toggleInformationCard = ref(false)
 const changeStateInformationCard = (newState) => {
   toggleInformationCard.value = newState
 }
-console.log(props.pageAsked)
 
 const initData = async () => {
   await infoBulleStore.fetchApplicationInformationsBulles()

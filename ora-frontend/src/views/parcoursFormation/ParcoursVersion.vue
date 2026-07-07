@@ -78,17 +78,6 @@ const addVersion = () => {
     newVersion.value = ''
   }
 }
-
-const createFormation = () => {
-  // Logique pour créer une formation
-  console.log(
-    'Formation créée:',
-    formationName.value,
-    formationType.value,
-    formationDescription.value,
-    parcoursList.value
-  )
-}
 </script>
 
 <style scoped>

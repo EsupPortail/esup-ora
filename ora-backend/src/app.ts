@@ -6,11 +6,12 @@ import { logger } from './configs/logger';
 
 import Routes from './routes/index'; 
 import { interceptorHTTP } from './middlewares/interceptor.middleware';
-import { interceptorNotification } from './middlewares/notify.middleware';
+import { interceptorNotification } from './middlewares/notify.middleware'; 
 import { guardian } from './middlewares/guardian.middleware';
 import { isAuthorized } from './middlewares/access-grants.middleware';
+import { loggerMiddleware } from './middlewares/logger.middleware';
 
-import pg from 'pg';
+import pg from 'pg'; 
 import session from 'express-session';
 import connectPgSimple from 'connect-pg-simple';
 
@@ -18,7 +19,7 @@ import { createProxyMiddleware } from 'http-proxy-middleware';
 
 
 class Server {
-
+ 
     constructor(app: Application) {
         this.config(app);
         new Routes(app);
@@ -69,6 +70,9 @@ class Server {
         logger.info('Interceptor middleware initialized');
         app.use(interceptorNotification);
         logger.info('Notification middleware initialized');
+
+        app.use(loggerMiddleware);
+        logger.info('Logger middleware initialized');
 
         app.use((req, res, next) => {
             if (req.url.startsWith('/api')) {

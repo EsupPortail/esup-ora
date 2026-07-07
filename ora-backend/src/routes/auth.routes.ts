@@ -4,7 +4,7 @@ import { authentificationController } from "../controllers/authentification.cont
 class AuthRoutes {
   router = Router();
 
-  constructor() {
+  constructor() { 
     this.intializeRoutes();
   }
 
@@ -13,6 +13,7 @@ class AuthRoutes {
     this.router.post("/local", authentificationController.authLocalAccount);
     this.router.get("/logout", authentificationController.logout);
     this.router.get("/me", authentificationController.getMyInfo);
+    this.router.post("/client-connector", authentificationController.authClientCredentials);
   } 
 } 
   

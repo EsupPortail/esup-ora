@@ -11,10 +11,8 @@
     />
 
     <v-data-table
-      :items="dataTable"
+      :items="filteredComposantes"
       :headers="headers"
-      :search="search"
-      :custom-filter="filterUsers"
       item-value="id"
       item-key="id"
       class="elevation-1"
@@ -46,10 +44,10 @@
       <template #expanded-row="{ item }">
         <v-card elevation="10" style="margin-top: 24px; padding: 16px; margin-left: 24px">
           <div class="d-flex justify-space-between align-center mb-3">
-            <h3 class="text-h6">Rattachement d'utilisateurs à la composante '{{ item.name }}''</h3>
+            <h3 class="text-h6">Rattachement d'utilisateurs à la composante '{{ item.name }}'</h3>
           </div>
           <v-text-field
-            v-model="search"
+            v-model="searchUser"
             label="Rechercher un utilisateur pour le rattachement"
             prepend-icon="mdi-magnify"
             class="mb-4"
@@ -59,7 +57,7 @@
           />
 
           <v-data-table
-            :items="userAccessStore.users"
+            :items="filteredUsers"
             :headers="userHeaders"
             density="compact"
             hide-default-footer
@@ -79,7 +77,6 @@
     </v-data-table>
   </div>
 </template>
-
 
 <script setup>
 import { ref, computed } from 'vue'
@@ -109,10 +106,9 @@ const expanded = ref([])
 const search = ref('')
 const searchUser = ref('')
 const dataTable = ref([])
-
 const isUserAttached = ref({})
-const panels = ref([])
 
+// Filtre le tableau principal sur nom de composante OU nom/prénom/email des utilisateurs rattachés
 const filteredComposantes = computed(() => {
   if (!search.value) return dataTable.value
   const s = search.value.toLowerCase()
@@ -129,36 +125,18 @@ const filteredComposantes = computed(() => {
   })
 })
 
-const filterUsers = (_value, searchText, item) => {
-  if (!searchText) return true
-  const s = searchText.toLowerCase()
+// Filtre la liste des utilisateurs dans le panneau d'expansion
+const filteredUsers = computed(() => {
+  if (!searchUser.value) return userAccessStore.users
+  const s = searchUser.value.toLowerCase()
 
-  if (
-    String(item.name || '')
-      .toLowerCase()
-      .includes(s)
+  return (userAccessStore.users || []).filter(
+    (u) =>
+      String(u.firstName || '').toLowerCase().includes(s) ||
+      String(u.lastName || '').toLowerCase().includes(s) ||
+      String(u.email || '').toLowerCase().includes(s)
   )
-    return true
-
-  if (Array.isArray(item.users)) {
-    for (const u of item.users) {
-      if (
-        String(u.firstName || '')
-          .toLowerCase()
-          .includes(s) ||
-        String(u.lastName || '')
-          .toLowerCase()
-          .includes(s) ||
-        String(u.email || '')
-          .toLowerCase()
-          .includes(s)
-      ) {
-        return true
-      }
-    }
-  }
-  return false
-}
+})
 
 const toggleExpand = (item) => {
   const i = expanded.value.indexOf(item.id)
@@ -167,22 +145,19 @@ const toggleExpand = (item) => {
 }
 
 const isAttached = (composanteId, userId) => {
-  const composante = composanteStore.composantes.find(c => c.id === composanteId)
+  const composante = composanteStore.composantes.find((c) => c.id === composanteId)
 
   if (!composante || !Array.isArray(composante.utilisateurs_rattaches)) {
     return false
   }
 
-
   return composante.utilisateurs_rattaches.includes(String(userId))
 }
 
 const onToggleAttach = (composanteId, userId, val) => {
-  // Récupère la composante
-  const composante = composanteStore.composantes.find(c => c.id === composanteId)
+  const composante = composanteStore.composantes.find((c) => c.id === composanteId)
   if (!composante) return
 
-  // S'assurer que le tableau existe
   if (!Array.isArray(composante.utilisateurs_rattaches)) {
     composante.utilisateurs_rattaches = []
   }
@@ -190,35 +165,23 @@ const onToggleAttach = (composanteId, userId, val) => {
   const idAsString = String(userId)
 
   if (val) {
-    // Ajouter si pas déjà dedans
     if (!composante.utilisateurs_rattaches.includes(idAsString)) {
       composante.utilisateurs_rattaches.push(idAsString)
     }
   } else {
-    // Retirer
     composante.utilisateurs_rattaches = composante.utilisateurs_rattaches.filter(
-      id => id !== idAsString
+      (id) => id !== idAsString
     )
   }
+
   saveAllAttachments(composanteId)
 }
 
 const saveAllAttachments = async (composanteId) => {
-  const composante = composanteStore.composantes.find(c => c.id === composanteId)
+  const composante = composanteStore.composantes.find((c) => c.id === composanteId)
   if (!composante) return
 
-  await composanteStore.updateUserAttachment(composante);
-}
-
-
-const refreshAttachmentState = (composanteId) => {
-  const comp = dataTable.value.find((c) => c.id === composanteId)
-  if (!comp) return
-  if (!isUserAttached.value[composanteId]) isUserAttached.value[composanteId] = {}
-
-  userAccessStore.users.forEach((user) => {
-    isUserAttached.value[composanteId][user.id] = !!comp.users.some((u) => u.id === user.id)
-  })
+  await composanteStore.updateUserAttachment(composante)
 }
 
 const initData = async () => {
@@ -230,48 +193,33 @@ const initData = async () => {
     console.error('Erreur fetch stores', e)
   }
 
-  console.log('STORE composantes:', composanteStore.composantes)
-  console.log('STORE users:', userAccessStore.users)
-
   const role = connectionStore.selectedRole?.name || null
   const me = userAccessStore.users.find((u) => u.username === connectionStore.user.eppn)
   const myComposanteIds = composanteStore.composantes
     .filter((c) => c.utilisateurs_rattaches?.includes(me.id))
     .map((c) => c.id)
 
-
   dataTable.value = (composanteStore.composantes || [])
-.filter((f) => {
+    .filter((f) => {
       if (
-          role === 'administrateur_technique' ||
-          role === 'administrateur_fonctionnel' ||
-          role === 'observateur'
-        )
-          return true
-        if (me.id === f.owner_user_id) return true
+        role === 'administrateur_technique' ||
+        role === 'administrateur_fonctionnel' ||
+        role === 'observateur'
+      )
+        return true
 
-        if (
-          role === 'agent_scolarite' &&
-          myComposanteIds.length > 0 &&
-          myComposanteIds.includes(f.composante_id)
-        )
-          return true
-        
-        if (
-          role === 'ingenieur_pedagogique' &&
-          myComposanteIds.length > 0 &&
-          myComposanteIds.includes(f.composante_id)
-        )
-          return true
-        
-          if (
-          role === 'directeur_composante' &&
-          myComposanteIds.length > 0 &&
-          myComposanteIds.includes(f.composante_id)
-        )
-          return true
+      if (me.id === f.owner_user_id) return true
 
-        return f.utilisateurs_rattaches?.includes(me.id)
+      if (
+        (role === 'agent_scolarite' ||
+          role === 'ingenieur_pedagogique' ||
+          role === 'directeur_composante') &&
+        myComposanteIds.length > 0 &&
+        myComposanteIds.includes(f.composante_id)
+      )
+        return true
+
+      return f.utilisateurs_rattaches?.includes(me.id)
     })
     .filter((c) => c.is_historized === false)
     .map((c) => {
@@ -294,15 +242,13 @@ const initData = async () => {
       }
     })
 
-  // init isUserAttached
+  // Init isUserAttached
   dataTable.value.forEach((c) => {
     isUserAttached.value[c.id] = {}
     ;(userAccessStore.users || []).forEach((user) => {
       isUserAttached.value[c.id][user.id] = !!c.users.some((u) => u.id === user.id)
     })
   })
-
-  console.log('dataTable initialisé:', dataTable.value)
 }
 
 initData()

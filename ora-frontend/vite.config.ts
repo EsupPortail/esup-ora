@@ -3,12 +3,14 @@ import { defineConfig, type UserConfig } from 'vite'
 import fs from "fs"
 import vue from '@vitejs/plugin-vue'
 import vueJsx from '@vitejs/plugin-vue-jsx'
+import vueDevTools from 'vite-plugin-vue-devtools'
 
 export default defineConfig(async ({ command }): Promise<UserConfig> => {
   
   const plugins: any[] = [
     vue(),
     vueJsx(),
+    vueDevTools(),
   ];
   let appVersion = "0.0.0";
   try {

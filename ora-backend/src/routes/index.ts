@@ -4,6 +4,7 @@ import authRoutes from "./auth.routes";
 import rncpRoutes from "./rncp.routes";
 // import exportRoutes from "./export.routes";
 import adminRoutes from "./admin.routes";
+import mailRoutes from "./mail.routes";
 import websocketRoutes from "./websocket.routes";
 import { logger } from "../configs/logger";
 import { time } from "console";
@@ -34,6 +35,8 @@ export default class Routes {
 
         // Administration routes
         app.use("/api/admin", adminRoutes);
+
+        app.use("/api/mail", mailRoutes);
 
         // 404
         app.use(this.NotFoundRoute)

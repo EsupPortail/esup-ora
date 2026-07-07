@@ -9,6 +9,8 @@
           <v-text-field
             v-model="data.libelle"
             variant="outlined"
+                      :disabled="isImportedMutualisation"
+
             label="Libellé"
             density="compact"
             hide-details
@@ -37,8 +39,9 @@
       <v-col cols="1" offset="3">
         <v-btn
           icon="true"
+          
           :color="data.est_mutualisable ? 'success' : 'transparent'"
-          :disabled="data.est_mutualisable"
+          :disabled="data.est_mutualisable || isImportedMutualisation"
           @click="shareElement"
           size="small"
         >
@@ -57,7 +60,8 @@
           v-model="data.parcours"
           :items="parcoursList"
           item-title="libelle"
-          @blur="updateData"
+                    :disabled="isImportedMutualisation"
+@blur="updateData"
           multiple
           @keyup.enter="updateData"
           item-value="id"
@@ -84,6 +88,7 @@
           type="number"
           variant="outlined"
           density="compact"
+          :disabled="isImportedMutualisation"
           @blur="updateData"
           @keyup.enter="updateData"
           v-model.number="data.volume_horaire_etudiant"
@@ -97,6 +102,7 @@
           label="ECTS"
           type="number"
           v-model="data.credits_ects"
+          :disabled="isImportedMutualisation"
           @blur="updateData"
           @keyup.enter="updateData"
           variant="outlined"
@@ -109,6 +115,7 @@
         <v-textarea
           label="Description"
           variant="outlined"
+          :disabled="isImportedMutualisation"
           @blur="updateData"
           @keyup.enter="updateData"
           density="compact"
@@ -141,6 +148,8 @@ const emit = defineEmits(['refreshTreeView'])
 const parcoursList = ref(formationStore.formationSelected.parcours)
 const libelleEdition = ref(false)
 const data = ref({ ...props.data })
+const isImportedMutualisation = ref(false)
+
 
 const shareElement = () => {
   data.value.est_mutualisable = true
@@ -165,6 +174,8 @@ const updateLibelle = async () => {
 
 const initData = async () => {
   const idAsNumber = parseInt(data.value.id, 10)
+    isImportedMutualisation.value = props.data.is_imported
+
   data.value = ecStore.ecs.find((ec) => ec.id === idAsNumber)
 }
 initData()

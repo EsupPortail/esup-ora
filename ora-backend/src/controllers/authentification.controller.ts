@@ -1,15 +1,94 @@
 import { Request, Response } from 'express';
 import { KeycloakService } from '../services/keycloak.service';
 import { logger } from '../configs/logger';
-
+import { prisma } from '../services/prisma.service';
 export class authentificationController {
+    static async authClientCredentials(req: Request, res: Response): Promise<Response> {
+    try {
+        const { client_id, client_secret } = req.body;
+
+        if (!client_id || !client_secret) {
+            return res.status(400).json({
+                code: 400,
+                response: 'client_id and client_secret must be provided.',
+                data: {}
+            });
+        }
+
+        const tokenResponse = await KeycloakService.getTokenByClientCredentials(client_id, client_secret)
+            .catch(() => null);
+
+        if (!tokenResponse || tokenResponse.code !== 200) {
+            await prisma.log.create({
+                data: {
+                    userEmail: client_id,
+                    action: 'CONNEXION_CLIENT_CREDENTIALS_ECHEC',
+                    method: 'POST',
+                    endpoint: req.originalUrl,
+                    statusCode: 401,
+                    ipAddress: req.ip || req.headers['x-forwarded-for']?.toString(),
+                    userAgent: req.headers['user-agent'],
+                    payload: { loginType: 'client_credentials', client_id }
+                }
+            }).catch(err => console.error("Erreur Log Prisma (401):", err));
+
+            return res.status(401).json({
+                code: 401,
+                response: 'HTTP Request Error : Access not granted. Invalid client credentials.',
+                data: {}
+            });
+        }
+
+        await prisma.log.create({
+            data: {
+                userEmail: client_id,
+                action: 'CONNEXION_CLIENT_CREDENTIALS',
+                method: 'POST',
+                endpoint: req.originalUrl,
+                statusCode: 200,
+                ipAddress: req.ip || req.headers['x-forwarded-for']?.toString(),
+                userAgent: req.headers['user-agent'],
+                payload: { loginType: 'client_credentials', client_id }
+            }
+        }).catch(err => console.error("Erreur Log Prisma:", err));
+
+        return res.status(200).json({
+            code: 200,
+            data: {
+                access_token: tokenResponse.data.access_token,
+                expires_in: tokenResponse.data.expires_in,
+                token_type: tokenResponse.data.token_type,
+            }
+        });
+
+    } catch (error) {
+        return res.status(500).json({ code: 500, message: 'Internal server error' });
+    }
+}
+
 
     static async authLocalAccount(req: Request, res: Response): Promise<Response> {
         try {
             const result = await authentificationController.login(req, res, false).then((response) => {
                 return response;
             });
+            console.log(result) ;
             if (result.code !== 200) {
+                await prisma.log.create({
+                    data: {
+                        userEmail: req.body.username || 'unknown',
+                        action: 'CONNEXION_LOCALE_ECHEC',
+                        method: 'POST',
+                        endpoint: req.originalUrl,
+                        statusCode: 401,
+                        ipAddress: req.ip || req.headers['x-forwarded-for']?.toString(),
+                        userAgent: req.headers['user-agent'],
+                        payload: {
+                            loginType: 'local',
+                            reason: 'Invalid credentials or access not granted'
+                        }
+                    }
+                }).catch(err => console.error("Erreur Log Prisma (401):", err));
                 return res.status(401).json({
                     'code': 401,
                     'response': 'HTTP Request Error : Access not granted. Please, login again.',
@@ -51,6 +130,18 @@ export class authentificationController {
                         console.error('Erreur lors de la sauvegarde de la session :', err);
                     }
                 });
+                await prisma.log.create({
+                    data: {
+                        userEmail: req.session.user.email,
+                        action: 'CONNEXION_LOCALE',
+                        method: 'POST',
+                        endpoint: req.originalUrl,
+                        statusCode: 200,
+                        ipAddress: req.ip || req.headers['x-forwarded-for']?.toString(),
+                        userAgent: req.headers['user-agent'],
+                        payload: { loginType: 'local' }
+                    }
+                }).catch(err => console.error("Erreur Log Prisma:", err));
                 return res.status(200).json({ code: 200, redirectUrl: '/authentication-return' });
             }
             return res.status(500).json({ code: 500, message: 'Unexpected error: No data returned' });
@@ -107,8 +198,23 @@ export class authentificationController {
             email: req.headers['x-user-email'],
             role: result.data?.userInformations.roles
         };
+
+        await prisma.log.create({
+            data: {
+                userEmail: req.session.user.email,
+                action: 'CONNEXION_SHIBBOLETH',
+                method: 'GET',
+                endpoint: req.originalUrl,
+                statusCode: 302,
+                ipAddress: req.ip || req.headers['x-forwarded-for']?.toString(),
+                userAgent: req.headers['user-agent'],
+                payload: { eppn: req.headers['x-user-eppn'] }
+            }
+        }).catch(err => console.error("Erreur Log Prisma:", err));
+
         return res.status(302).redirect('/authentication-return');
     }
+
     static async getMyInfo(req: Request, res: Response): Promise<Response> {
         if (!req.session) {
             return res.status(400).json({
@@ -166,7 +272,7 @@ export class authentificationController {
             username = req.body.username || '';
             password = req.body.password || '';
             if (!username || !password) {
-                return { 
+                return {
                     isValid: false,
                     code: 400,
                     message: 'Username and password must be provided.'

@@ -1,4 +1,89 @@
-# Notes de patchs
+# Notes de patchs  
+
+## 1.19.3 (10/06/2026)
+- Page formation
+    - Possibilité de changer l'état d'une formation En cours <=> Finalisé
+    - Affichage de cet état dans la liste des formations + dans la partie indicateurs
+- Page Compétence 
+    - Ajout de la fonctionnalité de changement de la couleur d'une compétence => changement effectif sur tout le workflow
+- Export PDF suggéré
+    - Un premier jet de cet export a été réalisé (voir partie tableaux de bord d'une formation)
+        - => Un premier écran sur la liste des compétences avec les informations
+        - => La suite avec un descriptif pour chaque compétence - niveaux - acs
+- Correctifs :
+    - Problème de libellés sur la page - tableaux de bord
+    - Changer l'ordre des éléments dans un UE - partie maquette.
+    - Afficher les éléments mutualisés dans la partie maquette - vue BCC
+    - Problème général du render order de l'ensemble des éléments - partie maquette
+    - Correctif où un élément mutualisé se faisait dupliquer
+    - Correctif option à l'ue où la sauvegarde empêchait la saisie
+    - Correctif page compétences - duplication
+- Amélioration UI/UX :
+    - Ajout d'utilisateur => bouton de retour + style associé
+    - Élargissement de la section indicateurs
+    - Améliorations importantes du drag & drop dans la partie maquette. Débugging + refonte visuelle pour plus de fluidité.
+- Mise à jour importante de l'ensemble des packages, dépendances et noyaux
+    - du frontend
+    - du backend
+- Patchs correctifs associés à cette montée de version importante.
+
+
+
+## 1.18.7 (04/06/2026)
+- Page Maquette
+    - Ajout d'une configuration à l'ue : basé sur les éléments de l'enseignement
+    - UE peut être en option avec d'autres UEs
+- Mutualisation 
+    - Début d'un travail autour des notifications des éléments mutualisés
+        - Objet ajouté en bdd
+        - Boutons pour autoriser les notifications
+- Correctifs :
+    - Réduction de la taille des ACs
+    - Correction du bug refresh + libellé de la compétence dans ACs
+    - Sélection compétence dans AC
+    - Corrections sur les fonctions de recherche dans la partie rattachemetn user/composante - user/formation
+    - Correction d'un bug pour aller de Administration -> clients api
+- Améliorations UI :
+    - Élargissement des tableaux et conteneurs en backoffice
+    - Backoffice : corrections des cells manquantes
+    - Harmonisation sur l'ensemble des éléments de la configuration
+    - Harmonisation et redimensionnement de la partie template
+
+- Nettoyage global du code
+
+
+## 1.17.4 (20/05/2026) 
+
+- Page Formation 
+    - Modélisation en base de données l'objet de configuration du régime et des effectifs par période et par parcours
+    - Intégration à la création de la formation (pré-ajout)
+    - À la modification en update
+    - Store, réactivité
+- Journaux d'évènements
+    - Modélisation des logs en la base de données d'ora
+    - Ajout de fonctionnalités autour des journaux d'évènements
+        - Middleware côté backend pour logguer les requêtes HTTP autre que GET
+        - Ajout de logs push au moment de la connexion erreur/succès
+    - Vue associée côté ora front 
+        - filtrage par IP,Endpoint | utilisateur | code de retour | timerange
+        - vue en tableau
+    - Indicateurs sur les logs
+
+- Le fil d'ariane de la formation dans ORA est désormais en sticky headers (suit le défilement)
+
+- Interconnexion extérieur
+- Compte keycloak spéciaux en client-id/secret
+    => gérés depuis ORA UI (front) et les administrateurs techniques et fonctionnelles
+    => profil de route autorisés en lecture / écriture ou les deux
+    => basé sur des profils (pégase, ose soutenabilité, si composante, si personnes) où les infos routes seraient pré-remplis
+- ouvrir des routes à l'extérieur d'ORA
+- tester une route depuis ose
+- dialogue avec keycloak autour des clients
+- Création de routes ajout d'un client, lister les clients
+- une vue côté front pour avoir un aperçu des clients
+- ajout d'un objet en bdd côté backend ora => un client a des liens vers des endpoints d'ora. Objectif : lire/écrire sur des objets autorisés par l'administrateur technique
+- rédaction d'une documentation technique concernant cette partie autour des connecteurs
+- exemple de scripts connecteurs
 
 ## 1.16.12 (24/03/2026)
 - Fix bug rattachement composante
@@ -34,7 +119,7 @@
 - Fix de l'accès au backoffice depuis certains rôles 
 - Fix messages pas de compétences sur la page apprentissages critiques
 
-## 1.12.9 (12/02/2026)
+## 1.12.9 (12/02/2026)
 - Intégration des rôles : Observateur, Enseignant, Agent de Scolarité, Ingénieur Pédagogique, Administrateur Fonctionnel, Administrateur Technique
 - Création d'une vue pour promouvoir ou rétrograder des utilisateurs
 - Création d'une vue pour rattacher un utilisateur à une composante
@@ -152,7 +237,8 @@ Trie formation par libellé ascendant
 - Export Excel EC des enseignements pour toutes les périodes
 - Drag&Drop Maquette fonctionnel dans Semestre.
 
-## 1.3.2 (04/09/2025)
+
+## 1.3.2 (04/09/2025)
 - Montée de version du core NodeJS
 - Ajout des routes vers l'interface de configuration
 - Compétence : duplication, édition OK. Via websocket.

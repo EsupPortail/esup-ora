@@ -3,7 +3,7 @@
     <v-row>
       <v-col offset="8" cols="4" class="text-right">
           <v-icon start icon="mdi-account-shield"></v-icon>
-          Vous aggissez en tant que : <b>{{ connectionStore.selectedRole?.displayName || 'Aucun rôle' }}</b>
+          Vous agissez en tant que : <b>{{ connectionStore.selectedRole?.displayName || 'Aucun rôle' }}</b>
       </v-col>
     </v-row>
 
@@ -13,14 +13,14 @@
         <v-list density="compact">
           <v-list-item><b>Observateur</b> : lecture seule</v-list-item>
           <v-list-item><b>Enseignant</b> : gestion de ses formations</v-list-item>
-          <v-list-item><b>Gestionnaire de scolarité</b> : gestion rattachements formation/enseignants</v-list-item>
+          <v-list-item><b>Gestionnaire de scolarité</b> : gestion rattachement formation/enseignants</v-list-item>
           <v-list-item><b>Ingénieur pédagogique</b> : gestion composante</v-list-item>
         </v-list>
       </v-col>
       <v-col cols="6">
         <v-list density="compact">
           <v-list-item><b>Directeur de Composante</b> : attribution des rôles dans sa composante et ajout d'utilisateurs</v-list-item>
-          <v-list-item><b>Admin fonctionnel</b> : gestion globale application</v-list-item>
+          <v-list-item><b>Admin fonctionnel</b> : gestion globale de l'application</v-list-item>
           <v-list-item><b>Admin technique</b> : gestion technique</v-list-item>
         </v-list>
       </v-col>
@@ -137,7 +137,7 @@
       Ajouter un compte local
     </v-btn>
 
-    <addUserForm v-if="isAddingLocalUser" class="mt-4" @refreshList="refreshUserList" />
+    <addUserForm v-if="isAddingLocalUser" class="mt-4" @cancelAddUser="cancelAddUser" @refreshList="refreshUserList" />
   </div>
 </template>
 
@@ -196,6 +196,10 @@ const canAddUser = computed(() => {
 
   return roleName === 'administrateur_fonctionnel' || roleName === 'administrateur_technique'
 })
+
+const cancelAddUser = () => {
+  isAddingLocalUser.value = false
+}
 
 const maxAssignableWeight = computed(() => {
   // Même logique ici pour extraire le nom

@@ -1,6 +1,8 @@
 import { defineStore } from 'pinia'
 
-import { useParcoursStore } from './parcoursStore'
+import { useParcoursStore } from '@/stores/parcoursStore'
+import { useCompetenceStore } from '@/stores/competenceStore'
+import { useApprentissageStore } from "@/stores/apprentissageStore";
 
 export const useFormationStore = defineStore('formation', {
   state: () => ({
@@ -24,7 +26,11 @@ export const useFormationStore = defineStore('formation', {
       return new Promise((resolve, reject) => {
         this.get(this.entity, formationID, {
           include: {
-            parcours: true,
+            parcours: {
+              include: {
+                periode_of_parcours_informations: true
+              }
+            },
             version: true,
             type_diplome: true,
             composante: {
@@ -51,6 +57,76 @@ export const useFormationStore = defineStore('formation', {
             reject(err)
           })
       })
+    },
+    async duplicateVersion(version: any) {
+
+      const parcoursStore = useParcoursStore()
+      const competencesStore = useCompetenceStore()
+      const apprentissageStore = useApprentissageStore()
+
+      try {
+        let resultVersion: any;
+        //Create version
+        await this.create('version', {
+          libelle: 'A Copie de la version "' + version.libelle + '" ' + new Date().toLocaleDateString() + ' ' + new Date().toLocaleTimeString('fr-FR'),
+          formation: {
+            connect: {
+              id: version.formation_id
+            }
+          },
+        }).then((res) => {
+          resultVersion = res.data
+        }).catch((err) => {
+          console.error('Erreur duplicateVersion', err)
+          throw err
+        })
+        if (resultVersion === undefined) {
+          throw new Error('Erreur lors de la création de la nouvelle version')
+        }
+
+        parcoursStore.versionSelected = version
+        const newVersion = resultVersion;
+        await competencesStore.fetchCompetenceForSelectedVersion()
+
+        // Duplication competences of previous version in new version
+        for (const competence of competencesStore.competences) {
+          await competencesStore.createCompetence({
+            libelle: competence.libelle,
+            competence_contextualisee: competence.competence_contextualisee,
+            color: competence.color_hexadecimal,
+            critere_exigences: {
+              createMany: {
+                data: competence.critere_exigences.map((ce: any) => ({
+                  libelle: ce.libelle
+                }))
+              }
+            },
+            famille_de_situations: {
+              createMany: {
+                data: competence.famille_de_situations.map((fs: any) => ({
+                  libelle: fs.libelle
+                }))
+              }
+            },
+            version: {
+              connect: {
+                id: newVersion.id
+              }
+            },
+          }, this.formationSelected.noms_des_niveaux)
+        }
+        competencesStore.fetchCompetenceForSelectedVersion()
+        console.log(competencesStore.competences)
+
+        // Duplication ACs of previous version in new version
+
+        parcoursStore.versionSelected = newVersion
+
+        return true
+      } catch (err) {
+        console.error('Erreur duplicateVersion', err)
+        throw err
+      }
     },
     updateUserAttachment(formation: any) {
       return new Promise(async (resolve, reject) => {
@@ -86,11 +162,11 @@ export const useFormationStore = defineStore('formation', {
       })
     },
     createFormation(formation: any) {
-      return new Promise((resolve, reject) => {
+      return new Promise(async (resolve, reject) => {
         this.create(this.entity, formation)
           .then((res) => {
             this.formations.push(res.data)
-            resolve(res.data)
+            resolve(res.data.id)
           })
           .catch((err) => {
             reject(err)
@@ -124,9 +200,6 @@ export const useFormationStore = defineStore('formation', {
             }
           };
         }
-        console.log(formation)
-        console.log('currentFormation.type_diplome?.id', currentFormation.type_diplome?.id);
-        console.log('formation.type_diplome?.id', formation.type_diplome_to_connect);
         if (currentFormation.type_diplome?.id !== formation.type_diplome_to_connect && formation.type_diplome_to_connect !== undefined) {
           let idTmp = formation.type_diplome_to_connect;
           delete formation.type_diplome;
@@ -152,7 +225,6 @@ export const useFormationStore = defineStore('formation', {
           .then(async (res) => {
             const updated = res.data
             this.fetchOneFormationFromId(updated.id)
-            console.log('updated formation', updated);
             resolve(updated);
           })
           .catch((err) => {
@@ -168,12 +240,31 @@ export const useFormationStore = defineStore('formation', {
         .catch((err) => {
         })
     },
+    changeStateFormation(idFormation: any, state: string) {
+      return new Promise(async (resolve, reject) => {
+        this.update(this.entity, {
+          id: idFormation,
+          state: state
+        })
+          .then((res) => {
+            this.fetchOneFormationFromId(idFormation)
+            resolve(res.data)
+          })
+          .catch((err) => {
+            reject(err)
+          })
+      })
+    },
     fetchFormation() {
       return new Promise(async (resolve, reject) => {
 
         this.getCollection(this.entity, {
           include: {
-            parcours: true,
+            parcours: {
+              include: {
+                periode_of_parcours_informations: true
+              }
+            },
             version: true,
             type_diplome: true,
             composante: {

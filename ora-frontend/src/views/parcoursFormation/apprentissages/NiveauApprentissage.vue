@@ -1,12 +1,11 @@
 <template>
-  <v-card  class="elevation-3" v-if="refNiveau !== null">
+  <v-card class="elevation-3" v-if="refNiveau !== null">
     <v-card-title style="text-align: center">
       <v-row>
         <v-col>
           <h3>{{ refNiveau?.libelle ?? 'Débutant' }}</h3>
         </v-col>
-        <v-col cols="2">
-        </v-col>
+        <v-col cols="2"> </v-col>
       </v-row>
       <v-row>
         <v-col offset="1" cols="9">
@@ -14,10 +13,10 @@
             v-if="!enableEditDescription"
             ref="descriptionRef"
             :style="
-              valueToHave !== 0
-                ? { height: heightPreference + 'px', maxHeight: heightPreference + 'px' }
-                : { height: '50px', maxHeight: '50px' }
-            "
+  valueToHave !== 0
+    ? { height: heightPreference + 'px', maxHeight: heightPreference + 'px' }
+    : { height: 'auto', minHeight: '24px' }
+"
             class="description-text"
           >
             {{ refNiveau.description }}
@@ -45,11 +44,15 @@
       </v-row>
     </v-card-title>
     <v-card-text>
-      <v-data-table :items="refNiveau.apprentissage_critique" :headers="headers" hide-default-footer>
+      <v-data-table
+        :items="refNiveau.apprentissage_critique"
+        :headers="headers"
+        hide-default-footer
+      >
         <template v-slot:body>
           <tr
             v-for="(n, index) in nLines"
-            style="padding-top: 10px; padding-bottom: 10px; height: 80px !important; "
+            style="padding-top: 10px; padding-bottom: 10px; height: 80px !important"
             :key="n"
             :class="{ dragging: isDragging && draggedItemIndex === n }"
             draggable="true"
@@ -90,7 +93,7 @@
           </tr>
         </template>
       </v-data-table>
-      <v-row style="margin-top: 6px;">
+      <v-row style="margin-top: 6px">
         <v-col style="text-align: center">
           <v-text-field
             class="mt-1"
@@ -112,11 +115,11 @@
 <script setup>
 import { ref, defineProps, nextTick, watch, onMounted, onBeforeMount, computed } from 'vue'
 import { useApprentissageStore } from '@/stores/apprentissageStore'
-import { useFormationStore } from '@/stores/formationStore';
-import { useParcoursStore } from '@/stores/parcoursStore';
-const apprentissageStore = useApprentissageStore();
-const formationStore = useFormationStore();
-const parcoursStore = useParcoursStore();
+import { useFormationStore } from '@/stores/formationStore'
+import { useParcoursStore } from '@/stores/parcoursStore'
+const apprentissageStore = useApprentissageStore()
+const formationStore = useFormationStore()
+const parcoursStore = useParcoursStore()
 
 const headers = ref([
   { text: 'Nom', value: 'name' },
@@ -135,34 +138,32 @@ const props = defineProps({
 const refParcours = ref([...formationStore.formationSelected.parcours])
 const refNiveau = ref(null)
 const init = async () => {
-  await apprentissageStore.fetchNiveauById( props.niveau.id ).then(d => {
-    refNiveau.value = d;
+  await apprentissageStore.fetchNiveauById(props.niveau.id).then((d) => {
+    refNiveau.value = d
   })
 }
-onBeforeMount( async () => {
+onBeforeMount(async () => {
   await init()
-});
+})
 
 const selectedParcoursIds = computed({
   get() {
-    return refNiveau.value.parcours.map(p => p.id)
+    return refNiveau.value.parcours.map((p) => p.id)
   },
   set(ids) {
-    refNiveau.value.parcours = ids.map(id => ({ id }))
+    refNiveau.value.parcours = ids.map((id) => ({ id }))
   }
 })
 const enableEditLibelle = ref(false)
 const updateNiveauLibelle = async () => {
-  if( refNiveau.value === null ) {
+  if (refNiveau.value === null) {
     return
   }
   enableEditLibelle.value = false
-    computeHeight()
-    await apprentissageStore.updateNiveau(refNiveau.value)
-    refNiveau.value = await apprentissageStore.fetchNiveauById( refNiveau.value.id ) 
-
+  computeHeight()
+  await apprentissageStore.updateNiveau(refNiveau.value)
+  refNiveau.value = await apprentissageStore.fetchNiveauById(refNiveau.value.id)
 }
-
 
 const heightPreference = ref(props.valueToHave)
 watch(
@@ -197,27 +198,34 @@ const getNextOrdre = () => {
 
 const computeHeight = async () => {
   await nextTick()
-
   const element = descriptionRef.value
-  if( descriptionRef.value ) {
-    const height = element.getBoundingClientRect().height
-    emit('setHeight', height + 20) // Ajustez ou retirez "+ 20" si nécessaire
-  }
+  if (!element) return
+
+  element.style.height = 'auto'
+  element.style.maxHeight = 'none'
+  const naturalHeight = element.scrollHeight
+  element.style.height = ''
+  element.style.maxHeight = ''
+
+  emit('setHeight', naturalHeight) // petit padding fixe, pas +20 cumulatif
 }
 
+watch(
+  () => props.measureTick,
+  () => computeHeight()
+)
+
+// enfant
 const updateNiveauDescription = async () => {
-  if( refNiveau.value === null ) {
-    return
-  }
+  if (refNiveau.value === null) return
   enableEditDescription.value = false
-  await computeHeight()
   await apprentissageStore.updateNiveau(refNiveau.value)
-  refNiveau.value = await apprentissageStore.fetchNiveauById( refNiveau.value.id ) 
-
+  refNiveau.value = await apprentissageStore.fetchNiveauById(refNiveau.value.id)
+  emit('requestRemeasure')
 }
-onMounted( () => {
-  updateNiveauDescription();
-});
+onMounted(() => {
+  updateNiveauDescription()
+})
 
 const addApprentissage = async () => {
   await apprentissageStore.createApprentissage(
@@ -226,7 +234,7 @@ const addApprentissage = async () => {
     refNiveau.value.id
   )
   apprentissageLibelleToAdd.value = ''
-  refNiveau.value = await apprentissageStore.fetchNiveauById( refNiveau.value.id )
+  refNiveau.value = await apprentissageStore.fetchNiveauById(refNiveau.value.id)
   emit('nLinesHandler')
 }
 
@@ -259,7 +267,7 @@ const updateOrdre = async (item1, item2) => {
   if (item2) {
     await apprentissageStore.updateApprentissage(item2)
   }
-  refNiveau.value = await apprentissageStore.fetchNiveauById( refNiveau.value.id ) 
+  refNiveau.value = await apprentissageStore.fetchNiveauById(refNiveau.value.id)
   // emit('fetchCompetence')
 }
 
@@ -275,37 +283,37 @@ const saveItem = async (index) => {
     editingItem.value.status = false
     editingItem.value.index = null
   })
-  refNiveau.value = await apprentissageStore.fetchNiveauById( refNiveau.value.id ) 
-
+  refNiveau.value = await apprentissageStore.fetchNiveauById(refNiveau.value.id)
 }
 
 const deleteItem = async (ordre) => {
   const item = getApprByOrdre(ordre)
-  await apprentissageStore.deleteApprentissage(item).then(() => {
-  })
-  refNiveau.value = await apprentissageStore.fetchNiveauById( refNiveau.value.id ) 
-
+  await apprentissageStore.deleteApprentissage(item).then(() => {})
+  refNiveau.value = await apprentissageStore.fetchNiveauById(refNiveau.value.id)
 }
 
 const updateNiveau = async (open) => {
-  if( !refNiveau.value ) {
+  if (!refNiveau.value) {
     return
   }
 
-  if( open ) {
-    return;
+  if (open) {
+    return
   }
 
-  const niveau = refNiveau.value;
-  let parcours = [];
+  const niveau = refNiveau.value
+  let parcours = []
   await apprentissageStore.fetchNiveauById(refNiveau.value.id).then((data) => {
-    parcours = data.parcours.map(p => { return { id: p.id } });
-
-  });
-  const parcoursToConnect = refNiveau.value.parcours.map(p => { return { id: p.id } });
-  const parcoursToDisconnect = parcours.filter(p1 =>
-    !parcoursToConnect.some(p2 => p2.id === p1.id)
-  );
+    parcours = data.parcours.map((p) => {
+      return { id: p.id }
+    })
+  })
+  const parcoursToConnect = refNiveau.value.parcours.map((p) => {
+    return { id: p.id }
+  })
+  const parcoursToDisconnect = parcours.filter(
+    (p1) => !parcoursToConnect.some((p2) => p2.id === p1.id)
+  )
 
   await apprentissageStore.updateNiveau({
     id: niveau.id,
@@ -313,27 +321,27 @@ const updateNiveau = async (open) => {
     description: niveau.description,
     parcoursToConnect: parcoursToConnect,
     parcoursToDisconnect: parcoursToDisconnect
-  });
+  })
 }
 
 watch(
   () => apprentissageStore.apprentissages,
   async (newVal, oldVal) => {
     if (newVal !== oldVal) {
-      refNiveau.value = await apprentissageStore.fetchNiveauById(refNiveau.value.id);
-      emit('nLinesHandler');
+      refNiveau.value = await apprentissageStore.fetchNiveauById(refNiveau.value.id)
+      emit('nLinesHandler')
     }
   },
   { deep: true }
-);
-
-
-
+)
 </script>
 
 <style scoped>
 .description-text {
-  word-wrap: break-word; /* Ensures long words break to the next line */
-  white-space: pre-wrap; /* Preserves whitespace and wraps text */
+  word-wrap: break-word;
+  white-space: pre-wrap;
+  line-height: 1.2;     /* au lieu de ~1.5 par défaut */
+  font-size: 0.85rem;   /* optionnel, si le texte est trop gros aussi */
+  margin: 0;
 }
 </style>

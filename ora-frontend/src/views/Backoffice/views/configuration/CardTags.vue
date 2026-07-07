@@ -1,5 +1,5 @@
 <template>
-  <v-container>
+  <v-container fluid>
     <v-data-table
       :items="[...tagStore.tags].sort((a, b) => a.id - b.id)"
       :headers="headers"
@@ -25,7 +25,7 @@
       </template>
       <template v-slot:footer.prepend>
         <v-row>
-          <v-col cols="2" offset="10" style="margin-bottom: 16px">
+          <v-col cols="5" offset="1" style="margin-bottom: 16px; margin-top: 16px ">
             <v-btn color="success" @click="createNewTag">Ajouter un tag</v-btn>
           </v-col>
         </v-row>
@@ -96,7 +96,6 @@ const changeEdit = (id) => {
 
 const historize = async (item) => {
   item.is_historized = !item.is_historized
-  console.log(item)
   await saveLibelle(item)
 }
 

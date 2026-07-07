@@ -2,7 +2,13 @@
   <v-container>
     <v-row>
       <v-col cols="11">
-        <h3 style="word-break: break-word; white-space: pre-line">
+        <h3
+          :style="{
+            color: isImportedMutualisation ? '#2e7d32' : '',
+            wordBreak: 'break-word',
+            whiteSpace: 'pre-line'
+          }"
+        >
           <v-icon icon="mdi-book-open-variant-outline" />
           {{ data.libelle.replace(/(.{1,60})(\s+|$)/g, '$1\n') }}
         </h3>
@@ -43,6 +49,7 @@
       <v-col cols="6">
         <v-select
           v-model="data.parcours"
+          :disabled="isImportedMutualisation"
           :items="parcoursList"
           item-title="libelle"
           @blur="updateData"
@@ -69,6 +76,7 @@
       <v-col cols="2" style="padding-top: 6px">
         <v-text-field
           label="TP"
+          :disabled="isImportedMutualisation"
           type="number"
           variant="outlined"
           density="compact"
@@ -81,6 +89,7 @@
         <v-text-field
           label="TD"
           type="number"
+          :disabled="isImportedMutualisation"
           variant="outlined"
           density="compact"
           @blur="updateData"
@@ -92,6 +101,7 @@
         <v-text-field
           label="CM"
           type="number"
+          :disabled="isImportedMutualisation"
           variant="outlined"
           density="compact"
           @blur="updateData"
@@ -102,6 +112,7 @@
       <v-col cols="2" style="padding-top: 6px">
         <v-text-field
           label="CM/TD"
+          :disabled="isImportedMutualisation"
           type="number"
           @blur="updateData"
           @keyup.enter="updateData"
@@ -118,6 +129,7 @@
       <v-col cols="2" style="padding-top: 6px">
         <v-text-field
           label="ECTS"
+          :disabled="isImportedMutualisation"
           type="number"
           variant="outlined"
           density="compact"
@@ -131,6 +143,7 @@
         <v-checkbox
           v-model="data.est_optionnel"
           label=""
+          :disabled="isImportedMutualisation"
           @update:model-value="updateData"
           density="compact"
         />
@@ -140,6 +153,7 @@
           v-if="data.est_optionnel"
           v-model="data.ens_options"
           :items="ensOfUE.filter((e) => e.id !== data.id)"
+          :disabled="isImportedMutualisation"
           @blur="makeOptions"
           multiple
           @focus="beforeUpdate = [...data.ens_options]"
@@ -156,36 +170,42 @@
         <span>Modalité</span>
       </v-col>
       <v-col cols="6" style="padding-top: 6px">
-        <v-radio-group
-          inline
-          style="display: inline-block"
-          v-model="presentiel"
-          @click="changeModalite('Présentiel')"
-        >
-          <v-radio label="Présentiel" value="Présentiel" />
-        </v-radio-group>
-        <v-radio-group
-          inline
-          style="display: inline-block"
-          v-model="distanciel"
-          @click="changeModalite('Distanciel')"
-        >
-          <v-radio label="Distanciel" value="Distanciel" />
-        </v-radio-group>
-        <v-radio-group
-          inline
-          style="display: inline-block"
-          v-model="hybride"
-          @click="changeModalite('Hybride')"
-        >
-          <v-radio label="Hybride" value="Hybride" />
-        </v-radio-group>
+        <v-row>
+          <v-col cols="4">
+            <v-checkbox
+              v-model="presentiel"
+              label="Présentiel"
+              :disabled="isImportedMutualisation"
+              @update:model-value="changeModalite('Présentiel')"
+              density="compact"
+            />
+          </v-col>
+          <v-col cols="4">
+            <v-checkbox
+              v-model="distanciel"
+              label="Distanciel"
+              :disabled="isImportedMutualisation"
+              @update:model-value="changeModalite('Distanciel')"
+              density="compact"
+            />
+          </v-col>
+          <v-col cols="4">
+            <v-checkbox
+              v-model="hybride"
+              label="Hybride"
+              :disabled="isImportedMutualisation"
+              @update:model-value="changeModalite('Hybride')"
+              density="compact"
+            />
+          </v-col>
+        </v-row>
       </v-col>
       <v-col cols="3" style="padding-top: 6px">
         <v-text-field
           v-model="data.nb_etudiant_max"
           @blur="updateData"
           @keyup.enter="updateData"
+          :disabled="isImportedMutualisation"
           label="Nombre étudiants"
           type="number"
           variant="outlined"
@@ -198,10 +218,24 @@
         <span>Évaluation</span>
       </v-col>
       <v-col cols="4">
-        <v-radio-group v-model="modeEvaluation" @change="onChangeEvaluation" inline>
-          <v-radio label="Isolée" value="isole" />
-          <v-radio label="Associée" value="associe" />
-        </v-radio-group>
+        <v-row>
+          <v-col cols="6">
+            <v-checkbox
+              v-model="isole"
+              label="Isolée"
+              density="compact"
+              @update:model-value="onChangeEvaluation('isole')"
+            />
+          </v-col>
+          <v-col cols="6">
+            <v-checkbox
+              v-model="associe"
+              label="Associée"
+              density="compact"
+              @update:model-value="onChangeEvaluation('associe')"
+            />
+          </v-col>
+        </v-row>
       </v-col>
 
       <v-col cols="4" style="padding-top: 6px">
@@ -209,6 +243,7 @@
           :items="amsList"
           label="Sélectionner une AMS"
           v-model="data.ams_connected_id"
+          :disabled="isImportedMutualisation"
           item-title="libelle"
           item-value="id"
           variant="outlined"
@@ -225,6 +260,7 @@
           v-model="data.tags"
           :items="tagsList"
           item-title="libelle"
+          :disabled="isImportedMutualisation"
           multiple
           @blur="updateData"
           @keyup.enter="updateData"
@@ -243,6 +279,7 @@
           rows="3"
           @blur="updateData"
           @keyup.enter="updateData"
+          :disabled="isImportedMutualisation"
           v-model="data.description"
         />
       </v-col>
@@ -291,24 +328,25 @@ const parcoursList = ref(formationStore.formationSelected.parcours)
 const tagsList = ref([])
 const amsList = ref(ecStore.ecs.filter((ec) => ec.type === 'AMS'))
 const modeEvaluation = ref(data.value.est_isole ? 'isole' : data.value.est_assoce ? 'associe' : '')
-const presentiel = ref(data.value.est_presentiel ? 'Présentiel' : '')
-const distanciel = ref(data.value.est_distanciel ? 'Distanciel' : '')
-const hybride = ref(data.value.est_hybride ? 'Hybride' : '')
+const presentiel = ref(false)
+const distanciel = ref(false)
+const hybride = ref(false)
 const beforeUpdate = ref(null)
+const isImportedMutualisation = ref(false)
 
 const ensOfUE = computed(() => {
   return ecStore.ecs.filter((ec) => {
     if (ec.version_id !== parcoursStore.versionSelected.id) return false
 
-    const enseignement = enseignementStore.enseignements
-      .find((ens) => ens.id === ec.enseignement_id)
+    const enseignement = enseignementStore.enseignements.find(
+      (ens) => ens.id === ec.enseignement_id
+    )
 
     if (!enseignement) return false
 
     return enseignement.periode_id === periodeLinked.value?.id
   })
 })
-
 
 const updateData = async () => {
   await ecStore.updateEC(data.value)
@@ -340,7 +378,12 @@ const initData = async () => {
     }
   })
   periodeLinked.value = periodeStore.periodes.find((p) => p.id === ensObject.periode_id)
-  console.log(periodeLinked.value)
+  isImportedMutualisation.value = props.data.is_imported
+  presentiel.value = data.value.est_presentiel ?? false
+  distanciel.value = data.value.est_distanciel ?? false
+  hybride.value = data.value.est_hybride ?? false
+  isole.value = data.value.est_isole ?? false
+  associe.value = data.value.est_assoce ?? false
 }
 
 const setModalite = () => {
@@ -349,14 +392,14 @@ const setModalite = () => {
   hybride.value = data.value.est_hybride ? 'Hybride' : ''
 }
 
-const onChangeEvaluation = (value) => {
-  if (value.target.value === 'isole') {
-    data.value.est_isole = true
-  } else if (value.target.value === 'associe') {
-    data.value.est_assoce = true
+const isole = ref(false)
+const associe = ref(false)
+const onChangeEvaluation = (type) => {
+  if (type === 'isole') {
+    data.value.est_isole = isole.value
+  } else if (type === 'associe') {
+    data.value.est_assoce = associe.value
   }
-
-  modeEvaluation.value = value.target.value
 
   updateData()
 }
@@ -375,16 +418,13 @@ const shareElement = () => {
 
 const changeModalite = (value) => {
   if (value === 'Présentiel') {
-    data.value.est_presentiel = !data.value.est_presentiel
-    presentiel.value = data.value.est_presentiel ? 'Présentiel' : ''
+    data.value.est_presentiel = presentiel.value
   }
   if (value === 'Distanciel') {
-    data.value.est_distanciel = !data.value.est_distanciel
-    distanciel.value = data.value.est_distanciel ? 'Distanciel' : ''
+    data.value.est_distanciel = distanciel.value
   }
   if (value === 'Hybride') {
-    data.value.est_hybride = !data.value.est_hybride
-    hybride.value = data.value.est_hybride ? 'Hybride' : ''
+    data.value.est_hybride = hybride.value
   }
 
   updateData()

@@ -82,12 +82,13 @@ export const navigationBackOffice = [
         ]
     },
     {
-        name: "Imports",
-        icon: "mdi-download",
+        name: "Accès aux API",
+        icon: "mdi-console",
+        path: paths.apiAccess,
         grants: ['observateur', 'administrateur_technique', 'administrateur_fonctionnel'],
         children: [
             {
-                title: "Importation des composantes via fichier",
+                title: "Gestion des clients API",
                 grants: ['observateur', 'administrateur_technique', 'administrateur_fonctionnel'],
             }
         ]
@@ -95,9 +96,13 @@ export const navigationBackOffice = [
     {
         name: "Journaux et logs",
         icon: "mdi-volume-high",
+        path: paths.listLogs,
         grants: ['observateur', 'administrateur_technique', 'administrateur_fonctionnel'],
-
         children: [
+            {
+                title: "Liste des journaux d'événements",
+                grants: ['observateur', 'administrateur_technique', 'administrateur_fonctionnel'],
+            }
         ]
     },
     {

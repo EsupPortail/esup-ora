@@ -1,7 +1,11 @@
 import { Request, Response, NextFunction } from 'express';
 import { SocketService } from '../services/socket.service';
 
-export async function interceptorNotification(req: Request, res: Response, next: NextFunction) {   
+export async function interceptorNotification(req: Request, res: Response, next: NextFunction) {
+    if (req.headers['x-is-connector'] === 'true') {
+        return next();
+    }
+
     if (!req.path.includes('/auth') && !req.path.includes('/admin') && (req.method === 'POST' || req.method === 'PUT' || req.method === 'DELETE')) {
         const idFormationToNotify = req.body.metadata.formationId;
         delete req.body.metadata;

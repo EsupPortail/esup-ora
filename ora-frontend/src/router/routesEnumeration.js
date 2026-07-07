@@ -25,6 +25,8 @@ import ParametreView from '@/views/Backoffice/views/ParametreView.vue';
 import RolesUtilisateurs from '@/views/Backoffice/views/RolesUtilisateurs.vue';
 import Indicateurs from '@/views/Backoffice/views/Indicateurs.vue';
 import MyProfile from '@/views/MyProfile.vue';
+import LogsListFiltered from '@/views/Backoffice/views/journaux-logs/LogsListFiltered.vue';
+import ApiAccessList from '@/views/Backoffice/views/api-access/ApiAccessList.vue';
 
 export const paths = {
     root: "/home",
@@ -89,7 +91,9 @@ export const paths = {
     settings: "/settings",
     indicateurs: "/indicateurs",
     rolesEtUtilisateurs: "/roles-et-utilisateurs",
-    dataviz: '/datavisualisation'
+    dataviz: '/datavisualisation',
+    listLogs: '/list-logs',
+    apiAccess: "/access-client-list"
 }
 
 export const routes = [
@@ -163,6 +167,27 @@ export const routes = [
             isProtectedRoute: true,
             titlePage: "Mon profil utilisateur"
         }   
+    },
+    {
+        name: "Accès aux API",
+        path: paths.apiAccess,
+        component: ApiAccessList,
+        meta: {
+            isProtectedRoute: false,
+            titlePage: 'Accès aux API',
+        },
+    },
+    {
+        name: "Journaux et logs",
+        path: paths.listLogs,
+        component: LogsListFiltered,
+        meta: { 
+            isProtectedRoute: false,
+            titlePage: 'Journaux et logs',
+            isSettingsPage: true,
+            settingsPageIcon: "mdi-volume-high",
+        }   
+
     },
     {
             name: "Formation - Version 1",
@@ -404,8 +429,8 @@ export const routes = [
     },
     {
         name: "Journaux et logs",
-        path: paths.journauxEtLogs,
-        component: ParametreView,
+        path: paths.listLogs,
+        component: LogsListFiltered,
         meta: {
             isProtectedRoute: false,
             titlePage: 'Journaux et logs',

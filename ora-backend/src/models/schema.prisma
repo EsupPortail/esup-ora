@@ -25,6 +25,57 @@ model users_socket_connected {
   refresh_asked Boolean @default(false)
 }
 
+model user_unsubscribed_notifications {
+  id        Int      @id @default(autoincrement())
+  id_user  String   @db.VarChar(255)
+  objet_type String   @db.VarChar(255)
+  objet_id  Int
+  email     String   @unique @db.VarChar(255)
+  by_email Boolean  @default(false)
+  by_push Boolean  @default(false)
+  by_object_ids String[] @db.VarChar(255)
+}
+
+model link_client_to_ora_endpoint {
+  id            Int      @id @default(autoincrement())
+  client_id     String   @db.VarChar(255)
+  endpoint      String   @db.VarChar(255)
+  read_only     Boolean  @default(true) 
+}
+
+model notification {
+  id            Int      @id @default(autoincrement())
+  user_id       String   @db.VarChar(255)
+  formation_id   Int
+  version_id     Int
+  object_id      Int
+  object_type    String   @db.VarChar(255)
+  message        String   @db.Text
+  url            String?  @db.VarChar(255)
+  differentiel   Json?
+  is_historized  Boolean  @default(false)
+  is_read         Boolean  @default(false)
+}
+
+model log {
+  id          Int      @id @default(autoincrement())
+  createdAt   DateTime @default(now())
+  
+  userId      Int?     
+  userEmail   String?
+  
+  action      String
+  method      String
+  endpoint    String
+
+  ipAddress   String?
+  userAgent   String?
+  
+  payload     Json?
+  changes     Json?
+  statusCode  Int?
+}
+
 model application_informations_bulles {
   id                Int     @id @default(autoincrement())
   screen_associated String?
@@ -201,18 +252,41 @@ model tags {
   is_historized       Boolean               @default(false)
   element_constitutif element_constitutif[]
   deleted_at          DateTime?
+  unites_enseignement unites_enseignement[]
 }
 
 model unites_enseignement {
-  id                    Int                                       @id @default(autoincrement())
-  libelle               String                                    @db.VarChar(255)
-  periode               periodes?                                 @relation(fields: [periode_id], references: [id])
-  periode_id            Int?
-  render_order          Int?
-  elements_constitutifs element_constitutif[]
-  ecs_imported          element_constitutif_mutualised_imported[]
+  id                                  Int                                       @id @default(autoincrement())
+  libelle                             String                                    @db.VarChar(255)
+  periode                             periodes?                                 @relation(fields: [periode_id], references: [id])
+  periode_id                          Int?
+  render_order                        Int?
+  elements_constitutifs               element_constitutif[]
+  ecs_imported                        element_constitutif_mutualised_imported[]
+  parcours                            parcours[]
+  tags                                tags[]
+  est_mutualisable                    Boolean?                                  @default(false)
+  volume_horaire_tp                   Int?
+  volume_horaire_td                   Int?
+  volume_horaire_cm                   Int?
+  volume_horaire_cm_td                Int?
+  credits_ects                        Int?
+  nb_etudiant_max                     Int?
+  est_presentiel                      Boolean?                                  @default(false)
+  est_distanciel                      Boolean?                                  @default(false)
+  est_hybride                         Boolean?                                  @default(false)
+  est_optionnel                       Boolean?
+  est_isole                           Boolean?                                  @default(false)
+  est_assoce                          Boolean?                                  @default(false)
+  description                         String?                                   @db.Text
+  ens_options                         unites_enseignement[]                     @relation("UECluster")
+  connected_to                        unites_enseignement[]                     @relation("UECluster")
+  ams_connected                       unites_enseignement?                      @relation("AmsConnectedUE", fields: [ams_connected_id], references: [id])
+  ams_connected_id                    Int?
+  ams_dependant                       unites_enseignement[]                     @relation("AmsConnectedUE")
+  est_ouvert_etudiants_internationaux Boolean?                                  @default(false)
+  obligatoire                         Boolean?                                  @default(false)
 }
-
 model periodes {
   id                           Int                                       @id @default(autoincrement())
   libelle                      String                                    @db.VarChar(255)
@@ -247,8 +321,20 @@ model parcours {
   formation           formation             @relation(fields: [formation_id], references: [id])
   formation_id        Int
   element_constitutif element_constitutif[]
+  unites_enseignement unites_enseignement[]
   niveaux             niveau[]
   effectif_theorique  Int?                  @db.Integer
+  periode_of_parcours_informations periode_of_parcours_informations[]
+}
+
+model periode_of_parcours_informations {
+  id                  Int                   @id @default(autoincrement())
+  parcours            parcours?              @relation(fields: [parcours_id], references: [id])
+  parcours_id         Int?
+  effectif_theorique_regime_fi  Int?  @db.Integer @default(0)
+  effectif_theorique_regime_fa  Int?  @db.Integer @default(0)
+  effectif_theorique_regime_fc  Int?  @db.Integer @default(0)
+  periode_index   Int?                @db.Integer
 }
 
 model formation {
@@ -295,6 +381,7 @@ model composante {
   etablissement          etablissement @relation(fields: [etablissement_id], references: [id])
   etablissement_id       Int
   utilisateurs_rattaches String[]      @db.VarChar(255)
+  is_imported_by_connector Boolean?      @default(false)
 }
 
 model etablissement {
@@ -304,6 +391,7 @@ model etablissement {
   parametre    parametre?   @relation(fields: [parametre_id], references: [id])
   parametre_id Int?
   composantes  composante[]
+  is_imported_by_connector Boolean?      @default(false)
 }
 
 model parametre {

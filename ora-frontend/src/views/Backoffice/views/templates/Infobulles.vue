@@ -1,5 +1,5 @@
 <template>
-  <v-container>
+  <v-container fluid>
     <v-data-table
       :items="
         infoBulleStore.informations_bulles.sort((a, b) =>
@@ -125,7 +125,6 @@ const initData = async () => {
     }
     await infoBulleStore.fetchApplicationInformationsBulles()
   }
-  console.log(infoBulleStore.informations_bulles)
 }
 
 initData()

@@ -3,8 +3,9 @@
     <EnseignementEdition :data="data" v-if="data.type === 'enseignement'" @refreshTreeView="refreshTreeView" />
     <AMSEdition :data="data" v-else-if="data.type === 'AMS'" @refreshTreeView="refreshTreeView" />
     <PortfoliopEdition :data="data" v-else-if="data.type === 'Portfolio'" @refreshTreeView="$emit('refreshTreeView')"  />
+    <UEEdition v-else-if="data.type === 'UE'" :data="data" " @refreshTreeView="$emit('refreshTreeView')" />
     <StageEdition :data="data" v-else="data.type === 'Stage'" @refreshTreeView="refreshTreeView" />
-  </v-container>
+</v-container>
 </template>
 
 <script setup>
@@ -14,6 +15,7 @@ import EnseignementEdition from '@/views/parcoursFormation/bcc/editionType/Ensei
 import AMSEdition from '@/views/parcoursFormation/bcc/editionType/AMSEdition.vue'
 import PortfoliopEdition from '@/views/parcoursFormation/bcc/editionType/PortfolioEdition.vue'
 import StageEdition from '@/views/parcoursFormation/bcc/editionType/StageEdition.vue'
+import UEEdition from '@/views/parcoursFormation/bcc/editionType/UEEdition.vue'
 
 const emit = defineEmits(['refreshTreeView'])
 
