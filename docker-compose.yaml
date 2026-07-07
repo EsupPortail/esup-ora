@@ -2,7 +2,7 @@ services:
   ora_service:
     build:
       context: .
-      dockerfile: ./deployment-configuration/docker/DockerfileApache
+      dockerfile: ./deployment-configuration/docker/dockerfile.dev.ApacheFrontend
     container_name: ora_service
     env_file: .env
     user: root
@@ -14,7 +14,7 @@ services:
       FRONTEND_URL: ${FRONTEND_URL:-ora_frontend}
       FRONTEND_PORT: ${FRONTEND_PORT:-5173}
     entrypoint: ["/bin/sh", "-c"]
-    command: 
+    command:
       - |
 
         apt-get update && apt-get install -y ssl-cert &&
@@ -34,24 +34,26 @@ services:
       - ora-service-back-front-network
       - ora-back-service-network
     ports:
-      - 817:80 
+      - 817:80
     volumes:
       - ./app.module.version:/app/app.module.version
       - ./deployment-configuration/service/local-supervisord.conf:/supervisord.conf
       - ./deployment-configuration/service/local-000-default.conf:/etc/apache2/sites-available/000-default.conf
       - ./deployment-configuration/service/local-default-ssl.conf:/etc/apache2/sites-available/default-ssl.conf
       - ./deployment-configuration/service/conf-apache2/httpd.conf:/etc/apache2/httpd.conf
-      # - ./application-data/localhost-src:/var/www/html/ora-project/
 
-  
   ora_database:
     build:
       context: ./deployment-configuration/
-      dockerfile: ./docker/DockerfileDatabase
+      dockerfile: ./docker/dockerfile.Postgres
     container_name: ora_database
     restart: always
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_SUPERADMIN_USERNAME:-admin} -d ${IAM_DATABASE_NAME:-keycloak_db}"]
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${DATABASE_SUPERADMIN_USERNAME:-admin} -d ${IAM_DATABASE_NAME:-keycloak_db}",
+        ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -69,14 +71,12 @@ services:
       - 5432:5432
     volumes:
       - ./application-data/ora-database-data:/ora-database-data
-      - ./deployment-configuration/database/utilities-scripts:/do-not-execute/ # TMP do not push in production
-      - ./deployment-configuration/database/initialization-scripts:/initialization-scripts/
       - ./deployment-configuration/database/autoload-sql.sh:/docker-entrypoint-initdb.d/autoload-sql.sh
-      
+
   ora-frontend:
     build:
       context: .
-      dockerfile: ./deployment-configuration/docker/DockerfileFrontend
+      dockerfile: ./deployment-configuration/docker/dockerfile.dev.Frontend
     container_name: ora-frontend
     command: bash -c '/generate-env.sh && npm install && npm run dev -- --host 0.0.0.0'
     environment:
@@ -87,7 +87,6 @@ services:
     ports:
       - 5173:5173
     volumes:
-      # - ./application-data/localhost-src:/localhostsrc
       - ./app.module.version:/app/app.module.version
       - ./ora-frontend:/app
       - ./.env:/.env
@@ -95,13 +94,15 @@ services:
   ora-backend:
     build:
       context: .
-      dockerfile: ./deployment-configuration/docker/DockerfileBackend
+      dockerfile: ./deployment-configuration/docker/dockerfile.dev.Backend
     container_name: ora-backend
     restart: always
     depends_on:
+      ora-auth-iam:
+        condition: service_healthy
       ora_database:
         condition: service_healthy
-    networks: 
+    networks:
       - ora-front-back-network
       - ora-back-db-network
       - ora-back-iam-network
@@ -114,17 +115,18 @@ services:
     ports:
       - 1111:1111
       - 5555:5555
+      - 51212:51212
     volumes:
       - ./ora-backend:/app
       - ./.env:/.env
-  
+
   ora-auth-iam:
     build:
       context: ./deployment-configuration/
-      dockerfile: ./docker/DockerfileIAM
+      dockerfile: ./docker/dockerfile.Keycloak
     container_name: ora-auth-iam
     env_file: .env
-    command: start-dev --import-realm --debug
+    command: start-dev --import-realm --debug --health-enabled=true
     environment:
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://${DATABASE_HOST:-db_database}/${IAM_DATABASE_NAME:-keycloak_db}
@@ -151,6 +153,16 @@ services:
         -Dkeycloak.logging.console.color=false
     ports:
       - "8080:8080"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "bash -c 'exec 3<>/dev/tcp/127.0.0.1/8080; printf \"GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n\" >&3; cat <&3 | grep -q \"\\\"status\\\": \\\"UP\\\"\"' || exit 1",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
     depends_on:
       ora_database:
         condition: service_healthy
@@ -163,31 +175,6 @@ services:
       - ./application-data/keycloak_data:/opt/keycloak/data
       - ./application-data/keycloak_logs:/opt/keycloak/log
       - ./tmp/:/tmp/export-realms/
-
-
-  ## Abandon de la gestion des permissions, des rôles et des privilèges via keycloak 
-  ## En effet, les permissions peuvent être gérées via keycloak mais ça ne répond pas exactement à notre besoin
-  # ora_init_keycloak:
-  #   build:
-  #     context: ./deployment-configuration/
-  #     dockerfile: ./docker/DockerfileInitKeycloak
-  #   container_name: ora_init_keycloak
-  #   env_file: .env
-  #   entrypoint: ["/bin/sh", "-c"]
-  #   user: root
-  #   command: 
-  #     - |
-  #       chmod +x /startup.sh &&
-  #       /startup.sh
-  #   depends_on:
-  #     - ora-auth-iam
-  #   networks:
-  #     - ora-iam-db-network
-  #   volumes: 
-  #     - ./deployment-configuration/keycloak/generate-privileges-prisma.sh:/generate-privileges-prisma.sh
-  #     - ./deployment-configuration/keycloak/inject-configuration.sh:/inject-configuration.sh
-  #     - ./deployment-configuration/keycloak/imports-files:/imports-files
-  #     - ./deployment-configuration/keycloak/startup.sh:/startup.sh
 
 networks:
   ora-service-back-front-network:
@@ -204,7 +191,6 @@ networks:
     driver: bridge
   rncp:
     external: true
-
 
 volumes:
   ora-database-data:

@@ -44,7 +44,7 @@
     </v-btn>
   </div>
   <div v-if="isCreating">
-    <v-overlay :model-value="true" class="align-center justify-center">
+    <v-overlay :model-value="true" contained  class="align-center justify-center">
       <v-progress-circular color="primary" size="64" indeterminate></v-progress-circular>
     </v-overlay>
   </div>

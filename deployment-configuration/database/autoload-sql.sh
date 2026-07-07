@@ -38,19 +38,9 @@ psql -U "$administrator_user" -d "$ORA_DATABASE_NAME" -c "ALTER DEFAULT PRIVILEG
 psql -U "$administrator_user" -d "$ORA_DATABASE_NAME" -c "ALTER ROLE $ORA_DATABASE_USER CREATEDB;" ||true
 psql -U "$administrator_user" -d "$ORA_DATABASE_NAME" -c "ALTER USER $ORA_DATABASE_USER WITH SUPERUSER;" ||true
 
-# TODO : ERROR : ora_database  | psql: error: /scripts_to_init/*.sql: No such file or directory
-# Boucle pour exécuter tous les fichiers SQL dans le répertoire
-
-# Répertoire contenant les scripts SQL à exécuter
-sql_scripts_dir="/initialization-scripts"
 
 # Options pour psql
 psql_options="-U $ORA_DATABASE_USER -d $ORA_DATABASE_NAME -a -v ON_ERROR_STOP=1"
 
-# echo "Creation des tables complementaires dans la base de données securite..."
-# for file in "$sql_scripts_dir"/*.sql; do
-#   echo "Exécution du script SQL : $file"
-#   psql $psql_options -f "$file"
-# done
 
 echo "Initialisation terminée."

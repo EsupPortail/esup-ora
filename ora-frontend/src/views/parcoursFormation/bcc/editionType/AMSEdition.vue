@@ -11,6 +11,7 @@
             variant="outlined"
             label="Libellé"
             density="compact"
+            :disabled="isImportedMutualisation"
             hide-details
             @blur="updateLibelle"
             @keyup.enter="updateLibelle"
@@ -34,16 +35,46 @@
           </v-btn>
         </v-col>
       </template>
-      <v-col cols="1" offset="3">
+      <v-col cols="1">
         <v-btn
           icon="true"
           :color="data.est_mutualisable ? 'success' : 'transparent'"
-          :disabled="data.est_mutualisable"
+          :disabled="data.est_mutualisable || isImportedMutualisation"
           @click="shareElement"
           size="small"
         >
           <v-icon size="16">mdi-share-variant</v-icon>
         </v-btn>
+      </v-col>
+      <v-col cols="1">
+        <v-tooltip :text="isSubscribedPush ? 'Abonné aux notifications push' : 'Désabonné des notifications push'" location="bottom">
+          <template #activator="{ props: tooltipProps }">
+            <v-btn
+              v-bind="tooltipProps"
+              icon="true"
+              :color="isSubscribedPush ? 'blue' : 'red'"
+              size="small"
+              @click="togglePushNotification"
+            >
+              <v-icon size="16" color="white">mdi-bell</v-icon>
+            </v-btn>
+          </template>
+        </v-tooltip>
+      </v-col>
+      <v-col cols="1">
+        <v-tooltip :text="isSubscribedEmail ? 'Abonné aux notifications par email' : 'Désabonné des notifications par email'" location="bottom">
+          <template #activator="{ props: tooltipProps }">
+            <v-btn
+              v-bind="tooltipProps"
+              icon="true"
+              :color="isSubscribedEmail ? 'blue' : 'red'"
+              size="small"
+              @click="toggleEmailNotification"
+            >
+              <v-icon size="16" color="white">mdi-email</v-icon>
+            </v-btn>
+          </template>
+        </v-tooltip>
       </v-col>
       <v-col cols="1">
         <v-btn color="error" icon="true" size="small" @click="deleteElement()">
@@ -58,6 +89,7 @@
           v-model="data.parcours"
           :items="parcoursList"
           item-title="libelle"
+          :disabled="isImportedMutualisation"
           @blur="updateData"
           multiple
           @keyup.enter="updateData"
@@ -82,6 +114,7 @@
       <v-col cols="3" style="padding-top: 6px">
         <v-text-field
           label="TP"
+          :disabled="isImportedMutualisation"
           type="number"
           variant="outlined"
           density="compact"
@@ -96,6 +129,7 @@
           type="number"
           variant="outlined"
           density="compact"
+          :disabled="isImportedMutualisation"
           @blur="updateData"
           @keyup.enter="updateData"
           v-model="data.volume_horaire_td"
@@ -109,6 +143,7 @@
           density="compact"
           @blur="updateData"
           @keyup.enter="updateData"
+          :disabled="isImportedMutualisation"
           v-model="data.volume_horaire_cm"
         />
       </v-col>
@@ -122,6 +157,7 @@
           label="Heures"
           type="number"
           variant="outlined"
+          :disabled="isImportedMutualisation"
           density="compact"
           @blur="updateData"
           @keyup.enter="updateData"
@@ -134,6 +170,7 @@
         <v-textarea
           v-model="data.description"
           @blur="updateData"
+          :disabled="isImportedMutualisation"
           @keyup.enter="updateData"
           label="Description"
           variant="outlined"
@@ -151,6 +188,7 @@
           label="Minimum"
           type="number"
           variant="outlined"
+          :disabled="isImportedMutualisation"
           density="compact"
           @blur="updateData"
           @keyup.enter="updateData"
@@ -163,6 +201,7 @@
           type="number"
           variant="outlined"
           density="compact"
+          :disabled="isImportedMutualisation"
           @blur="updateData"
           @keyup.enter="updateData"
           v-model.number="data.nb_etudiant_max"
@@ -175,6 +214,7 @@
           label="Commentaires"
           variant="outlined"
           density="compact"
+          :disabled="isImportedMutualisation"
           rows="3"
           v-model="data.commentaire"
           @blur="updateData"
@@ -188,8 +228,11 @@
 <script setup>
 import { ref, watch } from 'vue'
 
+import { useUserAccessStore } from '@/stores/usersAccessStore'
+import { useConnectionStore } from '@/stores/connectionStore'
 import { useFormationStore } from '@/stores/formationStore'
 import { useEcStore } from '@/stores/elementConstitutifStore'
+import { useUnsubscribedNotificationsStore } from '@/stores/notificationsStore'
 
 const props = defineProps({
   data: {
@@ -202,14 +245,20 @@ const props = defineProps({
   }
 })
 
+const connectionStore = useConnectionStore()
+const userAccessStore = useUserAccessStore()
 const formationStore = useFormationStore()
 const ecStore = useEcStore()
+const notificationsStore = useUnsubscribedNotificationsStore()
 
 const emit = defineEmits(['refreshTreeView'])
 
 const parcoursList = ref(formationStore.formationSelected.parcours)
 const libelleEdition = ref(false)
 const data = ref(props.data)
+const isImportedMutualisation = ref(false)
+const isSubscribedPush = ref(true)
+const isSubscribedEmail = ref(true)
 
 const deleteElement = async () => {
   await ecStore.removeEC(data.value)
@@ -219,6 +268,53 @@ const deleteElement = async () => {
 const shareElement = () => {
   data.value.est_mutualisable = true
   updateData()
+}
+
+const syncNotification = () => {
+  // 1. Source de vérité unique pour l'ID utilisateur : connectionStore.userId
+  const currentUserId = userAccessStore.users.find((u) => u.email === connectionStore.user?.email)?.id
+
+  const unsubscriber = notificationsStore.getUnsubscribers.find(
+    (u) => u.objet_type === 'ec' && u.objet_id === data.value.id && u.id_user === currentUserId
+  )
+
+  // Les deux abonnés → plus besoin de ligne en BDD, on supprime
+  if (isSubscribedPush.value && isSubscribedEmail.value) {
+    if (unsubscriber) {
+      notificationsStore.deleteUnsubscriber(unsubscriber)
+    }
+    return
+  }
+  
+  if (unsubscriber) {
+    // Mise à jour de l'existant
+    notificationsStore.updateUnsubscriber({
+      ...unsubscriber,
+      by_push: isSubscribedPush.value,
+      by_email: isSubscribedEmail.value
+    })
+  } else {
+    // Création : On utilise directement currentUserId (l'UUID Keycloak visible dans le curl)
+    console.log(currentUserId)
+    notificationsStore.createUnsubscriber({
+      id_user: currentUserId, 
+      objet_type: 'ec',
+      objet_id: data.value.id,
+      email: connectionStore.user?.email || '',
+      by_push: isSubscribedPush.value,
+      by_email: isSubscribedEmail.value
+    })
+  }
+}
+
+const togglePushNotification = () => {
+  isSubscribedPush.value = !isSubscribedPush.value
+  syncNotification()
+}
+
+const toggleEmailNotification = () => {
+  isSubscribedEmail.value = !isSubscribedEmail.value
+  syncNotification()
 }
 
 const updateData = async () => {
@@ -234,6 +330,20 @@ const updateLibelle = async () => {
 const initData = async () => {
   const idAsNumber = parseInt(data.value.id, 10)
   data.value = ecStore.ecs.find((ec) => ec.id === idAsNumber)
+  isImportedMutualisation.value = props.data.is_imported
+
+  notificationsStore.fetchUnsubscriber().then(() => {
+    const unsubscriber = notificationsStore.getUnsubscribers.find(
+      (u) => u.objet_type === 'ec' && u.objet_id === data.value.id && u.id_user === connectionStore.userId
+    )
+    if (unsubscriber) {
+      isSubscribedPush.value = unsubscriber.by_push
+      isSubscribedEmail.value = unsubscriber.by_email
+    } else {
+      isSubscribedPush.value = true
+      isSubscribedEmail.value = true
+    }
+  })
 }
 initData()
 

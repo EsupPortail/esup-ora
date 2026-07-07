@@ -39,7 +39,8 @@
             variant="outlined"
             required
           />
-          <v-btn color="primary" @click="addLocalUser">Ajouter l'utilisateur</v-btn>
+          <v-btn color="error" @click="() => { emit('cancelAddUser'); }">Annuler</v-btn>          
+          <v-btn color="success" @click="addLocalUser" style="margin-left: 24px;">Ajouter l'utilisateur</v-btn>
         </v-form>
       </div>
     </v-col>
@@ -56,7 +57,7 @@ import { useConnectionStore } from '@/stores/connectionStore'
 import { usePopUpStore } from '@/stores/popUp/PopUpStoreImplementation'
 import { useUserAccessStore } from '@/stores/usersAccessStore'
 
-const emit = defineEmits(['refreshList'])
+const emit = defineEmits(['refreshList', 'cancelAddUser'])
 
 const connectionStore = useConnectionStore()
 const popUpStore = usePopUpStore()

@@ -5,6 +5,218 @@ import { logger } from '../configs/logger';
 
 export class KeycloakService {
 
+    static async getClients(access_token: string): Promise<any> {
+        const clientsURL = `${process.env.KEYCLOAK_HOST}admin/realms/${process.env.KEYCLOAK_REALM}/clients`;
+        const config = {
+            headers: {
+                'Accept': 'application/json',
+                'Authorization': `Bearer ${access_token}`,
+                'Content-Type': 'application/json',
+            }
+        };
+
+        try {
+            const response = await axios.get(clientsURL, config);
+            const clients = response.data
+                .filter((client: { clientId: string }) =>
+                    client.clientId?.startsWith('distant-access-ora-')
+                )
+                .map((client: {
+                    id: string;
+                    clientId: string;
+                    name: string;
+                    enabled: boolean;
+                    attributes: { 'ora-distant-access-api': string[] }
+                }) => ({
+                    id: client.id,
+                    clientId: client.clientId,
+                    name: client.name || client.clientId,
+                    enabled: client.enabled,
+                }));
+
+            return {
+                code: 200,
+                message: 'Clients fetched successfully',
+                data: { clients: clients }
+            };
+        } catch (err: any) {
+            logger.error('Error fetching clients:', err.message);
+            return {
+                code: 500,
+                message: 'An error occurred while fetching clients.',
+                error: err.message,
+            };
+        }
+    }
+    static async addClientId(access_token: string, clientName: string): Promise<any> {
+        const clientsURL = `${process.env.KEYCLOAK_HOST}admin/realms/${process.env.KEYCLOAK_REALM}/clients`;
+        const config = {
+            headers: {
+                'Accept': 'application/json',
+                'Authorization': `Bearer ${access_token}`,
+                'Content-Type': 'application/json',
+            }
+        };
+
+        const clientId = `distant-access-ora-${clientName}`;
+
+        try {
+            const existing = await axios.get(`${clientsURL}?clientId=${clientId}`, config);
+            if (existing.data && existing.data.length > 0) {
+                return {
+                    code: 409,
+                    message: `Client '${clientId}' already exists.`,
+                };
+            }
+        } catch (err: any) {
+            logger.error('Error checking existing client:', err.message);
+            return {
+                code: 500,
+                message: 'An error occurred while checking existing clients.',
+                error: err.message,
+            };
+        }
+
+        const data = {
+            clientId: clientId,
+            name: clientId,
+            enabled: true,
+            serviceAccountsEnabled: true,
+            publicClient: false,
+            standardFlowEnabled: false,
+            implicitFlowEnabled: false,
+            directAccessGrantsEnabled: false,
+            authorizationServicesEnabled: false,
+            attributes: {
+                "ora-distant-access-api": "true",
+            },
+        };
+
+        try {
+            // 1. Création du client
+            await axios.post(clientsURL, data, config);
+
+            // 2. Récupération de l'UUID du client créé
+            const clientInfo = await axios.get(`${clientsURL}?clientId=${clientId}`, config);
+            const uuid = clientInfo.data[0].id;
+
+            // 3. Récupération du service account lié au client
+            const serviceAccountURL = `${clientsURL}/${uuid}/service-account-user`;
+            const serviceAccount = await axios.get(serviceAccountURL, config);
+            const serviceAccountId = serviceAccount.data.id;
+
+            // 4. Récupération des rôles realm actuellement assignés au service account
+            const assignedRolesURL = `${process.env.KEYCLOAK_HOST}admin/realms/${process.env.KEYCLOAK_REALM}/users/${serviceAccountId}/role-mappings/realm`;
+            const assignedRoles = await axios.get(assignedRolesURL, config);
+            // Juste avant le filtre, étape 5
+            console.log('=== SERVICE ACCOUNT ID ===', serviceAccountId);
+            console.log('=== ROLES ASSIGNÉS ===', JSON.stringify(assignedRoles.data, null, 2));
+
+            // 6. Récupération du secret
+            const secretRes = await axios.get(`${clientsURL}/${uuid}/client-secret`, config);
+            const secret = secretRes.data.value;
+
+            return {
+                code: 201,
+                message: 'Client created successfully',
+                data: {
+                    clientId: clientId,
+                    secret: secret,
+                },
+            };
+        } catch (err: any) {
+            logger.error('Error occurred:', err.message);
+            return {
+                code: 500,
+                message: 'An error occurred while creating the client.',
+                error: err.message,
+            };
+        }
+    }
+
+    static async checkClientHasDistantAccessAttribute(userAccessToken: string): Promise<boolean> {
+        const payload = JSON.parse(Buffer.from(userAccessToken.split('.')[1], 'base64').toString());
+        const clientId = payload.azp || payload.client_id;
+
+        if (!clientId) {
+            logger.error('checkClientHasDistantAccessAttribute: aucun clientId trouvé dans le token');
+            return false;
+        }
+
+        const url = `${process.env.KEYCLOAK_HOST}admin/realms/${process.env.KEYCLOAK_REALM}/clients?clientId=${clientId}`;
+
+        try {
+            const { access_token } = await this.getToken();
+
+            const response = await axios.get(url, {
+                headers: {
+                    'Accept': 'application/json',
+                    'Authorization': `Bearer ${access_token}`,
+                    'Content-Type': 'application/json',
+                }
+            });
+
+            const clients = response.data;
+            if (!clients || clients.length === 0) return false;
+
+            return clients[0].attributes?.['ora-distant-access-api'] === 'true';
+
+        } catch (error: any) {
+            logger.error('Erreur checkClientHasDistantAccessAttribute:', error.message);
+            return false;
+        }
+    }
+    
+    static async deleteClientId(access_token: string, clientId: string): Promise<any> {
+        const clientsURL = `${process.env.KEYCLOAK_HOST}admin/realms/${process.env.KEYCLOAK_REALM}/clients`;
+        const config = {
+            headers: {
+                'Accept': 'application/json',
+                'Authorization': `Bearer ${access_token}`,
+                'Content-Type': 'application/json',
+            }
+        };
+
+        // 1. Récupération de l'UUID à partir du clientId
+        let uuid: string;
+        try {
+            const existing = await axios.get(`${clientsURL}?clientId=${clientId}`, config);
+            if (!existing.data || existing.data.length === 0) {
+                return {
+                    code: 404,
+                    message: `Client '${clientId}' introuvable.`,
+                };
+            }
+            uuid = existing.data[0].id;
+        } catch (err: any) {
+            logger.error('Error finding client:', err.message);
+            return {
+                code: 500,
+                message: 'An error occurred while finding the client.',
+                error: err.message,
+            };
+        }
+
+        // 2. Suppression du client Keycloak
+        try {
+            await axios.delete(`${clientsURL}/${uuid}`, config);
+
+            // 3. Suppression des entrées liées en base
+
+            return {
+                code: 200,
+                message: `Client '${clientId}' supprimé avec succès.`,
+            };
+        } catch (err: any) {
+            logger.error('Error deleting client:', err.message);
+            return {
+                code: 500,
+                message: 'An error occurred while deleting the client.',
+                error: err.message,
+            };
+        }
+    }
+
     static async addRoleToUser(access_token: string, id_user: string, id_role: string): Promise<any> {
         const roleURL = `${process.env.KEYCLOAK_HOST}admin/realms/${process.env.KEYCLOAK_REALM}/users/${id_user}/role-mappings/realm`;
         const config = {
@@ -459,7 +671,6 @@ export class KeycloakService {
                 'Content-Type': 'application/x-www-form-urlencoded',
             }
         };
-        // Initialization keycloak connection and take a token
         let aToken = undefined;
         let expiresDelay = undefined;
 
@@ -481,8 +692,44 @@ export class KeycloakService {
         }
     }
 
+    static async getTokenByClientCredentials(clientId: string, clientSecret: string): Promise<any> {
+        const tokenUrl = process.env.KEYCLOAK_HOST + 'realms/' + process.env.KEYCLOAK_REALM + '/protocol/openid-connect/token';
+
+        const data = qs.stringify({
+            client_id: clientId,
+            client_secret: clientSecret,
+            grant_type: 'client_credentials'
+        });
+
+        const config = {
+            headers: {
+                'Accept': '*/*',
+                'Content-Type': 'application/x-www-form-urlencoded',
+            }
+        };
+
+        try {
+            const response = await axios.post(tokenUrl, data, config);
+            return {
+                code: 200,
+                data: {
+                    access_token: response.data.access_token,
+                    expires_in: response.data.expires_in,
+                    token_type: response.data.token_type,
+                }
+            };
+        } catch (error: any) {
+            if (error.response?.status === 401) {
+                logger.error('Client credentials invalides:', clientId);
+            } else {
+                logger.error('Erreur getTokenByClientCredentials:', error.message);
+            }
+            return { code: error.response?.status ?? 500, data: null };
+        }
+    }
+
     static async getUserInformations(access_token: string, username: string): Promise<any> {
-        const userInformationsURL = process.env.KEYCLOAK_HOST + 'admin/realms/' + process.env.KEYCLOAK_REALM + '/users?username=' + username;
+        const userInformationsURL = process.env.KEYCLOAK_HOST + 'admin/realms/' + process.env.KEYCLOAK_REALM + '/users?username=' + username + '&exact=true';
         const config = {
             headers: {
                 'Accept': 'application/json',

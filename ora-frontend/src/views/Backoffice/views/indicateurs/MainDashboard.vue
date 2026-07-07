@@ -124,7 +124,7 @@ const initData = async () => {
   const formations = formationStore.formations
 
   const nbInProgress = formations.filter(f => f.state === 'En cours').length
-  const nbEnded = formations.filter(f => f.state === 'Terminée').length
+  const nbEnded = formations.filter(f => f.state === 'Finalisé').length
 
   formationSeries.value = [nbInProgress, nbEnded]
 

@@ -1,5 +1,5 @@
 <template>
-  <v-container>
+  <v-container fluid>
     <v-data-table
       :items="[...typeDiplomeStore.typeDiplomes].sort((a, b) => a.id - b.id)"
       :headers="headers"
@@ -26,7 +26,7 @@
       </template>
       <template v-slot:footer.prepend>
         <v-row>
-          <v-col cols="3" offset="8" style="margin-bottom: 16px">
+          <v-col cols="5" offset="1" style="margin-bottom: 16px; margin-top: 16px">
             <v-btn color="success" @click="createNewTypeDiplome" style="margin-right: 16px"
               >Ajouter un type de diplôme</v-btn
             >

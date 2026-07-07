@@ -14,7 +14,7 @@
     item-value="key"
     open-all
   >
-    <template v-slot:prepend="{ item, isOpen }">
+    <template v-slot:prepend="{ item, isOpen }" >
       <span
         v-if="item.type === 'enseignement'"
         :class="{ 'add-new-item': item.addNewEC || item.addNewUE || item.addNewEnseignement }"
@@ -46,18 +46,6 @@
         @click.stop="ajouterEnseignement(item)"
         style="display: flex; align-items: center; gap: 8px"
       >
-        <!-- <v-select
-          v-model="refAddEcInPeriod"
-          :items="typeAddEc"
-          placeholder="Ajouter un élément constitutif"
-          hide-details
-          variant="outlined"
-          density="compact"
-          style="min-width: 320px; max-width: 320px"
-        />
-        <v-btn color="success" @click="ajouterEnseignement(item)" style="margin-left: 8px">
-          Ajouter
-        </v-btn> -->
       </div>
       <div
         v-else-if="item.addNewEcInUE"
@@ -127,28 +115,33 @@
         </v-btn>
       </div>
       <div
-        v-else-if="
-          item.type === 'enseignement' ||
-          item.type === 'AMS' ||
-          item.type === 'Portfolio' ||
-          item.type === 'Stage' ||
-          item.type === 'SAE'
-        "
+        v-else-if="ecTypes.includes(item.type)"
         @click.stop="selectItem(item)"
-        draggable="true"
-        @dragstart="onDragStart($event, item)"
-        @dragend="onDragEnd(item)"
         @dragenter="onDragEnter(item)"
         @dragleave="onDragLeave(item)"
         @dragover.prevent
         @drop="onDrop($event, item)"
         :class="[
+          'tree-item',
+          'ec-row',
           {
-            'drop-zone': draggedItem !== null,
+            'drop-target': isCompatibleTarget(item),
+            'drag-over': isDragOver(item),
             dragging: draggedItem?.id === item.id
           }
         ]"
       >
+        <span
+          class="drag-handle"
+          draggable="true"
+          title="Glisser pour déplacer"
+          @click.stop
+          @dragstart="onDragStart($event, item)"
+          @dragend="onDragEnd"
+        >
+          <v-icon icon="mdi-cursor-move" size="18" />
+        </span>
+        <div class="ec-content">
         <template v-if="item.type === 'enseignement'">
           <span
             :style="item.tag === 'importé' ? 'color: #2e7d32; font-weight: 600;' : ''"
@@ -195,25 +188,36 @@
             </v-col>
           </v-row>
         </template>
+        </div>
       </div>
       <div
         v-else-if="item.type === 'UE'"
         @click.stop="selectItem(item)"
-        draggable="true"
-        @dragstart="onDragStart($event, item)"
-        @dragend="onDragEnd(item)"
         @dragenter="onDragEnter(item)"
         @dragleave="onDragLeave(item)"
         @dragover.prevent
         @drop="onDropOnUE($event, item)"
         :class="[
           'item-block',
+          'tree-item',
           {
-            'drop-zone': draggedItem !== null,
-            'drag-over': dragOverItem?.id === item.id
+            'drop-target': isCompatibleTarget(item),
+            'drag-over': isDragOver(item),
+            dragging: draggedItem?.id === item.id
           }
         ]"
       >
+        <div class="d-flex align-center w-100" style="gap: 6px">
+          <span
+            class="drag-handle"
+            draggable="true"
+            title="Glisser pour déplacer"
+            @click.stop
+            @dragstart="onDragStart($event, item)"
+            @dragend="onDragEnd"
+          >
+            <v-icon icon="mdi-cursor-move" size="18" />
+          </span>
         <div class="d-flex align-center justify-space-between w-100">
           <template v-if="isEditingLibelleUE === item.id">
             <v-text-field
@@ -234,6 +238,7 @@
             </v-btn>
           </template>
         </div>
+        </div>
       </div>
       <div
         v-else
@@ -242,9 +247,11 @@
         @dragover.prevent
         @drop="onDropOnPeriod($event, item)"
         :class="[
+          'tree-item',
+          'periode-item',
           {
-            'drop-zone': draggedItem !== null,
-            dragging: draggedItem?.id === item.id
+            'drop-target': isCompatibleTarget(item),
+            'drag-over': isDragOver(item)
           }
         ]"
       >
@@ -315,7 +322,6 @@ const periodeMutualisationImport = ref(null)
 const overlayShow = ref(false)
 
 const startMutualisationImport = (periodeId) => {
-  console.log('start mutualisation import for periode id', periodeId)
   periodeMutualisationImport.value = periodeId
   overlayShow.value = true
 }
@@ -326,9 +332,11 @@ const refreshTreeView = async () => {
 }
 
 onMounted(async () => {
+  await nextTick();
+  await enseignementsStore.fetchEnseignements()
   await elementsConstitutifsStore.fetchECs()
-  await periodeStore.fetchPeriodes()
   await competenceStore.fetchCompetenceForSelectedVersion()
+  await periodeStore.fetchPeriodes()
 })
 
 const openNodes = ref([])
@@ -433,7 +441,6 @@ const editedLibelle = ref('')
 const editingLibelleOfEC = ref('')
 const editedEC = ref(null)
 const startEditingEC = (item) => {
-  console.log('edit ec', item)
   editingLibelleOfEC.value = item.id
   editedEC.value = item.title
 }
@@ -516,128 +523,152 @@ const ajouterUniteEnseignement = async (treeItem) => {
   libelleUniteToAdd.value[treeItem.periodeId] = ''
 }
 
+// Tri commun : tous les items d'un même niveau confondus, par render_order
+const byRenderOrder = (a, b) => (a.render_order ?? 9999) - (b.render_order ?? 9999)
+
+// L'EC est-il rattaché à la compétence ? (via les apprentissages critiques
+// de son enseignement). Les types autres qu'enseignement sont toujours gardés.
+// keepIfUnknown : pour les EC importés d'une autre maquette, dont l'enseignement
+// n'est pas forcément présent dans le store local, on choisit de les garder
+// visibles plutôt que de les masquer silencieusement. Passer false pour inverser.
+const ecMatchesCompetence = (ec, compId, keepIfUnknown = false) => {
+  if (ec.type !== 'enseignement') return true // garder tous les autres types
+  if (!ec.enseignement_id) return keepIfUnknown
+
+  const enseignement = enseignementsStore.enseignements.find((e) => e.id === ec.enseignement_id)
+  if (!enseignement) return keepIfUnknown
+
+  const apprentissages = enseignement.apprentissages_critiques || []
+
+  const resultNiveauxCompetences = apprentissages
+    .map((ac) => Number(ac.niveau?.competence_id)) // forcer le type Number
+    .filter(Boolean)
+
+  return resultNiveauxCompetences.includes(Number(compId))
+}
+
 const treeList = computed(() => {
   if (!periodeStore.periodes.length) return []
-  console.log(periodeStore.periodes[0].ec_imported_by_mutualisation)
-  console.log(periodeStore.periodes[0].unites_enseignement)
-  // Cas SEMESTRE
   if (props.isSemestre) {
-    return periodeStore.periodes.map((periode) => ({
-      id: 'periode-' + periode.id,
-      key: 'periode-' + periode.id,
-      title: periode.libelle,
-      idPeriod: periode.id,
-      type: 'periode',
-      children: [
-        // --- 🧩 UEs ---
-        ...periode.unites_enseignement
+    return periodeStore.periodes.map((periode) => {
+      // --- 🧩 UEs (leurs enfants : EC locaux + importés, triés ensemble) ---
+      const ueNodes = periode.unites_enseignement.slice().map((ue) => {
+        const ecNodes = elementsConstitutifsStore.ecs
           .slice()
-          .sort((a, b) => a.render_order - b.render_order)
-          .map((ue) => ({
-            id: 'ue-' + ue.id,
-            key: 'ue-' + ue.id,
-            title: ue.libelle,
-            render_order: ue.render_order,
-            ueId: ue.id,
-            periodeId: periode.id,
-            type: 'UE',
-            children: [
-              ...elementsConstitutifsStore.ecs
-                .slice()
-                .filter((ec) => ec.unites_enseignement_id === ue.id)
-                .sort((a, b) => a.render_order - b.render_order)
-                .map((ec) => ({
-                  id: 'ec-' + ec.id,
-                  key: 'ec-' + ec.id,
-                  title: ec.libelle,
-                  render_order: ec.render_order,
-                  ueId: ue.id,
-                  periodeId: periode.id,
-                  ecId: ec.id,
-                  type: ec.type
-                })),
-
-              // --- ✅ ECs importés par mutualisation dans l’UE ---
-              ...(ue.ecs_imported || [])
-                .map((imported) => {
-                  const ec = elementsConstitutifsStore.ecs.find(
-                    (e) => e.id === imported.element_constitutif_id
-                  )
-                  if (!ec) return null
-                  return {
-                    id: `ue-${ue.id}-ec-imported-${ec.id}`,
-                    key: `ue-${ue.id}-ec-imported-${ec.id}`,
-                    title: ec.libelle,
-                    render_order: imported.render_order ?? ec.render_order ?? 9999,
-                    ueId: ue.id,
-                    id_element_imported: imported.id,
-                    periodeId: periode.id,
-                    ecId: ec.id,
-                    type: ec.type,
-                    tag: 'importé' // 🟢 Affiche le label vert "Importée"
-                  }
-                })
-                .sort((a, b) => a.render_order - b.render_order)
-            ]
-          })),
-
-        // --- 🎓 ECs directement liés à la période ---
-        ...elementsConstitutifsStore.ecs
-          .slice()
-          .filter((ec) => ec.linked_periodes_maquette.some((lp) => lp.id === periode.id))
-          .sort((a, b) => a.render_order - b.render_order)
+          .filter((ec) => ec.unites_enseignement_id === ue.id)
           .map((ec) => ({
-            id: 'p-' + periode.id + '-ec-' + ec.id,
-            key: 'p-' + periode.id + '-ec-' + ec.id,
+            id: 'ec-' + ec.id,
+            key: 'ec-' + ec.id,
             title: ec.libelle,
             render_order: ec.render_order,
+            ueId: ue.id,
             periodeId: periode.id,
             ecId: ec.id,
             type: ec.type
-          })),
+          }))
 
-        // --- 🔄 ECs importés par mutualisation ---
-        ...(periode.ec_imported_by_mutualisation || [])
+        // --- ✅ ECs importés par mutualisation dans l’UE ---
+        const importedNodes = (ue.ecs_imported || [])
           .map((imported) => {
             const ec = elementsConstitutifsStore.ecs.find(
               (e) => e.id === imported.element_constitutif_id
             )
             if (!ec) return null
-
             return {
-              id: `p-${periode.id}-ec-imported-${ec.id}`,
-              key: `p-${periode.id}-ec-imported-${ec.id}`,
+              id: `ue-${ue.id}-ec-imported-${ec.id}`,
+              key: `ue-${ue.id}-ec-imported-${ec.id}`,
               title: ec.libelle,
               render_order: imported.render_order ?? ec.render_order ?? 9999,
-              periodeId: periode.id,
+              ueId: ue.id,
               id_element_imported: imported.id,
+              periodeId: periode.id,
               ecId: ec.id,
               type: ec.type,
-              tag: 'importé' // ✅ tag spécifique pour différencier
+              tag: 'importé' // 🟢 Affiche le label vert "Importée"
             }
           })
           .filter(Boolean)
-          .sort((a, b) => a.render_order - b.render_order),
 
-        // --- ➕ Boutons d’ajout ---
-        {
-          id: 'periode-' + periode.id + '-999-new-ec',
-          key: 'periode-' + periode.id + '-999-new-ec',
-          title: 'Ajouter un élément',
+        return {
+          id: 'ue-' + ue.id,
+          key: 'ue-' + ue.id,
+          title: ue.libelle,
+          render_order: ue.render_order,
+          ueId: ue.id,
           periodeId: periode.id,
-          render_order: 998,
-          addNewEcInUE: true
-        },
-        {
-          id: '-periode-' + periode.id + '-999-new-mutualisation',
-          key: '-periode-' + periode.id + '-999-new-mutualisation',
-          title: 'Importer une mutualisation',
-          periodeId: periode.id,
-          render_order: 999,
-          addNewMutualisation: true
+          type: 'UE',
+          // locaux et importés confondus, un seul tri
+          children: [...ecNodes, ...importedNodes].sort(byRenderOrder)
         }
-      ]
-    }))
+      })
+
+      // --- 🎓 ECs directement liés à la période ---
+      const rootEcNodes = elementsConstitutifsStore.ecs
+        .slice()
+        .filter((ec) => ec.linked_periodes_maquette.some((lp) => lp.id === periode.id))
+        .map((ec) => ({
+          id: 'p-' + periode.id + '-ec-' + ec.id,
+          key: 'p-' + periode.id + '-ec-' + ec.id,
+          title: ec.libelle,
+          render_order: ec.render_order,
+          periodeId: periode.id,
+          ecId: ec.id,
+          type: ec.type
+        }))
+
+      // --- 🔄 ECs importés par mutualisation à la racine de la période ---
+      const rootImportedNodes = (periode.ec_imported_by_mutualisation || [])
+        .map((imported) => {
+          const ec = elementsConstitutifsStore.ecs.find(
+            (e) => e.id === imported.element_constitutif_id
+          )
+          if (!ec) return null
+          return {
+            id: `p-${periode.id}-ec-imported-${ec.id}`,
+            key: `p-${periode.id}-ec-imported-${ec.id}`,
+            title: ec.libelle,
+            render_order: imported.render_order ?? ec.render_order ?? 9999,
+            periodeId: periode.id,
+            id_element_imported: imported.id,
+            ecId: ec.id,
+            type: ec.type,
+            tag: 'importé' // ✅ tag spécifique pour différencier
+          }
+        })
+        .filter(Boolean)
+
+      return {
+        id: 'periode-' + periode.id,
+        key: 'periode-' + periode.id,
+        title: periode.libelle,
+        idPeriod: periode.id,
+        type: 'periode',
+        children: [
+          // UEs, EC racine et EC importés tous confondus, un seul tri
+          ...[...ueNodes, ...rootEcNodes, ...rootImportedNodes].sort(byRenderOrder),
+
+          // --- ➕ Boutons d’ajout (toujours en fin de liste) ---
+          {
+            id: 'periode-' + periode.id + '-999-new-ec',
+            key: 'periode-' + periode.id + '-999-new-ec',
+            title: 'Ajouter un élément',
+            type: "addEC",
+            periodeId: periode.id,
+            render_order: 998,
+            addNewEcInUE: true
+          },
+          {
+            id: '-periode-' + periode.id + '-999-new-mutualisation',
+            key: '-periode-' + periode.id + '-999-new-mutualisation',
+            title: 'Importer une mutualisation',
+            type: "addImportMut",
+            periodeId: periode.id,
+            render_order: 999,
+            addNewMutualisation: true
+          }
+        ]
+      }
+    })
   }
 
   // Cas BCC (non semestre)
@@ -650,118 +681,138 @@ const treeList = computed(() => {
       type: 'competence',
 
       // à l’intérieur, tu réutilises la même logique que pour les périodes
-      children: periodeStore.periodes.map((periode) => ({
-        id: 'competence-' + comp.id + '-periode-' + periode.id,
-        key: 'competence-' + comp.id + '-periode-' + periode.id,
-        title: periode.libelle,
-        idPeriod: periode.id,
-        type: 'periode',
-        children: [
-          // UEs
-          ...periode.unites_enseignement
+      children: periodeStore.periodes.map((periode) => {
+        // UEs (enfants : EC locaux + importés, filtrés par compétence, triés ensemble)
+        const ueNodes = periode.unites_enseignement.slice().map((ue) => {
+          const ecNodes = elementsConstitutifsStore.ecs
             .slice()
-            .sort((a, b) => a.render_order - b.render_order)
-            .map((ue) => ({
-              id: 'competence-' + comp.id + '-ue-' + ue.id,
-              key: 'competence-' + comp.id + '-ue-' + ue.id,
-              title: ue.libelle,
-              render_order: ue.render_order,
-              ueId: ue.id,
-              periodeId: periode.id,
-              competenceId: comp.id,
-              type: 'UE',
-              children: [
-                ...elementsConstitutifsStore.ecs
-                  .slice()
-                  .filter((ec) => ec.unites_enseignement_id === ue.id)
-                  .filter(ec => {
-    if (ec.type !== 'enseignement') return true // garder tous les autres types
-    if (!ec.enseignement_id) return false
-
-    const enseignement = enseignementsStore.enseignements.find(e => e.id === ec.enseignement_id)
-    if (!enseignement) return false
-
-    const apprentissages = enseignement.apprentissages_critiques || []
-
-    const resultNiveauxCompetences = apprentissages
-      .map(ac => Number(ac.niveau?.competence_id))
-      .filter(Boolean)
-
-    return resultNiveauxCompetences.includes(Number(comp.id))
-  })
-                  .sort((a, b) => a.render_order - b.render_order)
-                  .map((ec) => ({
-                    id: 'competence-' + comp.id + '-ec-' + ec.id,
-                    key: 'competence-' + comp.id + '-ec-' + ec.id,
-                    title: ec.libelle,
-                    render_order: ec.render_order,
-                    ueId: ue.id,
-                    periodeId: periode.id,
-                    competenceId: comp.id,
-                    ecId: ec.id,
-                    type: ec.type
-                  }))
-              ]
-            })),
-
-          // ECs directement liés à la période
-          ...elementsConstitutifsStore.ecs
-            .slice()
-            .filter((ec) => ec.linked_periodes_maquette.some((lp) => lp.id === periode.id))
-.filter(ec => {
-  if (ec.type !== 'enseignement') return true // garder tous les autres types
-  if (!ec.enseignement_id) return false
-
-  const enseignement = enseignementsStore.enseignements.find(e => e.id === ec.enseignement_id)
-  if (!enseignement) return false
-
-  const apprentissages = enseignement.apprentissages_critiques || []
-
-  // debugger
-  apprentissages.forEach(ac => {
-    console.log('EC:', ec.libelle, 'AC:', ac.libelle, 'niveau.competence_id:', ac.niveau?.competence_id)
-  })
-
-  const resultNiveauxCompetences = apprentissages
-    .map(ac => Number(ac.niveau?.competence_id)) // forcer le type Number
-    .filter(Boolean)
-
-  return resultNiveauxCompetences.includes(Number(comp.id))
-})
-
-            .sort((a, b) => a.render_order - b.render_order)
+            .filter((ec) => ec.unites_enseignement_id === ue.id)
+            .filter((ec) => ecMatchesCompetence(ec, comp.id))
             .map((ec) => ({
-              id: 'competence-' + comp.id + '-p-' + periode.id + '-ec-' + ec.id,
-              key: 'competence-' + comp.id + '-p-' + periode.id + '-ec-' + ec.id,
+              id: 'competence-' + comp.id + '-ec-' + ec.id,
+              key: 'competence-' + comp.id + '-ec-' + ec.id,
               title: ec.libelle,
               render_order: ec.render_order,
+              ueId: ue.id,
               periodeId: periode.id,
               competenceId: comp.id,
               ecId: ec.id,
               type: ec.type
-            })),
+            }))
 
-          // Bouton d’ajout
-          {
-            id: 'competence-' + comp.id + '-periode-' + periode.id + '-999-new-ec',
-            key: 'competence-' + comp.id + '-periode-' + periode.id + '-999-new-ec',
-            title: 'Ajouter un élément',
+          // ECs importés par mutualisation dans l’UE
+          const importedNodes = (ue.ecs_imported || [])
+            .map((imported) => {
+              const ec = elementsConstitutifsStore.ecs.find(
+                (e) => e.id === imported.element_constitutif_id
+              )
+              if (!ec) return null
+              // EC externe : on garde si l'enseignement n'est pas résolvable localement
+              if (!ecMatchesCompetence(ec, comp.id, true)) return null
+              return {
+                id: `competence-${comp.id}-ue-${ue.id}-ec-imported-${ec.id}`,
+                key: `competence-${comp.id}-ue-${ue.id}-ec-imported-${ec.id}`,
+                title: ec.libelle,
+                render_order: imported.render_order ?? ec.render_order ?? 9999,
+                ueId: ue.id,
+                id_element_imported: imported.id,
+                periodeId: periode.id,
+                competenceId: comp.id,
+                ecId: ec.id,
+                type: ec.type,
+                tag: 'importé'
+              }
+            })
+            .filter(Boolean)
+
+          return {
+            id: 'competence-' + comp.id + '-ue-' + ue.id,
+            key: 'competence-' + comp.id + '-ue-' + ue.id,
+            title: ue.libelle,
+            render_order: ue.render_order,
+            ueId: ue.id,
             periodeId: periode.id,
             competenceId: comp.id,
-            render_order: 998,
-            addNewEcInUE: true
-          },
-          {
-            id: 'competence-' + comp.id + '-periode-' + periode.id + '-999-new-mutualisation',
-            key: 'competence-' + comp.id + '-periode-' + periode.id + '-999-new-mutualisation',
-            title: 'Importer une mutualisation',
-            periodeId: periode.id,
-            competenceId: comp.id,
-            render_order: 999,
-            addNewMutualisation: true
+            type: 'UE',
+            // locaux et importés confondus, un seul tri
+            children: [...ecNodes, ...importedNodes].sort(byRenderOrder)
           }
-        ]
-      }))
+        })
+
+        // ECs directement liés à la période
+        const rootEcNodes = elementsConstitutifsStore.ecs
+          .slice()
+          .filter((ec) => ec.linked_periodes_maquette.some((lp) => lp.id === periode.id))
+          .filter((ec) => ecMatchesCompetence(ec, comp.id))
+          .map((ec) => ({
+            id: 'competence-' + comp.id + '-p-' + periode.id + '-ec-' + ec.id,
+            key: 'competence-' + comp.id + '-p-' + periode.id + '-ec-' + ec.id,
+            title: ec.libelle,
+            render_order: ec.render_order,
+            periodeId: periode.id,
+            competenceId: comp.id,
+            ecId: ec.id,
+            type: ec.type
+          }))
+
+        // ECs importés par mutualisation à la racine de la période
+        const rootImportedNodes = (periode.ec_imported_by_mutualisation || [])
+          .map((imported) => {
+            const ec = elementsConstitutifsStore.ecs.find(
+              (e) => e.id === imported.element_constitutif_id
+            )
+            if (!ec) return null
+            // EC externe : on garde si l'enseignement n'est pas résolvable localement
+            if (!ecMatchesCompetence(ec, comp.id, true)) return null
+            return {
+              id: `competence-${comp.id}-p-${periode.id}-ec-imported-${ec.id}`,
+              key: `competence-${comp.id}-p-${periode.id}-ec-imported-${ec.id}`,
+              title: ec.libelle,
+              render_order: imported.render_order ?? ec.render_order ?? 9999,
+              periodeId: periode.id,
+              id_element_imported: imported.id,
+              competenceId: comp.id,
+              ecId: ec.id,
+              type: ec.type,
+              tag: 'importé'
+            }
+          })
+          .filter(Boolean)
+
+        return {
+          id: 'competence-' + comp.id + '-periode-' + periode.id,
+          key: 'competence-' + comp.id + '-periode-' + periode.id,
+          title: periode.libelle,
+          idPeriod: periode.id,
+          type: 'periode',
+          children: [
+            // UEs, EC racine et EC importés tous confondus, un seul tri
+            ...[...ueNodes, ...rootEcNodes, ...rootImportedNodes].sort(byRenderOrder),
+
+            // Boutons d’ajout (toujours en fin de liste)
+            {
+              id: 'competence-' + comp.id + '-periode-' + periode.id + '-999-new-ec',
+              key: 'competence-' + comp.id + '-periode-' + periode.id + '-999-new-ec',
+              title: 'Ajouter un élément',
+              periodeId: periode.id,
+              competenceId: comp.id,
+              render_order: 998,
+              type: "addPeriode",
+              addNewEcInUE: true
+            },
+            {
+              id: 'competence-' + comp.id + '-periode-' + periode.id + '-999-new-mutualisation',
+              key: 'competence-' + comp.id + '-periode-' + periode.id + '-999-new-mutualisation',
+              title: 'Importer une mutualisation',
+              periodeId: periode.id,
+              type: "addImportMutBcc",
+              competenceId: comp.id,
+              render_order: 999,
+              addNewMutualisation: true
+            }
+          ]
+        }
+      })
     }))
 })
 
@@ -774,82 +825,138 @@ const fetchEns = (item) => {
 }
 
 const initData = async () => {
-  await enseignementsStore.fetchEnseignements();
+  await nextTick();
 }
 
-initData();
+initData()
 
 // initData()
 const selectItem = (item) => {
-  emit('update:selectedData', {
-    id: item.ecId,
-    type: item.type,
-    title: item.title
-  })
+  if (item.type === 'UE') {
+    emit('update:selectedData', {
+      id: item.ueId,
+      is_imported: item.id_element_imported ? true : false,
+      type: item.type,
+      title: item.title
+    })
+  } else {
+    emit('update:selectedData', {
+      id: item.ecId,
+      is_imported: item.id_element_imported ? true : false,
+      type: item.type,
+      title: item.title
+    })
+  }
+}
+
+// --- Drag & Drop : helpers ---
+
+const ecTypes = ['enseignement', 'AMS', 'Portfolio', 'Stage', 'SAE']
+
+// Deux EC sont dans le même conteneur s'ils partagent la même UE,
+// ou s'ils sont tous les deux à la racine de la même période
+const isSameContainer = (a, b) => a.periodeId === b.periodeId && a.ueId === b.ueId
+
+// Une cible est compatible si le drop a réellement un sens métier.
+// C'est ce qui pilote à la fois le visuel (drop-target / drag-over)
+// ET l'autorisation effective du drop dans les handlers.
+const isCompatibleTarget = (target) => {
+  const d = draggedItem.value
+  if (!d || d.id === target.id) return false
+
+  // UE déplacée : interversion uniquement avec une autre UE de la même période
+  if (d.type === 'UE') {
+    return target.type === 'UE' && target.periodeId === d.periodeId
+  }
+
+  // EC (enseignement, AMS, Portfolio, Stage, SAE), importé ou non
+  if (target.type === 'periode') {
+    // sortir d'une UE vers la racine de la période
+    return d.ueId !== undefined && d.ueId !== null
+  }
+  if (target.type === 'UE') {
+    // déplacer l'EC dans une autre UE de la même période
+    return target.periodeId === d.periodeId && target.ueId !== d.ueId
+  }
+  // EC ↔ EC : interversion d'ordre, uniquement dans le même conteneur
+  return ecTypes.includes(target.type) && isSameContainer(d, target)
+}
+
+const isDragOver = (item) => {
+  return dragOverItem.value?.id === item.id && isCompatibleTarget(item)
 }
 
 const onDragStart = (event, item) => {
   draggedItem.value = item
 
-  // Utiliser un canvas vide pour ne pas casser le drag
-  const canvas = document.createElement('canvas')
-  canvas.width = 0
-  canvas.height = 0
-  event.dataTransfer.setDragImage(canvas, 0, 0)
+  // Ghost personnalisé : une "pill" avec l'icône implicite du libellé,
+  // attachée au curseur pendant tout le drag
+  const ghost = document.createElement('div')
+  ghost.className = 'tree-drag-ghost'
+  ghost.textContent = item.title.charAt(0).toUpperCase() + item.title.slice(1)
+  document.body.appendChild(ghost)
+  event.dataTransfer.setDragImage(ghost, 16, 22)
+
+  // Le ghost doit exister au moment du setDragImage,
+  // on le retire juste après que le navigateur en ait fait sa capture
+  requestAnimationFrame(() => {
+    if (ghost.parentNode) ghost.parentNode.removeChild(ghost)
+  })
 
   event.dataTransfer.effectAllowed = 'move'
 }
 
-const onDragEnd = () => {
+// Compteur d'enter/leave par item : le dragleave natif se déclenche
+// quand on survole un enfant de la cible, ce qui fait scintiller le
+// highlight. Le compteur ne retire le drag-over qu'à la vraie sortie.
+const dragCounters = ref({})
+
+const resetDragState = () => {
   draggedItem.value = null
   dragOverItem.value = null
+  dragCounters.value = {}
+}
+
+const onDragEnd = () => {
+  resetDragState()
 }
 
 const onDragEnter = (item) => {
+  if (!isCompatibleTarget(item)) return
+  dragCounters.value[item.id] = (dragCounters.value[item.id] || 0) + 1
   dragOverItem.value = item
 }
 
 const onDragLeave = (item) => {
-  if (dragOverItem.value?.id === item.id) {
+  if (!dragCounters.value[item.id]) return
+  dragCounters.value[item.id] -= 1
+  if (dragCounters.value[item.id] <= 0 && dragOverItem.value?.id === item.id) {
     dragOverItem.value = null
   }
 }
 
 const onDropOnPeriod = async (event, targetItem) => {
-  console.log('drop on period')
-  if (!draggedItem.value || draggedItem.value.id === targetItem.id) {
-    console.log('error 1')
-    draggedItem.value = null
+  if (!draggedItem.value || !isCompatibleTarget(targetItem)) {
+    resetDragState()
     return
   }
-  if (draggedItem.value.type === 'UE' || draggedItem.type === 'periode') {
-    console.log('error 2')
-    draggedItem.value = null
-    return
-  }
+  const dragged = draggedItem.value
 
-  if (draggedItem.value.tag === 'importé') {
-    console.log(draggedItem.value)
+  if (dragged.tag === 'importé') {
     await elementsConstitutifsStore.importedOutOfUE(
-      draggedItem.value.ueId,
-      draggedItem.value.periodeId,
-      draggedItem.value.id_element_imported
+      dragged.ueId,
+      dragged.periodeId,
+      dragged.id_element_imported
     )
-    draggedItem.value = null
-    return
+  } else {
+    await elementsConstitutifsStore.ecOutOfUeToPeriod(
+      dragged.ecId,
+      dragged.ueId,
+      targetItem.idPeriod
+    )
   }
 
-  console.log(draggedItem.value, targetItem)
-  console.log('Move EC out of UE to period')
-  console.log(draggedItem.value.id, draggedItem.value.ueId, targetItem.id)
-  await elementsConstitutifsStore.ecOutOfUeToPeriod(
-    draggedItem.value.ecId,
-    draggedItem.value.ueId,
-    targetItem.idPeriod
-  )
-
-  draggedItem.value = null
-  dragOverItem.value = null
+  resetDragState()
   refMaj.value += 1
   await nextTick()
 }
@@ -861,88 +968,90 @@ const changeImportedElementOfUE = async (importedItem, targetUE) => {
       importedItem.id_element_imported,
       targetUE.ueId
     )
-    console.log(
-      `Élément importé ${importedItem.id_element_imported} déplacé vers UE ${targetUE.ueId}`
-    )
   } catch (error) {
     console.error("Erreur lors du déplacement d'un élément importé :", error)
   }
 }
 
 const onDropOnUE = async (event, targetItem) => {
-  if (!draggedItem.value || draggedItem.value.id === targetItem.id) {
-    draggedItem.value = null
+  if (!draggedItem.value || !isCompatibleTarget(targetItem)) {
+    resetDragState()
     return
   }
+  const dragged = draggedItem.value
 
-  if (draggedItem.value.periodeId !== targetItem.periodeId) {
-    console.error("Impossible de changer l'ordre de deux EC dans des périodes différentes")
-    draggedItem.value = null
-    return
-  }
-  console.log(draggedItem.value, targetItem)
-
-  if (draggedItem.value.tag === 'importé') {
-    await changeImportedElementOfUE(draggedItem.value, targetItem)
-    draggedItem.value = null
-    return
-  }
-
-  if (draggedItem.value.type === 'UE') {
-    //Change render order of UEs
-    const oldRO = draggedItem.value.render_order
-    await periodeStore.changeRenderOrderOfUE(draggedItem.value.ueId, targetItem.render_order)
+  // UE ↔ UE : interversion de l'ordre d'affichage (rangement des blocs)
+  if (dragged.type === 'UE') {
+    const oldRO = dragged.render_order
+    await periodeStore.changeRenderOrderOfUE(dragged.ueId, targetItem.render_order)
     await periodeStore.changeRenderOrderOfUE(targetItem.ueId, oldRO)
-
-    draggedItem.value = null
+    resetDragState()
+    refMaj.value += 1
+    await nextTick()
     return
   }
+
+  // EC importé déplacé vers une autre UE
+  if (dragged.tag === 'importé') {
+    await changeImportedElementOfUE(dragged, targetItem)
+    resetDragState()
+    refMaj.value += 1
+    await nextTick()
+    return
+  }
+
+  // EC classique déplacé vers une autre UE
   await elementsConstitutifsStore.changeUEOFEC(
-    draggedItem.value.ecId,
+    dragged.ecId,
     targetItem.ueId,
-    draggedItem.value.ueId,
-    draggedItem.value.periodeId
+    dragged.ueId,
+    dragged.periodeId
   )
-  draggedItem.value = null
-  dragOverItem.value = null
+  resetDragState()
   refMaj.value += 1
   await nextTick()
 }
 
 const onDrop = async (event, targetItem) => {
-  if (!draggedItem.value || draggedItem.value.id === targetItem.id) {
-    draggedItem.value = null
+  if (!draggedItem.value || !isCompatibleTarget(targetItem)) {
+    resetDragState()
     return
   }
+  const dragged = draggedItem.value
 
-  if (draggedItem.value.periodeId !== targetItem.periodeId) {
-    console.error("Impossible de changer l'ordre de deux EC dans des périodes différentes")
-    draggedItem.value = null
-    return
-  }
+  // Interversion de l'ordre d'affichage : valable pour tous les types
+  // d'EC (enseignement, AMS, Portfolio, Stage, SAE), importés ou non.
+  // Chaque côté met à jour son propre support de render_order.
+  const draggedOrder = dragged.render_order
+  const targetOrder = targetItem.render_order
 
-  if (draggedItem.value.ueId !== targetItem.ueId) {
-    console.error("Impossible de changer l'ordre de deux EC dans des UE différentes")
-    draggedItem.value = null
-    return
-  }
+  await setRenderOrderOfItem(dragged, targetOrder)
+  await setRenderOrderOfItem(targetItem, draggedOrder)
 
-  await changeRenderOrderOfEC(draggedItem.value.id, targetItem.render_order, draggedItem.value.type)
-  await changeRenderOrderOfEC(targetItem.id, draggedItem.value.render_order, targetItem.type)
-  console.log(
-    `Dragging ${draggedItem.value.title} (id: ${draggedItem.value.id}, render_order: ${draggedItem.value.render_order}) to ${targetItem.title} (id: ${targetItem.id}, render_order: ${targetItem.render_order})`
-  )
-
-  draggedItem.value = null
-  dragOverItem.value = null
-
+  resetDragState()
+  refMaj.value += 1
   await nextTick()
 }
 
-const changeRenderOrderOfEC = (element, newOrder, type) => {
-  if (type === 'enseignement') {
-    console.log('hello')
-    enseignementsStore.changeRenderOrder(element, newOrder)
+// Met à jour l'ordre d'affichage d'un item, quel que soit son type
+const setRenderOrderOfItem = async (item, newOrder) => {
+  // Élément mutualisé : l'ordre est porté par l'enregistrement d'import,
+  // pas par l'EC source (qui appartient à une autre maquette)
+  if (item.tag === 'importé') {
+    await elementsConstitutifsStore.changeRenderOrderOfImported(item.id_element_imported, newOrder)
+    return
+  }
+
+  // Enseignement : on conserve le mécanisme existant
+  if (item.type === 'enseignement') {
+    await enseignementsStore.changeRenderOrder(item.id, newOrder)
+    return
+  }
+
+  // AMS, Portfolio, Stage, SAE : mise à jour directe de l'EC
+  const ec = elementsConstitutifsStore.ecs.find((e) => e.id === item.ecId)
+  if (ec) {
+    await elementsConstitutifsStore.updateEC({ ...ec, render_order: newOrder })
   }
 }
 
@@ -951,12 +1060,11 @@ const isCompetenceIsCurrentForThis = async (competenceId, enseignementId) => {
   if (!result.apprentissages_critiques || result.apprentissages_critiques.length === 0) return false
 
   const resultNiveauxCompetences = result.apprentissages_critiques
-    .map(ac => ac.niveau?.competence_id)
+    .map((ac) => ac.niveau?.competence_id)
     .filter(Boolean) // enlever les undefined
 
   return resultNiveauxCompetences.includes(competenceId)
 }
-
 
 watch(
   () => refMaj.value,
@@ -969,7 +1077,6 @@ watch(
   () => props.refKeyRefreshTreeView,
   async () => {
     refMaj.value += 1
-    console.log('refresh tree view from parent')
     await nextTick()
   }
 )
@@ -994,43 +1101,170 @@ watch(
 )
 </script>
 
+<!-- Style global : le ghost est attaché à <body>, hors de la portée du scoped -->
+<style>
+.tree-drag-ghost {
+  position: fixed;
+  top: -1000px;
+  left: -1000px;
+  z-index: 9999;
+  pointer-events: none;
+
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  max-width: 320px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+
+  padding: 8px 16px 8px 14px;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+
+  background: #1e293b;
+  color: #f8fafc;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+
+  box-shadow:
+    0 8px 20px rgba(15, 23, 42, 0.35),
+    0 2px 6px rgba(15, 23, 42, 0.25);
+}
+
+.tree-drag-ghost::before {
+  content: '⠿';
+  font-size: 14px;
+  opacity: 0.55;
+}
+</style>
+
 <style scoped>
+/* ---------- Base des items ---------- */
+.tree-item {
+  position: relative;
+  padding: 4px 10px;
+  border-radius: 8px;
+  border-left: 3px solid transparent;
+  transition:
+    background-color 0.18s ease,
+    border-color 0.18s ease,
+    box-shadow 0.18s ease,
+    opacity 0.18s ease,
+    transform 0.18s ease;
+}
+
 .item-block {
   padding: 6px 10px;
-  border-radius: 8px;
-  transition: all 0.2s ease-in-out;
-  cursor: grab;
   user-select: none;
 }
 
-/* zone activée par le drag (drop possible) */
-.drop-zone {
-  border: 2px dashed #cbd5e1; /* gris élégant */
-  border-radius: 10px;
-  background: #f9fafb;
-  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.05);
-  transform: scale(0.99);
-  transition: all 0.15s ease-in-out;
+/* ---------- Ligne EC : poignée + contenu ---------- */
+.ec-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
-/* élément en cours de drag */
-.dragging {
-  opacity: 0.6;
-  background: #1e293b; /* gris foncé élégant */
-  color: #f8fafc; /* texte clair */
-  border-radius: 10px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
-  transform: scale(1.02);
+.ec-content {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* ---------- Poignée de drag (bouton 4 flèches) ---------- */
+/* Seule la poignée est draggable : plus de drags accidentels
+   quand on clique sur un libellé ou un bouton d'édition */
+.drag-handle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  color: #94a3b8;
+  cursor: grab;
+  opacity: 0.45;
+  transition:
+    opacity 0.15s ease,
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.tree-item:hover .drag-handle {
+  opacity: 1;
+}
+
+.drag-handle:hover {
+  background: rgba(148, 163, 184, 0.18);
+  color: #475569;
+}
+
+.drag-handle:active {
   cursor: grabbing;
 }
 
-/* élément survolé pendant un drag */
-.drag-over {
-  background: #ecfeff; /* bleu clair très doux */
-  border: 2px solid #06b6d4; /* cyan tailwind */
-  box-shadow: 0 0 6px rgba(6, 182, 212, 0.4);
-  transform: scale(1.01);
-  transition: all 0.12s ease-in-out;
+/* ---------- Élément en cours de drag : effet "fantôme" ---------- */
+/* L'original reste à sa place, estompé, pour qu'on visualise d'où il part */
+.dragging {
+  opacity: 0.35;
+  filter: grayscale(0.6);
+  border: 1.5px dashed #94a3b8;
+  border-radius: 10px;
+  background: #f8fafc;
+  box-shadow: none;
+  transform: scale(0.99);
+}
+
+/* ---------- Cibles de drop valides (drag en cours) ---------- */
+/* Indication très discrète : on évite l'effet "sapin de Noël" */
+.drop-target:not(.dragging) {
+  outline: 1.5px dashed rgba(148, 163, 184, 0.35);
+  outline-offset: -1.5px;
+  border-radius: 10px;
+}
+
+/* ---------- Cible survolée : feedback fort et net ---------- */
+.drag-over:not(.dragging) {
+  outline: none;
+  background: linear-gradient(90deg, rgba(6, 182, 212, 0.12), rgba(6, 182, 212, 0.04));
+  border-left: 3px solid #06b6d4;
+  box-shadow:
+    0 0 0 1.5px rgba(6, 182, 212, 0.45),
+    0 4px 14px rgba(6, 182, 212, 0.18);
+  transform: translateX(2px);
+  animation: dropPulse 1.2s ease-in-out infinite;
+}
+
+@keyframes dropPulse {
+  0%,
+  100% {
+    box-shadow:
+      0 0 0 1.5px rgba(6, 182, 212, 0.45),
+      0 4px 14px rgba(6, 182, 212, 0.18);
+  }
+  50% {
+    box-shadow:
+      0 0 0 1.5px rgba(6, 182, 212, 0.7),
+      0 4px 18px rgba(6, 182, 212, 0.3);
+  }
+}
+
+/* Périodes : cible de "sortie d'UE", on la signale un peu plus */
+.periode-item.drop-target:not(.drag-over) {
+  background: rgba(148, 163, 184, 0.06);
+}
+
+/* Accessibilité : pas d'animation si l'utilisateur la refuse */
+@media (prefers-reduced-motion: reduce) {
+  .tree-item {
+    transition: none;
+  }
+  .drag-over:not(.dragging) {
+    animation: none;
+    transform: none;
+  }
 }
 
 /* suppression des hover/default pour les items "ajout" */

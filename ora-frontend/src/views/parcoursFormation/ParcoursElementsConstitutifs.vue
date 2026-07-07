@@ -160,10 +160,6 @@ const selectPeriodes = () => {
 }
 
 
-// watch(() => competenceStore.competences, (newCompetences) => {
-//     console.log('watch competences from apprentissages', newCompetences);
-//     competencesListOfSelectedVersion.value = newCompetences;
-// });
 </script>
 
 <style scoped>

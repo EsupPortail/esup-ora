@@ -41,7 +41,7 @@
   </div>
   <div v-if="isCreating">
     <v-overlay :model-value="true" class="align-center justify-center">
-      <v-progress-circular color="primary" size="64" indeterminate></v-progress-circular>
+      <v-progress-circular color="primary" contained size="64" indeterminate></v-progress-circular>
     </v-overlay>
   </div>
 </template>
@@ -164,19 +164,40 @@ const createPDF = async () => {
     } else {
       // === Découpage en deux tableaux ===
       const headersPart1 = [
-        'Libellé', 'Type', 'Unité d’enseignement', 'Volume TP', 'Volume TD',
-        'Volume CM', 'Volume PT', 'Volume Étudiant', 'Volume CM+TD',
-        'Crédits ECTS', 'Travail personnel', 'Nb Étudiants min', 'Nb Étudiants max',
-        'Présentiel', 'Est présentiel', 'Est distanciel'
+        'Libellé',
+        'Type',
+        'Unité d’enseignement',
+        'Volume TP',
+        'Volume TD',
+        'Volume CM',
+        'Volume PT',
+        'Volume Étudiant',
+        'Volume CM+TD',
+        'Crédits ECTS',
+        'Travail personnel',
+        'Nb Étudiants min',
+        'Nb Étudiants max',
+        'Présentiel',
+        'Est présentiel',
+        'Est distanciel'
       ]
 
       const headersPart2 = [
-        'Libellé', 'Type', 'Est hybride', 'Est optionnel', 'Obligatoire',
-        'Ouvert Intern.', 'Connecté à', 'Isolé', 'Associé', 'Description', 'Commentaire'
+        'Libellé',
+        'Type',
+        'Est hybride',
+        'Est optionnel',
+        'Obligatoire',
+        'Ouvert Intern.',
+        'Connecté à',
+        'Isolé',
+        'Associé',
+        'Description',
+        'Commentaire'
       ]
 
-      const tableBody1 = [headersPart1.map(h => ({ text: h, bold: true, fillColor: '#f2f2f2' }))]
-      const tableBody2 = [headersPart2.map(h => ({ text: h, bold: true, fillColor: '#f2f2f2' }))]
+      const tableBody1 = [headersPart1.map((h) => ({ text: h, bold: true, fillColor: '#f2f2f2' }))]
+      const tableBody2 = [headersPart2.map((h) => ({ text: h, bold: true, fillColor: '#f2f2f2' }))]
 
       for (const ec of ecs) {
         tableBody1.push([
@@ -205,7 +226,7 @@ const createPDF = async () => {
           ec.est_optionnel ? 'Oui' : 'Non',
           ec.obligatoire ? 'Oui' : 'Non',
           ec.est_ouvert_etudiants_internationaux ? 'Oui' : 'Non',
-          (ec.connected_to || []).map(c => c.libelle).join(', '),
+          (ec.connected_to || []).map((c) => c.libelle).join(', '),
           ec.est_isole ? 'Oui' : 'Non',
           ec.est_assoce ? 'Oui' : 'Non',
           ec.description || '',
@@ -215,21 +236,43 @@ const createPDF = async () => {
 
       // === Premier tableau ===
       content.push({
-        table: { headerRows: 1, body: tableBody1, widths: [60,45,60,30,30,30,30,35,35,30,35,35,35,30,40,40] },
-        layout: { hLineColor: ()=>'#ccc', vLineColor: ()=>'#ccc', hLineWidth: ()=>0.5, vLineWidth: ()=>0.5 },
+        table: {
+          headerRows: 1,
+          body: tableBody1,
+          widths: [60, 45, 60, 30, 30, 30, 30, 35, 35, 30, 35, 35, 35, 30, 40, 40]
+        },
+        layout: {
+          hLineColor: () => '#ccc',
+          vLineColor: () => '#ccc',
+          hLineWidth: () => 0.5,
+          vLineWidth: () => 0.5
+        },
         fontSize: 9,
-        margin: [0,0,0,12]
+        margin: [0, 0, 0, 12]
       })
 
       // === Saut de page + second tableau ===
       content.push({ text: '', pageBreak: 'after' })
-      content.push({ text: 'Éléments constitutifs (suite)', style: 'sectionHeader', margin: [0,0,0,8] })
+      content.push({
+        text: 'Éléments constitutifs (suite)',
+        style: 'sectionHeader',
+        margin: [0, 0, 0, 8]
+      })
 
       content.push({
-        table: { headerRows: 1, body: tableBody2, widths: [60,45,40,40,35,40,60,30,30,100,100] },
-        layout: { hLineColor: ()=>'#ccc', vLineColor: ()=>'#ccc', hLineWidth: ()=>0.5, vLineWidth: ()=>0.5 },
+        table: {
+          headerRows: 1,
+          body: tableBody2,
+          widths: [60, 45, 40, 40, 35, 40, 60, 30, 30, 100, 100]
+        },
+        layout: {
+          hLineColor: () => '#ccc',
+          vLineColor: () => '#ccc',
+          hLineWidth: () => 0.5,
+          vLineWidth: () => 0.5
+        },
         fontSize: 9,
-        margin: [0,0,0,12]
+        margin: [0, 0, 0, 12]
       })
     }
 
@@ -257,7 +300,6 @@ const createPDF = async () => {
     isCreated.value = false
   }
 }
-
 
 const downloadPDF = () => {
   if (!pdfDoc.value) return

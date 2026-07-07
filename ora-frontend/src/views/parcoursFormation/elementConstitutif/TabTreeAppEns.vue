@@ -1,23 +1,31 @@
 <template>
-  <v-row class="align-end">
-    <v-col offset="3" cols="4" style="padding-left: 0px; padding-right: 0px">
-      <div class="headers-strip">
-        <div v-for="ens in enseignementsP1List" :key="'header-p1-' + ens.id" class="header-cell">
-          <span class="header-tilt">{{ ens.libelle }}</span>
+  <v-row no-gutters class="align-end">
+    <v-col>
+      <div class="headers-zone">
+        <div class="headers-strip">
+          <div
+            v-for="ens in enseignementsP1List"
+            :key="'header-p1-' + ens.id"
+            class="header-cell"
+          >
+            <span class="header-tilt">{{ ens.libelle }}</span>
+          </div>
         </div>
-      </div>
-    </v-col>
-    <v-col cols="4" style="padding-left: 62px; padding-right: 0px">
-      <div class="headers-strip">
-        <div v-for="ens in enseignementsP2List" :key="'header-p2-' + ens.id" class="header-cell">
-          <span class="header-tilt">{{ ens.libelle }}</span>
+        <div v-if="enseignementsP2List.length" class="headers-strip">
+          <div
+            v-for="ens in enseignementsP2List"
+            :key="'header-p2-' + ens.id"
+            class="header-cell"
+          >
+            <span class="header-tilt">{{ ens.libelle }}</span>
+          </div>
         </div>
       </div>
     </v-col>
   </v-row>
 
-  <v-container fluid style="padding-top: 0px;">
-    <div style="height: 600px; overflow-y: auto">
+  <v-container fluid style="padding-top: 0px">
+    <div class="tree-scroll">
       <v-treeview
         v-if="treesList.length > 0"
         :hide-actions="!actionIcons"
@@ -30,7 +38,8 @@
         :hoverable="false"
         :item-disabled="isLeafDisabled"
         open-on-click
-        :open="opened"
+        v-model:opened="opened"
+
       >
         <template v-if="prependIcons" v-slot:prepend="{ item, isOpen }">
           <v-progress-circular
@@ -41,64 +50,68 @@
 
           <v-icon :icon="item.icon"></v-icon>
         </template>
+
         <template v-slot:title="{ item }">
-          <v-row :style="item.color ? { backgroundColor: item.color, color: 'white' } : {}">
-            <v-col cols="2" :style="!item.children ? 'padding-top: 36px;' : ''">
-              <span v-if="item.title.length <= 16">{{ item.title }}</span>
-              <span v-else>
-                <span v-if="!item.children" v-for="(line, idx) in item.title.match(/.{1,28}/g)" :key="idx">
+          <div
+            class="tree-row"
+            :style="item.color ? { backgroundColor: item.color, color: 'white' } : {}"
+          >
+            <div class="tree-title">
+              <template v-if="!item.children && item.title.length > 16">
+                <span v-for="(line, idx) in item.title.match(/.{1,28}/g)" :key="idx">
                   {{ line }}<br />
                 </span>
-                <span v-else>{{ item.title }}</span>
-              </span>
-            </v-col>
-            <v-col cols="5">
-              <v-radio-group
-                v-if="!item.children"
-                v-for="ens in enseignementsP1List"
-                :key="`${item.idAc}-${ens.id}`"
-                :model-value="getRadioValue(item.idAc, ens.id)"
-                @update:model-value="(val) => onRadioUpdate(val, item.idAc, ens.id)"
-                class="d-inline-block"
-                style="padding-top: 20px"
-              >
-                <template v-if="isLoadingRadioButton(item.idAc, ens.id)">
-                  <v-progress-circular indeterminate small />
-                </template>
-                <template v-else>
+              </template>
+              <template v-else>{{ item.title }}</template>
+            </div>
+
+            <div v-if="!item.children" class="cells-zone">
+              <div class="cells-strip">
+                <div
+                  v-for="ens in enseignementsP1List"
+                  :key="`${item.idAc}-${ens.id}`"
+                  class="radio-cell"
+                >
+                  <v-progress-circular
+                    v-if="isLoadingRadioButton(item.idAc, ens.id)"
+                    indeterminate
+                    size="16"
+                    width="2"
+                  />
                   <v-radio
+                    v-else
+                    :model-value="getRadioValue(item.idAc, ens.id)"
                     :value="item.idAc"
                     density="compact"
                     hide-details
                     @click="onRadioClick(item.idAc, ens.id)"
                   />
-                </template>
-              </v-radio-group>
-            </v-col>
-            <v-col cols="5">
-              <v-radio-group
-                v-if="!item.children"
-                v-for="ens in enseignementsP2List"
-                :key="`${item.id}-${ens.id}`"
-                :model-value="getRadioValue(item.idAc, ens.id)"
-                @update:model-value="(val) => onRadioUpdate(val, item.idAc, ens.id)"
-                class="d-inline-block"
-                style="padding-top: 20px"
-              >
-                <template v-if="isLoadingRadioButton(item.idAc, ens.id)">
-                  <v-progress-circular indeterminate small />
-                </template>
-                <template v-else>
+                </div>
+              </div>
+              <div v-if="enseignementsP2List.length" class="cells-strip">
+                <div
+                  v-for="ens in enseignementsP2List"
+                  :key="`${item.idAc}-p2-${ens.id}`"
+                  class="radio-cell"
+                >
+                  <v-progress-circular
+                    v-if="isLoadingRadioButton(item.idAc, ens.id)"
+                    indeterminate
+                    size="16"
+                    width="2"
+                  />
                   <v-radio
+                    v-else
+                    :model-value="getRadioValue(item.idAc, ens.id)"
                     :value="item.idAc"
                     density="compact"
                     hide-details
                     @click="onRadioClick(item.idAc, ens.id)"
                   />
-                </template>
-              </v-radio-group>
-            </v-col>
-          </v-row>
+                </div>
+              </div>
+            </div>
+          </div>
         </template>
       </v-treeview>
     </div>
@@ -110,12 +123,10 @@ import {
   computed,
   defineProps,
   ref,
-  watch,
   shallowRef,
-  onUnmounted,
+  watch,
   defineEmits,
-  nextTick,
-  onMounted
+  nextTick
 } from 'vue'
 import { useCompetenceStore } from '@/stores/competenceStore'
 import { useEnseignementStore } from '@/stores/enseignementStore'
@@ -145,40 +156,38 @@ const enseignementsP2List = ref([])
 
 const emit = defineEmits(['refreshTreeView'])
 
-const enseignmentsLinkedList = computed( () => {
-  return enseignementsStore.enseignements.filter(e =>
-    enseignementsP1List.value.some(p1 => p1.id === e.id) ||
-    enseignementsP2List.value.some(p2 => p2.id === e.id)
+const enseignmentsLinkedList = computed(() => {
+  return enseignementsStore.enseignements.filter(
+    (e) =>
+      enseignementsP1List.value.some((p1) => p1.id === e.id) ||
+      enseignementsP2List.value.some((p2) => p2.id === e.id)
   )
 })
 
+const refMaj = ref(0)
+
 const treeKey = computed(() => {
-  //Changer ici les objets d'écoute pour refresh le treeview
+  // Changer ici les objets d'écoute pour refresh le treeview
   return JSON.stringify({
     enseignementsStoreCount: enseignmentsLinkedList.value.length,
     competencesCount: competencesList.value.length,
-    enseignementsLinkedList: enseignmentsLinkedList.value.map(e => e.libelle),
-    competencesLibelles: competencesList.value.map(c => c.libelle),
+    enseignementsLinkedList: enseignmentsLinkedList.value.map((e) => e.libelle),
+    competencesLibelles: competencesList.value.map((c) => c.libelle),
     refMaj: refMaj.value
   })
 })
-const refMaj = ref(0);
-
 
 const treesList = ref([])
 
-const inline = ref(true)
 const separateRoots = shallowRef(false)
 const actionIcons = shallowRef(true)
 const prependIcons = shallowRef(true)
 const indentLines = shallowRef(true)
 
 const ensAcIsChecked = ref([])
-const headersWrapper = ref(null)
-const wrapperOffset = ref(0)
 const isLoading = ref(false)
 
-const opened = ref([]);
+const opened = ref([])
 
 const isLeafDisabled = (item) => {
   return item.children
@@ -195,48 +204,51 @@ const initData = async () => {
     niveauWithName.push(n)
   })
   niveauWithName.filter((n) => props.niveauxSelected.some((selectedId) => selectedId === n.id))
+
   competenceStore.competences
-  .filter((c) => props.competencesSelected.includes(c.id))
-  .forEach((competence) => {
-    let tree = {
-      id: 'comp-' + competence.id,
-      idCompetence: competence.id,
-      title: competence.competence_contextualisee || competence.libelle,
-      color: competence.color_hexadecimal,
-      icon: 'mdi-bullseye',
-      children: []
-    }
-    competence.niveau = competence.niveau.filter((niveau) =>
-      niveauWithName.some((n) => n.libelle === niveau.libelle)
-    )
-    // Trier les niveaux par id croissant
-    competence.niveau.sort((a, b) => a.id - b.id).forEach((niveau, index) => {
-      let children = {
-        id: 'niveau-' + niveau.id,
-        idNiveau: niveau.id,
-        title: niveau.libelle,
-        icon: 'mdi-chart-line-variant',
+    .filter((c) => props.competencesSelected.includes(c.id))
+    .forEach((competence) => {
+      let tree = {
+        id: 'comp-' + competence.id,
+        idCompetence: competence.id,
+        title: competence.competence_contextualisee || competence.libelle,
+        color: competence.color_hexadecimal,
+        icon: 'mdi-bullseye',
         children: []
       }
-      let apps = []
-      niveau.apprentissage_critique.forEach((ac) => {
-        apps.push({
-          id: 'ac-' + ac.id,
-          idAc: ac.id,
-          title: ac.libelle,
-          icon: 'mdi-book-open-variant-outline'
+      competence.niveau = competence.niveau.filter((niveau) =>
+        niveauWithName.some((n) => n.libelle === niveau.libelle)
+      )
+      // Trier les niveaux par id croissant
+      competence.niveau
+        .sort((a, b) => a.id - b.id)
+        .forEach((niveau) => {
+          let children = {
+            id: 'niveau-' + niveau.id,
+            idNiveau: niveau.id,
+            title: niveau.libelle,
+            icon: 'mdi-chart-line-variant',
+            children: []
+          }
+          let apps = []
+          niveau.apprentissage_critique.forEach((ac) => {
+            apps.push({
+              id: 'ac-' + ac.id,
+              idAc: ac.id,
+              title: ac.libelle,
+              icon: 'mdi-book-open-variant-outline'
+            })
+          })
+          if (apps.length > 0) {
+            children.children.push(...apps)
+          }
+          tree.children.push(children)
         })
-      })
-      if (apps.length > 0) {
-        children.children.push(...apps)
-      }
-      tree.children.push(children)
-    })
 
-    if (!treesList.value.some((t) => t.id === tree.id)) {
-      treesList.value.push(tree)
-    }
-  })
+      if (!treesList.value.some((t) => t.id === tree.id)) {
+        treesList.value.push(tree)
+      }
+    })
   treesList.value.sort((a, b) => a.title.localeCompare(b.title))
 
   enseignementsP1List.value = await enseignementsStore.fetchEnseignementsOfVersion(
@@ -246,8 +258,11 @@ const initData = async () => {
     enseignementsP2List.value = await enseignementsStore.fetchEnseignementsOfVersion(
       props.periodes[1]
     )
+  } else {
+    enseignementsP2List.value = []
   }
   initIsSelected()
+  await nextTick()
   syncOpened()
   isLoading.value = false
 }
@@ -256,30 +271,25 @@ const syncOpened = () => {
   const newIds = []
 
   const collectIds = (nodes) => {
-    nodes.forEach(node => {
-      newIds.push(node.id)
-      if (node.children) collectIds(node.children)
+    nodes.forEach((node) => {
+      if (node.children && node.children.length) {
+        newIds.push(node.id)
+        collectIds(node.children)
+      }
     })
   }
 
   collectIds(treesList.value)
 
-  // Ajoute seulement les nouveaux IDs dans opened
-  newIds.forEach(id => {
+  newIds.forEach((id) => {
     if (!opened.value.includes(id)) {
       opened.value.push(id)
     }
   })
 }
 
-const lastClicked = ref({ acid: null, ensid: null })
-
 const getRadioValue = (acid, ensid) => {
   return isChecked(acid, ensid) ? acid : null
-}
-
-const onRadioUpdate = async (val, acid, ensid) => {
-  // Ne rien faire ici, on gère tout dans onRadioClick
 }
 
 const loadingRadios = ref([])
@@ -293,37 +303,32 @@ const onRadioClick = async (acid, ensid) => {
 
   const alreadySelected = isChecked(acid, ensid)
 
-  if (alreadySelected) {
-    // Décocher
-    try {
+  try {
+    if (alreadySelected) {
+      // Décocher
       await enseignementsStore.disconnectEnseignementToApprentissageCritique(ensid, acid)
       updateLocalState(ensid, acid, false)
-    } catch (err) {
-      console.error('Erreur décochage:', err)
-    }
-  } else {
-    // Cocher
-    try {
+    } else {
+      // Cocher
       await enseignementsStore.connectEnseignementToApprentissageCritique(ensid, acid)
       updateLocalState(ensid, acid, true)
-      loadingRadios.value = loadingRadios.value.filter((r) => r.idAc !== acid && r.ensId !== ensid)
-    } catch (err) {
-      console.error('Erreur cochage:', err)
     }
+  } catch (err) {
+    console.error(alreadySelected ? 'Erreur décochage:' : 'Erreur cochage:', err)
+  } finally {
+    // Retirer l'item du tableau loadingRadios après l'opération
+    loadingRadios.value = loadingRadios.value.filter(
+      (r) => !(r.idAc === acid && r.ensId === ensid)
+    )
   }
-  // Retirer l'item du tableau loadingRadios après l'opération
-  loadingRadios.value = loadingRadios.value.filter((r) => !(r.idAc === acid && r.ensId === ensid))
 }
 
 const updateLocalState = (ensid, acid, checked) => {
-  // Cherche dans P1
+  // Cherche dans P1, sinon dans P2
   let ens = enseignementsP1List.value.find((e) => e.id === ensid)
-
-  // Si pas trouvé dans P1, cherche dans P2
   if (!ens) {
     ens = enseignementsP2List.value.find((e) => e.id === ensid)
   }
-
   if (!ens) return
 
   if (!Array.isArray(ens.apprentissages_critiques)) ens.apprentissages_critiques = []
@@ -350,7 +355,9 @@ const updateLocalState = (ensid, acid, checked) => {
       ensAcIsChecked.value.push({ acid, ensid })
     }
   } else {
-    const index = ensAcIsChecked.value.findIndex((sel) => sel.acid === acid && sel.ensid === ensid)
+    const index = ensAcIsChecked.value.findIndex(
+      (sel) => sel.acid === acid && sel.ensid === ensid
+    )
     if (index !== -1) {
       ensAcIsChecked.value.splice(index, 1)
     }
@@ -385,15 +392,14 @@ const initIsSelected = () => {
 
 watch(
   () => props.keyForRefresh,
-  async (newVal) => {
-    await nextTick() 
+  async () => {
+    await nextTick()
 
     treesList.value = []
     competencesList.value = []
     niveauxList.value = []
 
     await initData()
-    await initIsSelected()
   }
 )
 
@@ -402,84 +408,101 @@ watch(
     periodesStore.periodes
       .filter((p) => props.periodes.includes(p.id))
       .map((p) => p.enseignements),
-  async ( newVal) => {
-    await nextTick() 
+  async () => {
+    await nextTick()
 
     treesList.value = []
     competencesList.value = []
     niveauxList.value = []
 
     await initData()
-  }, { deep: true}
+  },
+  { deep: true }
 )
-
-
-// watch(
-//   [enseignementsP1List, enseignementsP2List, () => enseignementsStore.enseignements],
-//   async () => {
-//     treesList.value = []
-//     competencesList.value = []
-//     niveauxList.value = []
-//     await initData()
-//     await initIsSelected()
-//   },
-//   { deep: true }
-// )
-
-const filteredEnseignements = computed(() => {
-  const idsP1 = enseignementsP1List.value.map(e => e.id)
-  const idsP2 = enseignementsP2List.value.map(e => e.id)
-  const allowedIds = new Set([...idsP1, ...idsP2])
-
-  return enseignementsStore.enseignements.filter(e => allowedIds.has(e.id))
-})
-
-// Watch uniquement sur les enseignements filtrés
-// watch(filteredEnseignements, async (newVal, oldVal) => {
-//   if( newVal ) {
-//     emit('refreshTreeView');
-
-//   }
-// }, { deep: true })
 </script>
 
 <style scoped>
-/* Bande contenant les en-têtes, alignés en bas pour un rendu net */ 
-.headers-strip {
+.headers-zone,
+.cells-zone {
+  --cell-width: 33px;
+  --strip-gap: 40px; /* écart entre le bloc P1 et le bloc P2 */
+
+  display: flex;
+  justify-content: flex-start;
+  gap: var(--strip-gap);
+}
+
+/* Les headers doivent compenser : indentation du tree (feuille niveau 3)
+   + icône prepend + largeur de la colonne titre.
+   C'est LA valeur à ajuster une fois pour caler l'alignement. */
+.headers-zone {
+  --left-offset: 400px;
+  padding-left: var(--left-offset);
+}
+
+/* Les radios démarrent juste après la colonne titre, avec une petite marge */
+.cells-zone {
+  margin-left: 12px;
+}
+
+/* Conteneur scrollable : gutter stable pour que l'apparition
+   de la scrollbar ne décale pas le contenu par rapport aux headers */
+.tree-scroll {
+  height: 600px;
+  overflow-y: auto;
+  scrollbar-gutter: stable;
+}
+
+/* Ligne d'un item du tree */
+.tree-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 32px;
+}
+
+.tree-title {
+  flex: 0 0 220px;
+  font-size: 13px;
+  line-height: 1.2;
+}
+
+/* Bandes de cellules (headers et radios) */
+.headers-strip,
+.cells-strip {
   display: flex;
   align-items: flex-end;
-  gap: 0px; /* espace entre chaque titre */
-  height: 160px;
-  /* hauteur totale dispo pour les titres */
-  overflow: visible; /* laisse dépasser si besoin */
 }
 
-/* Chaque “colonne” de titre a une largeur fixe */
+.header-cell,
+.radio-cell {
+  width: 33px;
+  min-width: 33px;
+  max-width: 33px;
+}
+
 .header-cell {
   position: relative;
-  width: 33px !important;
-  min-width: 33px !important;
-  height: 100%;
+  height: 160px;
 }
 
-/* Texte vertical (solution moderne) */
-.header-vertical {
-  display: inline-block;
-  writing-mode: vertical-rl; /* texte vertical */
-  text-orientation: mixed; /* lettres latines lisibles */
-  white-space: nowrap;
-  line-height: 1;
-  font-size: 12px;
+.radio-cell {
+  display: flex;
+  justify-content: center;
+  align-items: center;
 }
 
-/* Fallback pour vieux navigateurs : rotation 90° */
-@supports not (writing-mode: vertical-rl) {
-  .header-vertical {
-    transform: rotate(-90deg);
-    transform-origin: bottom left;
-  }
+/* Neutralise les marges internes de v-radio pour un centrage exact */
+.radio-cell :deep(.v-selection-control) {
+  justify-content: center;
+  min-height: unset;
 }
 
+.radio-cell :deep(.v-selection-control__wrapper) {
+  margin: 0;
+}
+
+/* Titres inclinés à 45° */
 .header-tilt {
   position: absolute;
   bottom: 0;

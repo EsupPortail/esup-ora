@@ -106,24 +106,4 @@ export const useSocketStore = defineStore('socket', {
       this.socket = null
     }
   }
-
-  //   function disconnect() {
-  //     if (socket.value) {
-  //       socket.value.disconnect();
-  //       socket.value = null;
-  //       isConnected.value = false;
-  //     }
-  //   }
-
-  //   function emitApiCall(formationId: string) {
-  //     socket.value?.emit("api-call", formationId);
-  //   }
-
-  //   return {
-  //     socket,
-  //     isConnected,
-  //     connect,
-  //     disconnect,
-  //     emitApiCall,
-  //   };
 })

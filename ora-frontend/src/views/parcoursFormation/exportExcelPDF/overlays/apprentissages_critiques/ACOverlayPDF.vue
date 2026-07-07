@@ -4,7 +4,11 @@
     <div v-for="competence in competencesList" :key="competence.id">
       <div style="display: flex; align-items: center">
         <v-checkbox
-          :label="competence.libelle"
+          :label="
+            competence.competence_contextualisee
+              ? `${competence.libelle} - ${competence.competence_contextualisee}`
+              : competence.libelle
+          "
           :value="competence.id"
           density="compact"
           v-model="competencesChecked"

@@ -67,11 +67,10 @@ export const useCompetenceStore = defineStore('competence', {
           }
         })
           .then((res) => {
-            this.competences = res.data
-            this.competences = res.data.sort((a: { libelle: string }, b: { libelle: string }) =>
-              a.libelle.localeCompare(b.libelle)
+            this.competences = [...res.data].sort(
+              (a: { libelle: string }, b: { libelle: string }) =>
+                (a.libelle || '').localeCompare(b.libelle || '')
             )
-
             resolve(res.data)
           })
           .catch((err) => {
@@ -102,10 +101,11 @@ export const useCompetenceStore = defineStore('competence', {
           }
         })
           .then((res) => {
-            this.competences = res.data.sort((a: { libelle: string }, b: { libelle: string }) =>
-              a.libelle.localeCompare(b.libelle)
+            this.competences = [...res.data].sort(
+              (a: { libelle: string }, b: { libelle: string }) =>
+                (a.libelle || '').localeCompare(b.libelle || '')
             )
-            if( this.competences.length > 0 ) {
+            if (this.competences.length > 0) {
               if (this.competenceSelected?.id) {
                 this.competenceSelected = this.competences.find(
                   (e) => e.id === this.competenceSelected.id
@@ -114,6 +114,8 @@ export const useCompetenceStore = defineStore('competence', {
                 this.competenceSelected = this.competences[0]
               }
             }
+            console.log(this.competences);
+            console.log(res.data)
             resolve(res.data)
           })
           .catch((err) => {
@@ -121,7 +123,7 @@ export const useCompetenceStore = defineStore('competence', {
           })
       })
     },
-    linkCompetenceToPeriode( competenceId: number, periodeId: number ) {
+    linkCompetenceToPeriode(competenceId: number, periodeId: number) {
       return new Promise((resolve, reject) => {
         this.update(this.entity, {
           id: competenceId,
@@ -137,7 +139,7 @@ export const useCompetenceStore = defineStore('competence', {
           })
           .catch((err) => {
             reject(err)
-        })
+          })
       })
     },
     updateCompetence(competence: any) {
@@ -161,25 +163,34 @@ export const useCompetenceStore = defineStore('competence', {
     },
     duplicateCompetence(competence: any, noms_des_niveaux: number | string[]) {
       return new Promise((resolve, reject) => {
-        competence.libelle = `${competence.libelle} (copie)`;
-        delete competence.id;
-        this.createCompetence(competence, noms_des_niveaux)
-          .then((res: any) => {
-            console.log(res)
-            competence.famille_de_situations.forEach((fds: any) => {
-              this.addFamilleDeSituation({
-                competence_id: res.id,
-                libelle: fds.libelle,
-                ordre: fds.ordre
-              })
-            })
-            competence.critere_exigences.forEach((ce: any) => {
-              this.addCritereExigence({
-                competence_id: res.id,
-                libelle: ce.libelle,
-                ordre: ce.ordre
-              })
-            })
+        // Copie superficielle : on ne mute pas l'objet original affiché dans l'UI
+        const copie = {
+          ...competence,
+          id: undefined,
+          libelle: competence.libelle ? `${competence.libelle} (copie)` : '(copie)',
+          competence_contextualisee: competence.competence_contextualisee
+            ? `${competence.competence_contextualisee} (copie)`
+            : ''
+        }
+
+        this.createCompetence(copie, noms_des_niveaux)
+          .then(async (res: any) => {
+            await Promise.all([
+              ...competence.famille_de_situations.map((fds: any) =>
+                this.addFamilleDeSituation({
+                  competence_id: res.id,
+                  libelle: fds.libelle,
+                  ordre: fds.ordre
+                })
+              ),
+              ...competence.critere_exigences.map((ce: any) =>
+                this.addCritereExigence({
+                  competence_id: res.id,
+                  libelle: ce.libelle,
+                  ordre: ce.ordre
+                })
+              )
+            ])
             resolve(res)
           })
           .catch((err) => {
@@ -193,38 +204,60 @@ export const useCompetenceStore = defineStore('competence', {
         const socketStore = useSocketStore()
         const formation = formationStore.formationSelected
 
-        // Construire les niveaux avec parcours connectés
         const niveaux = Array.isArray(noms_des_niveaux)
           ? noms_des_niveaux.map((libelle: string, index: number) => ({
-              libelle,
-              description: '',
-              print_order: index,
-              parcours: {
-                connect: formation.parcours.map((p: any) => ({ id: p.id }))
-              }
-            }))
+            libelle,
+            description: '',
+            print_order: index,
+            parcours: {
+              connect: formation.parcours.map((p: any) => ({ id: p.id }))
+            }
+          }))
           : Array.from({ length: noms_des_niveaux }, (_, i) => ({
-              libelle: `Niveau ${i + 1}`,
-              description: '',
-              print_order: i,
-              parcours: {
-                connect: formation.parcours.map((p: any) => ({ id: p.id }))
-              }
-            }))
+            libelle: `Niveau ${i + 1}`,
+            description: '',
+            print_order: i,
+            parcours: {
+              connect: formation.parcours.map((p: any) => ({ id: p.id }))
+            }
+          }))
 
-        // Appel au backend Prisma via this.create avec `niveau.create` (et non createMany)
-        this.create(this.entity, {
+        const versionId = competence.version_id ?? competence.version?.connect?.id
+        if (!versionId) {
+          reject(new Error('createCompetence: version_id manquant'))
+          return
+        }
+
+        // Normalise critere_exigences et famille_de_situations
+        // Accepte soit un tableau simple [{libelle}, ...], soit déjà {createMany:{data:[...]}}
+        const normalizeCreateMany = (input: any) => {
+          if (!input) return undefined
+          const data = Array.isArray(input) ? input : input?.createMany?.data
+          if (!data || data.length === 0) return undefined
+          return { createMany: { data } }
+        }
+
+        const payload: any = {
           libelle: competence.libelle,
-          color_hexadecimal: competence.color_hexadecimal,
+          competence_contextualisee: competence.competence_contextualisee ?? '',
+          color_hexadecimal: competence.color_hexadecimal ?? competence.color,
           version: {
             connect: {
-              id: +competence.version_id
+              id: +versionId
             }
           },
           niveau: {
-            create: niveaux // ✅ create et non createMany
+            create: niveaux
           }
-        })
+        }
+
+        const critereExigences = normalizeCreateMany(competence.critere_exigences)
+        if (critereExigences) payload.critere_exigences = critereExigences
+
+        const familleDeSituations = normalizeCreateMany(competence.famille_de_situations)
+        if (familleDeSituations) payload.famille_de_situations = familleDeSituations
+
+        this.create(this.entity, payload)
           .then((res) => {
             socketStore.notifyChange('competence')
             resolve(res.data)
@@ -234,9 +267,9 @@ export const useCompetenceStore = defineStore('competence', {
           })
       })
     },
-    deleteRncpOfCompetence( competence: any ) {
+    deleteRncpOfCompetence(competence: any) {
       return new Promise((resolve, reject) => {
-        if( competence.rncp_bccs.length === 0 || !competence.rncp_bccs ) {
+        if (competence.rncp_bccs.length === 0 || !competence.rncp_bccs) {
           resolve(null)
           return
         }
@@ -244,7 +277,7 @@ export const useCompetenceStore = defineStore('competence', {
           this.delete('rncp_bcc', bcc)
         })
         const socketStore = useSocketStore()
-            socketStore.notifyChange('competence')
+        socketStore.notifyChange('competence')
       })
     },
     deleteCompetence(competence: any) {
@@ -269,37 +302,39 @@ export const useCompetenceStore = defineStore('competence', {
           })
       })
     },
-async linkBccRncpToCompetence(competence: any, bccData: any) {
-  const socketStore = useSocketStore();
-  
-  // 1. On cherche si la BCC est déjà liée (comparaison par code)
-  const existingBcc = competence.rncp_bccs?.find((b: any) => b.code === bccData.code);
+    async linkBccRncpToCompetence(competence: any, bccData: any) {
+      const socketStore = useSocketStore();
 
-  try {
-    // 2. Construction du payload atomique
-    // On utilise un tableau [] pour les opérations de relation pour éviter l'écrasement global
-    const payload = {
-      id: competence.id,
-      rncp_bccs: existingBcc 
-        ? { delete: [ { id: existingBcc.id } ] } // Suppression ciblée
-        : { create: [ {
-            libelle: bccData.libelle,
-            code: bccData.code,
-            numero_fiche: bccData.numero_fiche
-          } ] }
-    };
+      // 1. On cherche si la BCC est déjà liée (comparaison par code)
+      const existingBcc = competence.rncp_bccs?.find((b: any) => b.code === bccData.code);
 
-    const res = await this.update(this.entity, payload);
-    
-    socketStore.notifyChange('competence');
-    
-    return res.data;
+      try {
+        // 2. Construction du payload atomique
+        // On utilise un tableau [] pour les opérations de relation pour éviter l'écrasement global
+        const payload = {
+          id: competence.id,
+          rncp_bccs: existingBcc
+            ? { delete: [{ id: existingBcc.id }] } // Suppression ciblée
+            : {
+              create: [{
+                libelle: bccData.libelle,
+                code: bccData.code,
+                numero_fiche: bccData.numero_fiche
+              }]
+            }
+        };
 
-  } catch (err) {
-    console.error("Erreur Toggle BCC:", err);
-    throw err;
-  }
-},
+        const res = await this.update(this.entity, payload);
+
+        socketStore.notifyChange('competence');
+
+        return res.data;
+
+      } catch (err) {
+        console.error("Erreur Toggle BCC:", err);
+        throw err;
+      }
+    },
     addCritereExigence(critereExigence: any) {
       return new Promise((resolve, reject) => {
         this.create('critere_exigence', critereExigence)

@@ -23,7 +23,6 @@ export const useUserAccessStore = defineStore('users-access', {
                         Authorization: 'Bearer ' + connectionStore.token.access_token
                     }
                 }).then((res) => {
-                    console.log(res);
                     this.roles = res.data.data;
                     resolve(res.data);
                 }).catch((err) => {

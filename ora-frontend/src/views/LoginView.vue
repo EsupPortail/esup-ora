@@ -26,6 +26,7 @@
                 variant="outlined"
                 prepend-inner-icon="mdi-account"
                 required
+                autocomplete="username"
               ></v-text-field>
             </v-col>
           </v-row>

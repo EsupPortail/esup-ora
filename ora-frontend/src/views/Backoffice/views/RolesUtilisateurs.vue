@@ -1,5 +1,5 @@
 <template>
-  <v-container>
+  <v-container fluid>
     <h2>Configuration</h2>
     <v-expansion-panels v-model="panels" multiple style="margin-top: 20px">
       <v-expansion-panel v-for="(item, index) in items" :key="item.title">

@@ -10,18 +10,21 @@
             <span></span>
           </v-col>
         </v-row>
-        <v-list style="margin-top: 20px">
+        <v-list style="margin-top: 6px">
           <v-list-item v-for="(version, index) in versionList" :key="index">
             <v-row>
-            <v-col cols="2" style="padding: 20px;">
-              <span>Version : </span>
-            </v-col>
-            <v-col cols="4" style="padding: 20px;">
-              <template v-if="libChangeVersion != version.id">
-                <span>{{ version.libelle }}</span>
-                    <v-icon size="small" @click="libChangeVersion = version.id" style="padding-left: 16px;"
-                        >mdi-pencil</v-icon
-                      >
+              <v-col cols="2" style="padding-left: 12px; padding-right: 12px;">
+                <span>Version : </span>
+              </v-col>
+              <v-col cols="4" style="padding-left: 12px; padding-right: 12px;">
+                <template v-if="libChangeVersion != version.id">
+                  <span>{{ version.libelle }}</span>
+                  <v-icon
+                    size="small"
+                    @click="libChangeVersion = version.id"
+                    style="padding-left: 16px"
+                    >mdi-pencil</v-icon
+                  >
                 </template>
                 <template v-else>
                   <v-row style="margin: 0; padding: 0">
@@ -34,22 +37,23 @@
                         density="compact"
                       ></v-text-field>
                     </v-col>
-                    <v-col cols="2" style="margin: 0; padding: 0; padding-left: 16px;">
+                    <v-col cols="2" style="margin: 0; padding: 0; padding-left: 16px">
                       <v-btn icon="mdi-check" size="small" @click="changeLibelle(version)"></v-btn>
                     </v-col>
                   </v-row>
                 </template>
-            </v-col>
-            <v-col cols="4" style="padding: 20px;">
-              <v-btn
-                @click="selectVersion(version)"
-                style="background-color: #1E88E5; margin-left: 10px; color: white"
-                >Accéder à cette version</v-btn
-              >
-            </v-col>
-    </v-row>
-    <v-divider style="margin-top: 12px; margin-bottom: 12px;"/>
-            </v-list-item>
+              </v-col>
+              <v-col cols="4" style="padding-left: 12px; padding-right: 12px;">
+                <v-btn @click="selectVersion(version)" color="success"
+                  >Accéder à cette version</v-btn
+                >
+                <v-btn style="margin-left: 16px" @click="duplicateVersion(version)" color="primary"
+                  >Dupliquer cette version</v-btn
+                >
+              </v-col>
+            </v-row>
+            <v-divider style="margin-top: 12px; margin-bottom: 12px" />
+          </v-list-item>
         </v-list>
         <v-row style="margin-top: 16px">
           <v-col cols="11">
@@ -110,11 +114,17 @@ const changeLibelle = async (version) => {
 const fetchingFormation = async () => {
   formation.value = await formationStore.fetchOneFormationFromId(
     formationStore.formationSelected.id
-
   )
   versionList.value = formation.value.version
 }
 fetchingFormation()
+
+const duplicateVersion = async ( version ) => {
+  console.log(version)
+  await formationStore.duplicateVersion(version).then(() => {
+    fetchingFormation()
+  })
+}
 
 const addVersion = async () => {
   let idVersionCreated = null
@@ -130,6 +140,7 @@ const addVersion = async () => {
   for (let i = 0; i < duration; i += 1) {
     await periodesStore.createPeriode(unit + ' ' + (i + 1), idVersionCreated)
   }
+  return idVersionCreated
 }
 
 const selectVersion = (version) => {

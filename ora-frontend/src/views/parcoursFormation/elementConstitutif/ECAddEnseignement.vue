@@ -10,60 +10,57 @@
       <v-row
         align="center"
         v-for="(enseignement, index) in enseignementsList"
-        :key="index"
-        style="height: 40px; margin-bottom: 10px; margin-top: 10px"
-        class="d-flex align-center"
+        :key="enseignement.id"
+        class="d-flex align-center my-2"
+        style="min-height: 40px"
       >
-        <v-col cols="8" style="padding-top: 0px; padding-bottom: 0px; height: 40px">
+        <v-col cols="8" class="py-0 d-flex align-center" style="height: 40px">
           <span v-if="idOfEnseignementLibelleIsEdited !== enseignement.id">
             {{ enseignement.libelle }}
           </span>
           <v-text-field
             v-else
-            style="max-width: 600px;"
+            style="max-width: 600px"
             @blur="() => updateLibelleOfEnseignement(enseignement)"
             @keyup.enter="updateLibelleOfEnseignement(enseignement)"
             v-model="enseignementLibelleEdited"
             variant="outlined"
             density="compact"
+            hide-details
           />
         </v-col>
+
         <v-col
           cols="2"
           offset="2"
-          style="
-            padding-top: 0px;
-            padding-bottom: 0px;
-            height: 40px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-          "
+          class="py-0 d-flex align-center justify-center"
+          style="height: 40px"
         >
           <v-btn
             icon="mdi-pencil"
             v-if="idOfEnseignementLibelleIsEdited !== enseignement.id"
             size="x-small"
             @click="startEditLibelleOfEnseignement(enseignement)"
-          >
-          </v-btn>
-            <v-btn
-            icon="mdi-check"
+          />
+          <v-btn
             v-else
+            icon="mdi-check"
             size="x-small"
             color="success"
             @click="updateLibelleOfEnseignement(enseignement)"
-            >
-          </v-btn>
+          />
           <v-btn
-            style="margin-left: 8px"
+            class="ml-2"
             icon="mdi-delete"
             size="x-small"
             @click="deleteEnseignement(enseignement)"
-          >
-          </v-btn>
+          />
         </v-col>
-        <v-divider />
+
+        <!-- le divider doit occuper une colonne pleine largeur -->
+        <v-col cols="12" class="py-0">
+          <v-divider />
+        </v-col>
       </v-row>
       <v-row style="margin-top: 10px">
         <v-col style="text-align: center">
@@ -95,7 +92,8 @@ import { useEcStore } from '@/stores/elementConstitutifStore'
 const props = defineProps({
   periode: Object,
   version: Object,
-  parcours: Object
+  parcours: Object,
+  title: String
 })
 const emit = defineEmits(['refresh-enseignements'])
 
@@ -144,11 +142,9 @@ const updateLibelleOfEnseignement = async (enseignement) => {
   enseignementsStore.updateEnseignement(enseignementUpdated)
   await ecStore.fetchECs()
   const ecsWithThisEnseignement = ecStore.ecs.filter(
-    (ec) =>
-      ec.enseignement_id === enseignement.id &&
-      ec.version?.id === props.version?.id
+    (ec) => ec.enseignement_id === enseignement.id && ec.version?.id === props.version?.id
   )
-  if( ecsWithThisEnseignement.length > 0 ) {
+  if (ecsWithThisEnseignement.length > 0) {
     ecsWithThisEnseignement[0].libelle = enseignementLibelleEdited.value
     ecStore.updateEC(ecsWithThisEnseignement[0])
   }
@@ -166,29 +162,23 @@ const deleteEnseignement = async (enseignement) => {
   // On regarde si il existe un ec qui a cet enseignement
   await ecStore.fetchECs()
   const ecsWithThisEnseignement = ecStore.ecs.filter(
-    (ec) =>
-      ec.enseignement_id === enseignement.id &&
-      ec.version?.id === props.version?.id
+    (ec) => ec.enseignement_id === enseignement.id && ec.version?.id === props.version?.id
   )
   console.log(ecStore.ecs)
   console.log('ecsWithThisEnseignement', ecsWithThisEnseignement)
-  if( ecsWithThisEnseignement.length > 0 ) {
+  if (ecsWithThisEnseignement.length > 0) {
     ecStore.removeEC(ecsWithThisEnseignement[0])
   }
 
-    await enseignementsStore.removeEnseignement(enseignement)
+  await enseignementsStore.removeEnseignement(enseignement)
   fetchEnseignements()
   emit('refresh-enseignements')
 }
 
-// watch if periode change
 
 const initData = async () => {
   await fetchEnseignements()
   await ecStore.fetchECs()
 }
-initData();
-// watch(() => enseignementsStore.enseignements, () => {
-//   fetchEnseignements()
-// })
+initData()
 </script>

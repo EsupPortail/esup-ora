@@ -13,16 +13,16 @@ new Server(app);
 const PORT: number = process.env.PORT ? parseInt(process.env.PORT, 10) : 1111;
 const BACKEND_HOST = process.env.BACKEND_HOST || 'localhost';
 
-const certPath = '/certs-ora-backend';
-const keyFile = `${certPath}/tls.key`;
+const certPath = '/certs-ora-backend'; 
+const keyFile = `${certPath}/tls.key`;  
 const certFile = `${certPath}/tls.crt`;
 const ssl = (fs.existsSync(keyFile) && fs.existsSync(certFile));
-
+ 
 const options = (ssl) ? {
     key: fs.readFileSync(keyFile),
     cert: fs.readFileSync(certFile)
 }: {};
-
+ 
 const server = (ssl) ? https.createServer(options, app) : http.createServer(app);
 
 if( ssl ) {

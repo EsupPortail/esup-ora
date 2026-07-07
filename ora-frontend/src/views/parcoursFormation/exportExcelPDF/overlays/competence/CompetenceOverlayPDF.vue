@@ -3,7 +3,11 @@
     <div v-for="competence in competencesList" :key="competence.id">
       <div style="display: flex; align-items: center">
         <v-checkbox
-          :label="competence.libelle"
+          :label="
+            competence.competence_contextualisee
+              ? `${competence.libelle} - ${competence.competence_contextualisee}`
+              : competence.libelle
+          "
           :value="competence.id"
           density="compact"
           v-model="competencesChecked"
@@ -40,7 +44,7 @@
     <v-btn color="primary" @click="downloadPDF()" class="mb-4"> Télécharger le PDF </v-btn>
   </div>
   <div v-if="isCreating">
-    <v-overlay :model-value="true" class="align-center justify-center">
+    <v-overlay :model-value="true" contained class="align-center justify-center">
       <v-progress-circular color="primary" size="64" indeterminate></v-progress-circular>
     </v-overlay>
   </div>

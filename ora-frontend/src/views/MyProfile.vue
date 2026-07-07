@@ -25,7 +25,7 @@
               Composantes auxquelles vous êtes rattaché(e)
             </div>
 
-            <v-list lines="two" class="bg-transparent pa-0">
+            <v-list lines="two" class="bg-transparent pa-0" v-if="composanteStore.composantes.length">
               <v-list-item v-for="composante in myComposantes" :key="composante.id" class="px-0">
                 <template v-slot:prepend>
                   <v-avatar color="primary-lighten-4" size="40">
@@ -52,7 +52,7 @@
                     color="grey-darken-1"
                   >
                     <v-tooltip activator="parent" location="right">
-                      Paramètres : {{ composante.parametre.libelle }}
+                      Paramètres : {{ composante.libelle }}
                     </v-tooltip>
                   </v-btn>
                 </template>
@@ -121,7 +121,6 @@ const user = ref(null)
 const myComposantes = ref([])
 
 const init = async () => {
-  await composanteStore.fetchComposantes()
   axios.defaults.withCredentials = true
   const response = await axios.get(config.backend.url + '/auth/me', {
     withCredentials: true,
@@ -131,12 +130,12 @@ const init = async () => {
   })
   user.value = response.data.data
 
+  await composanteStore.fetchComposantes()
   const me = userAccessStore.users.find((u) => u.username === connectionStore.user.eppn)
   const myComposanteIds = composanteStore.composantes
     .filter((c) => c.utilisateurs_rattaches?.includes(me.id))
     .map((c) => c.id)
   myComposantes.value = composanteStore.composantes.filter((c) => myComposanteIds.includes(c.id))
-  console.log(myComposantes.value)
 }
 
 init()

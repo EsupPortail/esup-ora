@@ -1,5 +1,6 @@
 {
     "routes": [
+        "/api/auth/client-connector",
         "/api/auth/shibboleth",
         "/api/auth/local",
         "/api/auth/logout",

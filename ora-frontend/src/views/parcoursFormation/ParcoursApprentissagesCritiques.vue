@@ -13,64 +13,52 @@
       <ButtonExport pageAsked="AC" />
     </v-col>
   </v-row>
+
   <v-row>
     <v-col cols="10" offset="1">
       <v-carousel
         v-if="chunkedCompetences.length > 0"
+        v-model="carouselIndex"
+        class="competence-carousel"
         hide-delimiter-background
-        height="320"
-        transition="fade-transition"
-        reverse-transition="fade-transition"
-        style="background-color: #fcfcfc; border-radius: 16px; padding: 24px"
+        :show-arrows="chunkedCompetences.length > 1"
+        :continuous="false"
+        height="360"
       >
-        <v-carousel-item v-for="(chunk, i) in chunkedCompetences" :key="i" :ripple="false"  transition="slide-x-transition"
-  reverse-transition="slide-x-reverse-transition">
-          <v-row style="padding-top: 12px">
-            <v-col
-              v-for="(item, index) in chunk"
-              :key="item.id"
-              :cols="5"
-              :offset="index % 2 === 0 ? 1 : 0"
-            >
+        <v-carousel-item v-for="(chunk, i) in chunkedCompetences" :key="i">
+          <v-row class="carousel-slide" no-gutters>
+            <v-col v-for="item in chunk" :key="item.id" cols="6" class="carousel-slide__col">
               <v-card
-                color="white"
                 elevation="2"
-                @click="() => (competenceStore.competenceSelected = item)"
-                :style="{
-                  height: normalizedValue + 'px',
-                  cursor: 'pointer',
-                  borderRadius: '15px 15px 0px 0px'
+                class="competence-card"
+                :class="{
+                  'competence-card--selected': competenceStore.competenceSelected?.id === item.id
                 }"
-                class="v-card-carousel-item"
+                :style="{ '--card-color': item.color_hexadecimal || '#1976d2' }"
+                @click="selectCompetence(item)"
               >
                 <v-card-title
-                  :style="{
-                    backgroundColor: item.color_hexadecimal,
-                    color: 'white',
-                    paddingTop: '16px',
-                    paddingBottom: '16px'
-                  }"
+                  class="competence-card__title"
+                  :style="{ backgroundColor: item.color_hexadecimal || '#1976d2' }"
                 >
                   {{ item.competence_contextualisee || item.libelle }}
                 </v-card-title>
-                <v-card-text style="height: 200px">
-                  <div>
-                    <template v-if="item.critere_exigences && item.critere_exigences.length">
-                      <v-list style="background: transparent; color: #707070">
-                        <v-list-item
-                          v-for="ce in item.critere_exigences"
-                          :key="ce.id"
-                          style="padding-top: 0px; padding-bottom: 0px; min-height: 20px"
-                        >
-                          {{ ce.libelle }}
-                        </v-list-item>
-                      </v-list>
-                    </template>
-                    <template v-else>
-                      <div style="padding-top: 8px">
-                        <span style="color: #707070">Aucun critère d'exigence renseigné</span>
-                      </div>
-                    </template>
+                <v-card-text class="competence-card__body">
+                  <v-list
+                    v-if="item.critere_exigences?.length"
+                    density="compact"
+                    style="background: transparent; color: #707070"
+                  >
+                    <v-list-item
+                      v-for="ce in item.critere_exigences"
+                      :key="ce.id"
+                      style="padding-top: 0px; padding-bottom: 0px; min-height: 20px"
+                    >
+                      {{ ce.libelle }}
+                    </v-list-item>
+                  </v-list>
+                  <div v-else style="padding-top: 8px">
+                    <span style="color: #707070">Aucun critère d'exigence renseigné</span>
                   </div>
                 </v-card-text>
               </v-card>
@@ -80,6 +68,7 @@
       </v-carousel>
     </v-col>
   </v-row>
+
   <v-row style="padding-left: 32px; padding-right: 32px" v-if="competenceStore.competenceSelected">
     <v-col>
       <v-card style="margin-top: 20px; background-color: transparent; box-shadow: none">
@@ -95,7 +84,10 @@
           }"
         >
           <h3 style="margin: 0; color: white; font-weight: normal">
-            {{ competenceStore.competenceSelected?.libelle }}
+            {{
+              competenceStore.competenceSelected?.competence_contextualisee ||
+              competenceStore.competenceSelected?.libelle
+            }}
           </h3>
         </v-card-title>
         <v-card-text style="background-color: #fcfcfc">
@@ -103,6 +95,8 @@
             <v-col v-for="(niveau, nidx) in arrayOf3Max" :key="niveau.id || nidx" cols="4">
               <NiveauApprentissage
                 :valueToHave="heightEntete"
+                :measureTick="measureTick"
+                @requestRemeasure="resetAndRemeasure"
                 @setHeight="setHeight"
                 :niveau="niveau"
                 :nLines="nLines"
@@ -115,11 +109,12 @@
       </v-card>
     </v-col>
   </v-row>
+
   <v-row v-if="competenceStore.competences.length === 0" style="margin-top: 32px">
     <v-col cols="12">
       <h4>
         Veuillez ajouter des compétences à l'étape précédente et en sélectionner une dans le
-        carroussel en haut de cette page.
+        carrousel en haut de cette page.
       </h4>
     </v-col>
   </v-row>
@@ -128,20 +123,18 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
 import { useFormationStore } from '@/stores/formationStore'
-import { useParcoursStore } from '@/stores/parcoursStore'
-import { useApprentissageStore } from '@/stores/apprentissageStore'
 import { useCompetenceStore } from '@/stores/competenceStore'
 
 import NiveauApprentissage from '@/views/parcoursFormation/apprentissages/NiveauApprentissage.vue'
-import router from '@/router/router'
-
 import ButtonExport from '@/views/parcoursFormation/exportExcelPDF/ButtonExport.vue'
 import AideBulles from '@/components/AideBulles.vue'
 
 const formationStore = useFormationStore()
-const parcoursStore = useParcoursStore()
-const apprentissageStore = useApprentissageStore()
 const competenceStore = useCompetenceStore()
+
+/* ---------- Carrousel ---------- */
+
+const carouselIndex = ref(0)
 
 function chunkArray(array, size) {
   const chunked = []
@@ -149,22 +142,36 @@ function chunkArray(array, size) {
     chunked.push(array.slice(i, i + size))
   }
   return chunked
-} // Compute chunked competences for the carousel
+}
+
 const chunkedCompetences = computed(() => {
-  if (!competenceStore.competences || !competenceStore.competences.length) return []
+  if (!competenceStore.competences?.length) return []
   return chunkArray(competenceStore.competences, 2)
 })
 
+// Si la liste change (refetch, suppression…), on évite de rester
+// bloqué sur un index de slide qui n'existe plus → slide vide.
+watch(chunkedCompetences, (chunks) => {
+  if (carouselIndex.value >= chunks.length) {
+    carouselIndex.value = Math.max(0, chunks.length - 1)
+  }
+})
+
+const selectCompetence = (item) => {
+  competenceStore.competenceSelected = item
+}
+
+/* ---------- Détail de la compétence sélectionnée ---------- */
+
 const parametre = ref({})
 const heightEntete = ref(0)
-
+const measureTick = ref(0)
 const niveauRef = ref(null)
-const normalizedValue = ref(200)
 
 const init = async () => {
   await competenceStore.fetchCompetenceForSelectedVersion()
   parametre.value = formationStore.formationSelected.composante.parametre
-  competenceStore.competenceSelected = competenceStore.competences[0]
+  competenceStore.competenceSelected = competenceStore.competences[0] ?? null
   getNiveauSliced()
 }
 init()
@@ -173,16 +180,10 @@ const fetchCompetence = async () => {
   await competenceStore.fetchCompetenceForSelectedVersion()
 }
 
-const render = ref(0)
-
-const rerender = () => {
-  render.value = render.value + 1
-}
-
-const getNiveauSliced = async () => {
-  let sliced = []
+const getNiveauSliced = () => {
+  const sliced = []
   if (competenceStore.competenceSelected?.niveau) {
-    const tmp = competenceStore.competenceSelected?.niveau.sort((a, b) => a.id - b.id)
+    const tmp = [...competenceStore.competenceSelected.niveau].sort((a, b) => a.id - b.id)
     for (let i = 0; i < tmp.length; i += 3) {
       sliced.push(tmp.slice(i, i + 3))
     }
@@ -192,10 +193,8 @@ const getNiveauSliced = async () => {
 
 const getNLines = computed(() => {
   let highestOrder = 1
-  if (!competenceStore.competenceSelected?.niveau) {
-    return 0
-  }
-  competenceStore.competenceSelected?.niveau.forEach((n) => {
+  if (!competenceStore.competenceSelected?.niveau) return 0
+  competenceStore.competenceSelected.niveau.forEach((n) => {
     n.apprentissage_critique?.forEach((a) => {
       highestOrder = a.ordre > highestOrder ? a.ordre : highestOrder
     })
@@ -203,43 +202,30 @@ const getNLines = computed(() => {
   return highestOrder
 })
 
+const nLines = ref(getNLines.value)
+
 const setHeight = (newVal) => {
   if (newVal > heightEntete.value) {
     heightEntete.value = newVal
   }
-  // Force the update to children NiveauApprentissage components
-  heightEntete.value = heightEntete.value
 }
 
-const nextStep = () => {
-  router.push({ name: 'elementsConstitutifsParcours' })
+const resetAndRemeasure = () => {
+  heightEntete.value = 0
+  measureTick.value++ // signal envoyé aux enfants pour re-mesurer
 }
-
-const nLines = ref(getNLines.value)
 
 const handleNLines = () => {
   setNLines()
 }
 
-const maxCritereExigenceCount = computed(() => {
-  if (!competenceStore.competences || !competenceStore.competences.length) return 0
-  return Math.max(
-    ...competenceStore.competences.map((c) =>
-      Array.isArray(c.critere_exigences) ? c.critere_exigences.length : 0
-    )
-  )
-})
-
 const setNLines = async () => {
   await fetchCompetence()
   let highestRank = 1
-  const arraysSliced = niveauRef.value
-  arraysSliced.forEach((array) => {
-    array.forEach((array) => {
-      if (array.apprentissage_critique) {
-        if (array.apprentissage_critique.length > highestRank) {
-          highestRank = array.apprentissage_critique.length
-        }
+  niveauRef.value?.forEach((group) => {
+    group.forEach((niveau) => {
+      if (niveau.apprentissage_critique?.length > highestRank) {
+        highestRank = niveau.apprentissage_critique.length
       }
     })
   })
@@ -248,15 +234,16 @@ const setNLines = async () => {
 
 watch(
   () => competenceStore.competences,
-  (newCompetences) => {
+  () => {
     getNiveauSliced()
   }
 )
 
 watch(
-  async () => competenceStore.competenceSelected,
-  (newCompetence) => {
+  () => competenceStore.competenceSelected,
+  () => {
     niveauRef.value = null
+    heightEntete.value = 0
     getNiveauSliced()
     nLines.value = getNLines.value
   }
@@ -267,36 +254,72 @@ watch(
 .formation-creation h1 {
   color: #333;
 }
-.v-carousel-item,
-.v-window-item--active {
-  background-color: transparent !important;
-  filter: none !important;
-  transition: none !important;
+
+/* ---------- Carrousel ---------- */
+
+.competence-carousel {
+  background-color: #fcfcfc;
+  border-radius: 16px;
+  padding: 24px 0;
 }
 
-/* Supprime le pseudo-élément qui ajoute un overlay sombre */
-.v-carousel-item::before,
-.v-window-item--active::before {
+/* Flèches et pastilles : foncées, sinon elles sont blanches
+   sur fond #fcfcfc et donc invisibles */
+.competence-carousel .v-window__controls .v-btn,
+.competence-carousel .v-carousel__controls .v-btn {
+  color: #616161 !important;
+}
+
+/* Pastille active dans la couleur primaire pour repérer la slide courante */
+.competence-carousel .v-carousel__controls .v-btn--active {
+  color: #1976d2 !important;
+}
+
+.carousel-slide {
+  padding: 12px 64px 0; /* marge latérale pour ne pas passer sous les flèches */
+}
+
+.carousel-slide__col {
+  padding: 0 12px;
+}
+
+/* ---------- Cartes compétence ---------- */
+
+.competence-card {
+  height: 260px;
+  display: flex;
+  flex-direction: column;
+  cursor: pointer;
+  border-radius: 15px 15px 0 0 !important;
+  background-color: white;
+}
+
+.competence-card--selected {
+  outline: 3px solid var(--card-color);
+  outline-offset: 2px;
+}
+
+.competence-card__title {
+  color: white;
+  white-space: normal; /* autorise le titre sur plusieurs lignes sans le tronquer */
+  line-height: 1.3;
+  padding-top: 16px;
+  padding-bottom: 16px;
+  flex: 0 0 auto;
+}
+
+.competence-card__body {
+  flex: 1 1 auto;
+  overflow-y: auto; /* les critères longs scrollent au lieu d'être coupés */
+}
+
+/* Pas d'overlay sombre ni de ripple sur les items du carrousel */
+.competence-carousel .v-carousel-item::before {
   background: transparent !important;
   content: none !important;
 }
-
-/* Supprime toute trace d'effets de clic */
-.v-carousel-item .v-ripple__container,
-.v-carousel-item .v-ripple__animation {
+.competence-carousel .v-ripple__container,
+.competence-carousel .v-ripple__animation {
   display: none !important;
-}
-
-/* Désactive le ripple sur tous les descendants */
-.v-carousel-item * {
-  --v-theme-overlay-multiplier: 0 !important;
-  --v-hover-overlay-opacity: 0 !important;
-  --v-pressed-overlay-opacity: 0 !important;
-  --v-theme-overlay-opacity: 0 !important;
-  box-shadow: none !important;
-}
-
-.v-window-item {
-  transition-duration: 3000ms !important; /* 1 seconde */
 }
 </style>

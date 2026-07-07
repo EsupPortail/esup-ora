@@ -1,0 +1,141 @@
+FROM ubuntu:26.04
+
+ARG NODE_VERSION=26.3.0
+ENV NODE_VERSION=$NODE_VERSION
+
+# Install Nodejs
+
+WORKDIR /opt
+RUN apt-get update && apt-get install -y \
+    curl \
+    gnupg2 \
+    tar \
+    xz-utils \
+    libatomic1 \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN curl -fsSL https://nodejs.org/dist/v$NODE_VERSION/node-v$NODE_VERSION-linux-x64.tar.xz -o node.tar.xz \
+    && tar -xJf /opt/node.tar.xz -C /usr/local --strip-components=1 --no-same-owner \
+    && rm node.tar.xz \
+    && ln -s /usr/local/bin/node /usr/bin/node \
+    && ln -s /usr/local/bin/npm /usr/bin/npm \
+    && ln -s /usr/local/bin/npx /usr/bin/npx
+
+# Configure & build app
+
+RUN mkdir /app
+WORKDIR /app
+COPY ./ora-backend/package.json ./
+RUN rm -f /app/package-lock.json
+
+ENV PUPPETEER_SKIP_DOWNLOAD=true
+RUN npm install
+COPY ./ora-backend/ ./
+
+COPY ./deployment-configuration/backend/generate-env.sh /
+RUN chmod u+x /generate-env.sh
+
+
+
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
+    apache2 apache2-bin libapache2-mod-fcgid
+
+COPY ./deployment-configuration/shibboleth/packages.sh /
+RUN chmod u+x /packages.sh
+RUN apt-get install -y expect
+
+RUN sh /packages.sh
+RUN apt-get update && apt-get install -y \
+    apache2 \
+    libapache2-mod-shib \
+    supervisor && \
+    rm -rf /var/lib/apt/lists/*
+
+COPY ./deployment-configuration/service/conf-apache2/apache2-tmp.conf /etc/apache2/
+
+COPY ./deployment-configuration/service/template-000-default.conf /
+COPY ./deployment-configuration/service/template-default-ssl.conf /
+
+COPY ./deployment-configuration/service/run-conf-and-launch.sh /
+
+COPY ./deployment-configuration/service/ports.conf /etc/apache2/conf-available/
+RUN a2enconf ports
+
+
+###### Configuration Shibboleth
+
+### Configuration WayF
+
+
+RUN a2enmod proxy_fcgi setenvif rewrite ssl proxy proxy_http
+
+# Files for the configuration
+COPY ./deployment-configuration/shibboleth/wayf.conf /etc/apache2/conf-available/
+COPY ./deployment-configuration/shibboleth/shib.conf /etc/apache2/conf-available/
+COPY ./deployment-configuration/shibboleth/security.conf /etc/apache2/conf-available/
+
+RUN a2enmod proxy_wstunnel
+
+RUN a2enconf shib
+RUN a2enconf security
+
+
+### Configuration Shibboleth
+
+RUN mkdir -p /var/cache/shibboleth
+RUN chown -R www-data:www-data /var/cache/shibboleth
+RUN chmod -R 755 /var/cache/shibboleth
+
+RUN a2enmod shib
+
+
+### Fin Configuration Shibboleth
+
+# Cron
+RUN apt-get update && apt-get install -y cron
+RUN touch /var/log/crontab.logs 
+RUN chown www-data:www-data /var/log/crontab.logs
+RUN chmod 644 /var/log/crontab.logs
+
+
+# Supervisor
+RUN apt-get update && apt-get install -y supervisor gettext-base
+RUN touch /var/log/supervisor/supervisord.log
+RUN chown www-data:www-data /var/log/supervisor/supervisord.log
+RUN chmod 644 /var/log/supervisor/supervisord.log
+
+COPY ./deployment-configuration/service/supervisord.conf /
+
+RUN mkdir -p /var/run/supervisor/
+RUN chmod -R 777 /var/run/supervisor/
+RUN touch /var/run/supervisor/supervisor.sock
+RUN chown -R root:root /var/run/supervisor/supervisor.sock
+RUN chmod -R 777 /var/run/supervisor/supervisor.sock
+
+
+WORKDIR /
+
+
+RUN a2enmod rewrite actions proxy proxy_fcgi setenvif
+
+RUN a2ensite 000-default
+RUN a2ensite default-ssl
+
+
+RUN chmod -R 777 /var/log/
+RUN chmod -R 777 /etc/apache2/
+
+# Launch script 
+COPY ./deployment-configuration/service/run-conf-and-launch.sh /
+RUN chown www-data:www-data /run-conf-and-launch.sh
+RUN chmod u+x /run-conf-and-launch.sh
+
+ENV TZ=Europe/Paris
+RUN apt-get update && apt-get install -y tzdata && \
+    ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+USER root
+
+EXPOSE 80
+EXPOSE 443

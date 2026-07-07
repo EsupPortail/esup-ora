@@ -1,4 +1,5 @@
 import { defineStore } from 'pinia'
+import { effect } from 'vue'
 
 export const useParcoursStore = defineStore('parcours', {
   state: () => ({
@@ -55,9 +56,73 @@ export const useParcoursStore = defineStore('parcours', {
           })
       })
     },
+    updateAllPeriodesOfParcours(parcours: any, duree: number, periodesLocales: any[]) {
+      return new Promise(async (resolve, reject) => {
+        // 1. Récupération des données existantes
+        const res = await this.getCollection('periode_of_parcours_informations', {
+          where: { parcours_id: Number(parcours.id) }
+        });
+        const existingPeriodes = res.data || [];
+
+        // 2. Boucle séquentielle
+        for (let unite = 1; unite <= duree; unite++) {
+          const dataSaisie = periodesLocales.find(p => p.periode_index === unite);
+
+          if (dataSaisie) {
+            const existingInfo = existingPeriodes.find((p: any) => Number(p.periode_index) === unite);
+
+      const dataPayload = {
+        effectif_theorique_regime_fa: Number(dataSaisie.effectif_theorique_regime_fa) || 0,
+        effectif_theorique_regime_fc: Number(dataSaisie.effectif_theorique_regime_fc) || 0,
+        effectif_theorique_regime_fi: Number(dataSaisie.effectif_theorique_regime_fi) || 0,
+      }
+
+            try {
+              if (existingInfo) {
+                // UPDATE : On attend simplement la fin de l'opération
+                await this.update('periode_of_parcours_informations', {
+                  id: existingInfo.id,
+                  ...dataPayload
+                });
+                console.log(`Période ${unite} mise à jour`);
+              } else {
+                // CREATE : On attend simplement la fin de l'opération
+                await this.create('periode_of_parcours_informations', {
+                  parcours_id: Number(parcours.id),
+                  periode_index: unite,
+                  ...dataPayload
+                });
+                console.log(`Période ${unite} créée`);
+              }
+            } catch (err) {
+              console.error(`Erreur période ${unite}:`, err);
+              // Optionnel : throw err; // si vous voulez stopper tout le processus en cas d'erreur
+            }
+          }
+        }
+
+        // 3. On retourne vrai une fois que TOUTE la boucle est terminée
+
+      })
+    },
     fetchOneParcoursFromId(parcoursId: string) {
       return new Promise((resolve, reject) => {
         this.get(this.entity, parcoursId)
+          .then((res) => {
+            resolve(res.data)
+          })
+          .catch((err) => {
+            reject(err)
+          })
+      })
+    },
+    fetchOneParcoursFromIdWithConfiguration(parcoursId: string) {
+      return new Promise((resolve, reject) => {
+        this.get(this.entity, parcoursId, {
+          include: {
+            periode_of_parcours_informations: true
+          }
+        })
           .then((res) => {
             resolve(res.data)
           })
@@ -94,7 +159,7 @@ export const useParcoursStore = defineStore('parcours', {
           })
       })
     },
-    fetchVersions(){
+    fetchVersions() {
       return new Promise((resolve, reject) => {
         this.getCollection('version', {
           include: {
@@ -108,7 +173,7 @@ export const useParcoursStore = defineStore('parcours', {
           .catch((err) => {
             reject(err)
           })
-      })    
+      })
     },
     fetchVersionById(versionId: string) {
       return new Promise((resolve, reject) => {

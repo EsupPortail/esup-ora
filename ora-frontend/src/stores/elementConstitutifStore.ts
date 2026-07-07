@@ -188,6 +188,25 @@ export const useEcStore = defineStore('element_constitutif', {
           })
       })
     },
+    changeRenderOrderOfImported(idImported: number, renderOrder: number) {
+      return new Promise((resolve, reject) => {
+        this.update('element_constitutif_mutualised_imported', {
+          id: idImported,
+          render_order: renderOrder
+        })
+          .then((res) => {
+            const socketStore = useSocketStore()
+            socketStore.notifyChange('element_constitutif')
+
+            this.fetchECs()
+
+            resolve(res.data)
+          })
+          .catch((err) => {
+            reject(err)
+          })
+      })  
+    },
     changeImportedElementOfUE(importedId: any, ueId: any) {
       return new Promise(async (resolve, reject) => {
         try {
@@ -222,7 +241,7 @@ export const useEcStore = defineStore('element_constitutif', {
           const payload = {
             id: Number(importedId), // 🔧 force conversion pour éviter NaN
             unites_enseignement_id: ueId,
-            periode_id: targetPeriode.id,
+            periode_id: null,
             render_order
           }
 
@@ -423,8 +442,22 @@ export const useEcStore = defineStore('element_constitutif', {
 
         const newOptions = cluster.map((item: any) => (typeof item === 'object' ? item.id : item)) || [];
 
-        // 2️⃣ Déconnexion totale de toutes les EC du cluster actuel
-        const allIdsToDisconnect = [...new Set([...oldOptions, ec.id])]; // tous les EC concernés
+        // 2️⃣ Récupérer les connexions existantes de chaque membre du nouveau cluster
+        //    pour fusionner tous les sous-clusters en un seul
+        const allRelatedIds = new Set<string | number>([...newOptions, ec.id]);
+
+        for (const id of newOptions) {
+          const memberEC = await this.fetchOneEcById(id);
+          const memberOptions = (memberEC as { ens_options?: { id: string | number }[] } | undefined)
+            ?.ens_options?.map(opt => opt.id) ?? [];
+          memberOptions.forEach(relId => allRelatedIds.add(relId));
+        }
+
+        // 3️⃣ Détecter les EC qui quittent le cluster
+        const removedIds = oldOptions.filter(id => !newOptions.includes(id));
+
+        // 4️⃣ Déconnexion totale de tous les EC concernés
+        const allIdsToDisconnect = [...new Set([...oldOptions, ...allRelatedIds, ec.id])];
         for (const id of allIdsToDisconnect) {
           await this.update(this.entity, {
             id,
@@ -433,30 +466,38 @@ export const useEcStore = defineStore('element_constitutif', {
           });
         }
 
-        // 3️⃣ Si cluster vide après tout
-        if (cluster.length === 0) {
+        // 5️⃣ Si cluster vide → tout le monde est sorti, on s'arrête
+        if (newOptions.length === 0) {
           await this.fetchECs();
           return true;
         }
 
-        // 4️⃣ Construire le cluster final (unique + inclure EC actuel)
-        const clusterOnlyId = [...new Set([...newOptions, ec.id])];
+        // 6️⃣ Construire le cluster final : fusionné SANS les EC retirés
+        const clusterOnlyId = [...allRelatedIds].filter(id => !removedIds.includes(id));
 
-        // 5️⃣ Connecter chaque EC à tous les autres (graphe complet)
+        // 7️⃣ Si le cluster final est réduit à 1 seul EC → pas d'option, on s'arrête
+        if (clusterOnlyId.length <= 1) {
+          await this.fetchECs();
+          return true;
+        }
+
+        // 8️⃣ Reconnecter chaque EC du cluster final à tous les autres
         for (const idEC of clusterOnlyId) {
           const clusterWithoutMe = clusterOnlyId.filter((id) => id !== idEC);
 
           await this.update(this.entity, {
             id: idEC,
             est_optionnel: true,
-            ens_options: {
-              set: [], // réinitialiser avant de reconnecter
-              connect: clusterWithoutMe.map((id) => ({ id }))
-            }
+            ens_options: { set: [] }
+          });
+
+          await this.update(this.entity, {
+            id: idEC,
+            ens_options: { connect: clusterWithoutMe.map((id) => ({ id })) }
           });
         }
 
-        // 6️⃣ Rafraîchir la liste
+        // 9️⃣ Rafraîchir
         await this.fetchECs();
         return true;
 
@@ -545,6 +586,7 @@ export const useEcStore = defineStore('element_constitutif', {
           est_isole: ec.est_isole,
           est_assoce: ec.est_assoce,
           commentaire: ec.commentaire,
+          render_order: ec.render_order,
           ...jsonTag,
           ...jsonParcours
         }

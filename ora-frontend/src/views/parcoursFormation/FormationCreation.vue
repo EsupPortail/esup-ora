@@ -91,9 +91,20 @@
                           </template>
                         </v-list-item>
                         <v-list-item link @click="dupplicateFormation(formation)">
-                          <v-list-item-title>Duppliquer</v-list-item-title>
+                          <v-list-item-title>Dupliquer</v-list-item-title>
                           <template v-slot:append>
                             <v-icon icon="mdi-content-copy"></v-icon>
+                          </template>
+                        </v-list-item>
+                        <v-list-item link @click="finalizeFormation(formation.id, formation.state)">
+                          <v-list-item-title
+                            >Basculer à état
+                            {{
+                              formation.state === 'Finalisé' ? 'en cours' : 'finalisé'
+                            }}</v-list-item-title
+                          >
+                          <template v-slot:append>
+                            <v-icon icon="mdi-check"></v-icon>
                           </template>
                         </v-list-item>
                         <v-dialog v-model="confirmDelete" width="auto">
@@ -131,7 +142,7 @@
                     <v-chip
                       class="ma-2"
                       :style="{
-                        backgroundColor: formation.state === 'Terminé' ? '#E2F1B8' : '#B8C2F1',
+                        backgroundColor: formation.state === 'Finalisé' ? '#E2F1B8' : '#B8C2F1',
                         borderRadius: '12px',
                         cursor: 'pointer',
                         opacity: 1
@@ -166,7 +177,20 @@
       </v-card>
       <v-expand-transition>
         <v-card style="margin-top: 12px" v-show="showFormationCard" class="formation-creation">
-          <h3>Création d'une nouvelle formation</h3>
+          <v-row>
+            <v-col cols="12" style="text-align: right">
+              <v-btn
+                @click="formMode === 'create' ? createFormation() : updateFormation()"
+                color="success"
+                prepend-icon="mdi-content-save"
+                :text="
+                  formMode === 'create' ? 'Créer la formation' : 'Enregistrer les modifications'
+                "
+              ></v-btn>
+            </v-col>
+          </v-row>
+          <h3 v-if="formMode === 'create'">Création d'une nouvelle formation</h3>
+          <h3 v-else>Modification de la formation</h3>
           <v-form>
             <div class="dividerForm" style="border-top: 1px dashed #707070" />
 
@@ -337,32 +361,6 @@
             </v-row>
             <v-row class="align-center">
               <v-col cols="4">
-                <span style="padding-left: 10px">Régime</span>
-                <div style="display: flex; align-items: center; gap: 16px">
-                  <v-checkbox
-                    v-model="currentFormation.is_regime_fc"
-                    label="FC"
-                    class="rounded-checkbox"
-                    hide-details
-                    inline
-                  />
-                  <v-checkbox
-                    v-model="currentFormation.is_regime_fi"
-                    label="FI"
-                    class="rounded-checkbox"
-                    hide-details
-                    inline
-                  />
-                  <v-checkbox
-                    v-model="currentFormation.is_regime_fa"
-                    label="FA"
-                    class="rounded-checkbox"
-                    hide-details
-                    inline
-                  />
-                </div>
-              </v-col>
-              <v-col cols="4">
                 <span style="padding-left: 10px">Type de période de la formation</span>
                 <v-radio-group
                   v-model="currentFormation.duree_unite"
@@ -387,55 +385,153 @@
                 />
               </v-col>
             </v-row>
-            <!-- <template
-              v-for="unite in currentFormation.duree"
-              :key="unite"
-              v-if="
-                currentFormation.duree > 0 && periodeConfiguration.length === currentFormation.duree
-              "
-            >
-              <div class="dividerForm" style="border-top: 1px dashed #707070" />
+            <div class="dividerForm" style="border-top: 1px dashed #707070" />
 
-              <v-row>
-                <v-col cols="1">
-                  <p>{{ currentFormation.duree_unite }} - {{ unite }}</p>
-                </v-col>
-                <v-col cols="5">
-                  <div style="display: flex; align-items: center; gap: 16px">
-                    <v-checkbox
-                      v-model="periodeConfiguration[unite - 1].is_fc"
-                      label="FC"
-                      class="rounded-checkbox"
-                      hide-details
-                      inline
-                    />
-                    <v-checkbox
-                      v-model="periodeConfiguration[unite - 1].is_fi"
-                      label="FI"
-                      class="rounded-checkbox"
-                      hide-details
-                      inline
-                    />
-                    <v-checkbox
-                      v-model="periodeConfiguration[unite - 1].is_fa"
-                      label="FA"
-                      class="rounded-checkbox"
-                      hide-details
-                      inline
-                    />
-                  </div>
-                </v-col>
-                <v-col cols="3">
-                  <v-text-field
-                    density="compact"
-                    variant="outlined"
-                    v-model.number="periodeConfiguration[unite - 1].effectif_theorique"
-                    label="Effectif théorique de la période"
-                    type="number"
-                  />
-                </v-col>
-              </v-row>
-            </template> -->
+            <h4 style="padding-left: 10px; margin-bottom: 10px">
+              Paramétrer le régime ainsi que l'effectif théorique pour chaque période de formation
+            </h4>
+            <v-expansion-panels multiple v-model="openedPanels">
+              <v-expansion-panel v-for="(p, k) in currentFormation.parcours" :key="k">
+                <v-expansion-panel-title> {{ p.libelle }} </v-expansion-panel-title>
+
+                <v-expansion-panel-text>
+                  <template v-if="parcoursConfiguration[k] && parcoursConfiguration[k].periodes">
+                    <v-container>
+                      <v-row>
+                        <v-col></v-col>
+                        <v-col v-for="unite in currentFormation.duree" style="text-align: center">
+                          {{ currentFormation.duree_unite }} - {{ unite }}
+                        </v-col>
+                      </v-row>
+
+                      <v-row>
+                        <v-col cols="1"> FI </v-col>
+                        <v-col v-for="unite in currentFormation.duree" :key="`fi-${unite}`">
+                          <template
+                            v-if="
+                              parcoursConfiguration[k].periodes[unite - 1]
+                            "
+                          >
+                            <v-number-input
+                              control-variant="stacked"
+                              variant="outlined"
+                              density="compact"
+                              inset
+                              v-model="
+                                parcoursConfiguration[k].periodes[unite - 1]
+                                  .effectif_theorique_regime_fi
+                              "
+                            ></v-number-input>
+                          </template>
+                        </v-col>
+                      </v-row>
+
+                      <v-row v-if="parcoursConfiguration[k].periodes">
+                        <v-col cols="1"> FC </v-col>
+                        <v-col v-for="unite in currentFormation.duree" :key="`fc-${unite}`">
+                          <template
+                            v-if="
+                              parcoursConfiguration[k].periodes[unite - 1]
+                            "
+                          >
+                            <v-number-input
+                              control-variant="stacked"
+                              variant="outlined"
+                              density="compact"
+                              inset
+                              v-model="
+                                parcoursConfiguration[k].periodes[unite - 1]
+                                  .effectif_theorique_regime_fc
+                              "
+                            ></v-number-input>
+                          </template>
+                        </v-col>
+                      </v-row>
+
+                      <v-row v-if="parcoursConfiguration[k].periodes">
+                        <v-col cols="1"> FA </v-col>
+                        <v-col v-for="unite in currentFormation.duree" :key="`fa-${unite}`">
+                          <template
+                            v-if="
+                              parcoursConfiguration[k].periodes[unite - 1]
+                            "
+                          >
+                            <v-number-input
+                              control-variant="stacked"
+                              variant="outlined"
+                              density="compact"
+                              inset
+                              v-model="
+                                parcoursConfiguration[k].periodes[unite - 1]
+                                  .effectif_theorique_regime_fa
+                              "
+                            ></v-number-input>
+                          </template>
+                        </v-col>
+                      </v-row>
+                    </v-container>
+                  </template>
+
+                  <!--                  <template v-if="parcoursConfiguration[k] && parcoursConfiguration[k].periodes">-->
+                  <!--                    <template-->
+                  <!--                      v-for="unite in currentFormation.duree"-->
+                  <!--                      :key="unite"-->
+                  <!--                      v-if="-->
+                  <!--                        currentFormation.duree > 0 &&-->
+                  <!--                        periodeConfiguration.length === currentFormation.duree-->
+                  <!--                      "-->
+                  <!--                    >-->
+                  <!--                      <div class="dividerForm" style="border-top: 1px dashed #707070" />-->
+
+                  <!--                      <v-row align="center">-->
+                  <!--                        <v-col cols="1">-->
+                  <!--                          <p class="mb-0">{{ currentFormation.duree_unite }} - {{ unite }}</p>-->
+                  <!--                        </v-col>-->
+
+                  <!--                        <v-col cols="5">-->
+                  <!--                          <div style="display: flex; align-items: center; gap: 16px">-->
+                  <!--                            <v-checkbox-->
+                  <!--                              v-model="parcoursConfiguration[k].periodes[unite - 1].is_regime_fc"-->
+                  <!--                              label="FC"-->
+                  <!--                              hide-details-->
+                  <!--                              @click="changePeriodeOfParcoursConf(p, k, unite - 1, 'is_fc')"-->
+                  <!--                              inline-->
+                  <!--                            />-->
+                  <!--                            <v-checkbox-->
+                  <!--                              v-model="parcoursConfiguration[k].periodes[unite - 1].is_regime_fi"-->
+                  <!--                              label="FI"-->
+                  <!--                              hide-details-->
+                  <!--                              inline-->
+                  <!--                              @click="changePeriodeOfParcoursConf(p, k, unite - 1, 'is_fi')"-->
+                  <!--                            />-->
+                  <!--                            <v-checkbox-->
+                  <!--                              v-model="parcoursConfiguration[k].periodes[unite - 1].is_regime_fa"-->
+                  <!--                              label="FA"-->
+                  <!--                              hide-details-->
+                  <!--                              inline-->
+                  <!--                              @click="changePeriodeOfParcoursConf(p, k, unite - 1, 'is_fa')"-->
+                  <!--                            />-->
+                  <!--                          </div>-->
+                  <!--                        </v-col>-->
+
+                  <!--                        <v-col cols="3">-->
+                  <!--                          <v-text-field-->
+                  <!--                            v-model.number="-->
+                  <!--                              parcoursConfiguration[k].periodes[unite - 1].effectif_theorique-->
+                  <!--                            "-->
+                  <!--                            label="Effectif théorique"-->
+                  <!--                            type="number"-->
+                  <!--                            density="compact"-->
+                  <!--                            variant="outlined"-->
+                  <!--                            hide-details-->
+                  <!--                          />-->
+                  <!--                        </v-col>-->
+                  <!--                      </v-row>-->
+                  <!--                    </template>-->
+                  <!--                  </template>-->
+                </v-expansion-panel-text>
+              </v-expansion-panel>
+            </v-expansion-panels>
 
             <div class="dividerForm" style="border-top: 1px dashed #707070" />
 
@@ -542,7 +638,9 @@
                 @click="formMode === 'create' ? createFormation() : updateFormation()"
                 color="success"
                 prepend-icon="mdi-content-save"
-                :text="formMode === 'create' ? 'Ajouter' : 'Modifier'"
+                :text="
+                  formMode === 'create' ? 'Créer la formation' : 'Enregistrer les modifications'
+                "
               ></v-btn>
             </v-col>
           </v-row>
@@ -585,6 +683,10 @@ const popUpStore = usePopUpStore()
 const periodeStore = usePeriodeStore()
 
 const search = ref('')
+
+const periodeConfiguration = ref({})
+
+const inRegister = ref(false)
 
 const refMissingValues = ref([])
 const showMissingValuesError = () => {
@@ -642,7 +744,8 @@ const formMode = ref('create')
  * [0].is_fc
  * [0].is_fa
  */
-const periodeConfiguration = ref([])
+const parcoursConfiguration = ref([])
+
 const currentFormation = ref({
   libelle: '',
   state: '',
@@ -666,6 +769,11 @@ const parcoursList = ref([])
 const newParcours = ref('')
 const confirmDelete = ref(false)
 const showFormationCard = ref(false)
+
+const finalizeFormation = async (id, state) => {
+  const nextState = state === 'Finalisé' ? 'En cours' : 'Finalisé'
+  await formationStore.changeStateFormation(id, nextState)
+}
 
 const composantesOrderedByEtablissement = computed(() => {
   const map = new Map()
@@ -806,8 +914,8 @@ const deleteFormation = (formation) => {
       type: 'ERROR'
     })
     confirmDelete.value = false
-    showFormationCard.value = false 
-    
+    showFormationCard.value = false
+
     return false
   }
 }
@@ -824,6 +932,8 @@ const updateFormation = async () => {
     .then((d) => {
       return d
     })
+
+  inRegister.value = true
 
   const parcoursToDelete = oldFormation.parcours.filter(
     (oldParcours) =>
@@ -865,6 +975,8 @@ const updateFormation = async () => {
     }
   }
 
+  // Regime , effectif théorique par periode
+
   await formationStore.updateFormation(formationToUpdateForCreationParcours)
   currentFormation.value.parcours
   await formationStore.fetchOneFormationFromId(currentFormation.value.id).then((d) => {
@@ -898,19 +1010,37 @@ const updateFormation = async () => {
   }
   formationStore.updateFormation(formationToUpdate)
 
-  currentFormation.value.parcours.forEach((p) => {
-    parcoursStore.updateParcours(p)
-  })
+  // currentFormation.value.parcours.forEach((p) => {
+  //   parcoursStore.updateParcours(p)
+  // })
   await formationStore.updateUserAttachment({
     id: currentFormation.value.id,
     utilisateurs_rattaches: usersSelectedInList.value
   })
 
+  const updatedFormation = await formationStore.fetchOneFormationFromId(currentFormation.value.id)
+  const duree = currentFormation.value.duree
+
+  // Tri pour correspondance index
+  const sortedParcours = [...updatedFormation.parcours].sort((a, b) => a.id - b.id)
+
+  for (let index = 0; index < sortedParcours.length; index++) {
+    const parcours = sortedParcours[index]
+    const configLocale = parcoursConfiguration.value[index]
+
+    if (configLocale && configLocale.periodes) {
+      try {
+        // On envoie le parcours entier et ses périodes au store
+        parcoursStore.updateAllPeriodesOfParcours(parcours, duree, configLocale.periodes)
+      } catch (err) {
+        console.error(`Erreur sur le parcours ${parcours.id}:`, err)
+      }
+    }
+  }
+
+  inRegister.value = false
   toggleFormationCard()
-
-  // Update versions et periodes
 }
-
 const getParcoursData = async (parcours) => {
   const bddParcours = await parcoursStore.fetchParcoursByFormationId(currentFormation.value.id)
 
@@ -925,6 +1055,12 @@ const getParcoursData = async (parcours) => {
     parcoursToUpdate: parcoursToUpdate,
     parcoursToDelete: parcoursToDelete
   }
+}
+
+const openedPanels = ref([]) // Tableau vide = tout est fermé
+
+const collapseAll = () => {
+  openedPanels.value = []
 }
 
 const analyzeMissingValues = () => {
@@ -962,7 +1098,7 @@ const analyzeMissingValues = () => {
   return refMissingValues.value.length === 0
 }
 
-const createFormation = () => {
+const createFormation = async () => {
   if (!analyzeMissingValues()) {
     showMissingValuesError()
     return
@@ -979,7 +1115,6 @@ const createFormation = () => {
     duree: currentFormation.value.duree,
     duree_unite: currentFormation.value.duree_unite,
     is_regime_fa: currentFormation.value.is_regime_fa,
-    noms_des_niveaux: currentFormation.value.noms_des_niveaux,
     is_regime_fi: currentFormation.value.is_regime_fi,
     is_regime_fc: currentFormation.value.is_regime_fc,
     noms_des_niveaux: currentFormation.value.noms_des_niveaux
@@ -1002,10 +1137,31 @@ const createFormation = () => {
     },
     utilisateurs_rattaches: usersSelectedInList.value
   }
-  formationStore.createFormation(formationToCreate).then(() => {
-    formationStore.fetchFormation()
-    showFormationCard.value = false
-  })
+
+  const newFormationId = await formationStore.createFormation(formationToCreate)
+
+  const createdFormation = await formationStore.fetchOneFormationFromId(newFormationId)
+  const duree = currentFormation.value.duree
+
+  // Tri pour correspondance index
+  const sortedParcours = [...createdFormation.parcours].sort((a, b) => a.id - b.id)
+
+  for (let index = 0; index < sortedParcours.length; index++) {
+    const parcours = sortedParcours[index]
+    const configLocale = parcoursConfiguration.value[index]
+
+    if (configLocale && configLocale.periodes) {
+      try {
+        // On envoie le parcours entier et ses périodes au store
+        parcoursStore.updateAllPeriodesOfParcours(parcours, duree, configLocale.periodes)
+      } catch (err) {
+        console.error(`Erreur sur le parcours ${parcours.id}:`, err)
+      }
+    }
+  }
+
+  formationStore.fetchFormation()
+  showFormationCard.value = false
 }
 
 const dupplicateFormation = (formation) => {
@@ -1042,7 +1198,6 @@ const changeCreditAndHours = () => {
 
 const sortedFormations = computed(() => {
   const role = connectionStore.selectedRole?.name || null
-  console.log(role)
 
   const me = userAccessStore.users.find((u) => u.username === connectionStore.user.eppn)
 
@@ -1106,7 +1261,6 @@ watch(
     if (!newFormation?.duree) {
       return
     }
-    console.log('Mise à jour de la configuration pour la durée :', newFormation.duree)
 
     periodeConfiguration.value = Array.from({ length: newFormation.duree }, () => ({
       is_fc: false,
@@ -1114,7 +1268,6 @@ watch(
       is_fa: false,
       effectif_theorique: 0
     }))
-    console.log(periodeConfiguration.value)
   },
   { deep: true, immediate: true } // 3. Options cruciales
 )
@@ -1131,6 +1284,106 @@ const matchScore = (libelle, search) => {
 
   return 0
 }
+
+// const changePeriodeOfParcoursConf = async (parcours, indexParcours, indexPeriode, field) => {
+//   const fieldMapping = {
+//     is_fc: 'is_regime_fc',
+//     is_fi: 'is_regime_fi',
+//     is_fa: 'is_regime_fa'
+//   }
+//
+//   const targetKey = fieldMapping[field]
+//
+//   if (targetKey) {
+//     const periode = parcoursConfiguration.value[indexParcours].periodes[indexPeriode]
+//     periode[targetKey] = !periode[targetKey]
+//   }
+// }
+
+watch(
+  // On surveille les deux sources
+  [() => currentFormation.value.parcours, () => currentFormation.value.duree],
+  async ([parcoursList, newDuree]) => {
+    // On déstructure les nouvelles valeurs ici
+    if (inRegister.value) {
+      return
+    }
+    // 1. Validations de base
+    if (!parcoursList || parcoursList.length === 0) {
+      parcoursConfiguration.value = []
+      return
+    }
+
+    if (newDuree === null || newDuree === undefined) {
+      console.warn('Durée non définie')
+      return
+    }
+
+    const tempConfig = []
+
+    for (const p of parcoursList) {
+      let configParcours = null
+
+      if (p.id) {
+        try {
+          const data = await parcoursStore.fetchOneParcoursFromIdWithConfiguration(p.id)
+
+          // Si le parcours existe en BDD, on mappe ses périodes
+          // Si "data.periode_of_parcours_informations" est vide, Array.from créera des périodes par défaut
+          if (data) {
+            const existingPeriodes = data.periode_of_parcours_informations || []
+
+            configParcours = {
+              parcours_id: p.id,
+              periodes: Array.from({ length: newDuree }, (_, i) => {
+                const targetIndex = i + 1
+                // On cherche la période correspondante
+                const per = existingPeriodes.find((info) => info.periode_index === targetIndex)
+
+                // Si per est undefined (cas du Parcours 3 sans périodes),
+                // l'opérateur ?. et ?? prendront le relais pour mettre les valeurs par défaut
+                return {
+                  id: per?.id || null,
+                  periode_index: targetIndex,
+                  effectif_theorique_regime_fa: per?.effectif_theorique_regime_fa ?? 0,
+                  effectif_theorique_regime_fc: per?.effectif_theorique_regime_fc ?? 0,
+                  effectif_theorique_regime_fi: per?.effectif_theorique_regime_fi ?? 0
+                }
+              })
+            }
+          }
+        } catch (error) {
+          console.error(`Erreur fetch parcours ${p.id}:`, error)
+        }
+      }
+
+      // 2. Sécurité : Si pas de data ou nouveau parcours (p.id absent)
+      if (!configParcours) {
+        configParcours = {
+          parcours_id: p.id || null,
+          periodes: Array.from({ length: newDuree }, (_, i) => ({
+            id: null,
+            periode_index: i + 1,
+            effectif_theorique_regime_fa: 0,
+            effectif_theorique_regime_fc: 0,
+            effectif_theorique_regime_fi: 0
+          }))
+        }
+      }
+
+      tempConfig.push(configParcours)
+    }
+
+    // 3. Tri et mise à jour
+    parcoursConfiguration.value = [
+      ...tempConfig
+        .filter((a) => a.parcours_id !== null)
+        .sort((a, b) => a.parcours_id - b.parcours_id),
+      ...tempConfig.filter((a) => a.parcours_id === null)
+    ]
+  },
+  { deep: true, immediate: true }
+)
 </script>
 
 <style scoped>

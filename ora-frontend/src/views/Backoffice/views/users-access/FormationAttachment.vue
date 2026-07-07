@@ -11,10 +11,8 @@
     />
 
     <v-data-table
-      :items="dataTable"
+      :items="filteredFormations"
       :headers="headers"
-      :search="search"
-      :custom-filter="filterUsers"
       item-value="id"
       item-key="id"
       class="elevation-1"
@@ -46,10 +44,10 @@
       <template #expanded-row="{ item }">
         <v-card elevation="10" style="margin-top: 24px; padding: 16px; margin-left: 24px">
           <div class="d-flex justify-space-between align-center mb-3">
-            <h3 class="text-h6">Rattachement d'utilisateurs à la formation '{{ item.name }}''</h3>
+            <h3 class="text-h6">Rattachement d'utilisateurs à la formation '{{ item.name }}'</h3>
           </div>
           <v-text-field
-            v-model="search"
+            v-model="searchUser"
             label="Rechercher un utilisateur pour le rattachement"
             prepend-icon="mdi-magnify"
             class="mb-4"
@@ -59,7 +57,7 @@
           />
 
           <v-data-table
-            :items="userAccessStore.users"
+            :items="filteredUsers"
             :headers="userHeaders"
             density="compact"
             hide-default-footer
@@ -79,7 +77,6 @@
     </v-data-table>
   </div>
 </template>
-
 
 <script setup>
 import { ref, computed } from 'vue'
@@ -112,18 +109,18 @@ const expanded = ref([])
 const search = ref('')
 const searchUser = ref('')
 const dataTable = ref([])
-
 const isUserAttached = ref({})
-const panels = ref([])
 
-const filteredComposantes = computed(() => {
+// Filtre le tableau principal sur nom de formation OU nom/prénom/email des utilisateurs rattachés
+const filteredFormations = computed(() => {
   if (!search.value) return dataTable.value
   const s = search.value.toLowerCase()
 
-  return dataTable.value.filter((comp) => {
-    if (comp.name.toLowerCase().includes(s)) return true
+  return dataTable.value.filter((f) => {
+    if (f.name.toLowerCase().includes(s)) return true
+    if (String(f.owner || '').toLowerCase().includes(s)) return true
 
-    return comp.users.some(
+    return f.users.some(
       (u) =>
         u.firstName.toLowerCase().includes(s) ||
         u.lastName.toLowerCase().includes(s) ||
@@ -132,36 +129,18 @@ const filteredComposantes = computed(() => {
   })
 })
 
-const filterUsers = (_value, searchText, item) => {
-  if (!searchText) return true
-  const s = searchText.toLowerCase()
+// Filtre la liste des utilisateurs dans le panneau d'expansion
+const filteredUsers = computed(() => {
+  if (!searchUser.value) return userAccessStore.users
+  const s = searchUser.value.toLowerCase()
 
-  if (
-    String(item.name || '')
-      .toLowerCase()
-      .includes(s)
+  return (userAccessStore.users || []).filter(
+    (u) =>
+      String(u.firstName || '').toLowerCase().includes(s) ||
+      String(u.lastName || '').toLowerCase().includes(s) ||
+      String(u.email || '').toLowerCase().includes(s)
   )
-    return true
-
-  if (Array.isArray(item.users)) {
-    for (const u of item.users) {
-      if (
-        String(u.firstName || '')
-          .toLowerCase()
-          .includes(s) ||
-        String(u.lastName || '')
-          .toLowerCase()
-          .includes(s) ||
-        String(u.email || '')
-          .toLowerCase()
-          .includes(s)
-      ) {
-        return true
-      }
-    }
-  }
-  return false
-}
+})
 
 const toggleExpand = (item) => {
   const i = expanded.value.indexOf(item.id)
@@ -170,14 +149,13 @@ const toggleExpand = (item) => {
 }
 
 const isAttached = (formationId, userId) => {
-  const formation = formationStore.formations.find(f => f.id === formationId)
+  const formation = formationStore.formations.find((f) => f.id === formationId)
   if (!formation || !Array.isArray(formation.utilisateurs_rattaches)) return false
   return formation.utilisateurs_rattaches.includes(String(userId))
 }
 
-
 const onToggleAttach = (formationId, userId, val) => {
-  const formation = formationStore.formations.find(f => f.id === formationId)
+  const formation = formationStore.formations.find((f) => f.id === formationId)
   if (!formation) return
 
   if (!Array.isArray(formation.utilisateurs_rattaches)) {
@@ -185,13 +163,14 @@ const onToggleAttach = (formationId, userId, val) => {
   }
 
   const idAsString = String(userId)
+
   if (val) {
     if (!formation.utilisateurs_rattaches.includes(idAsString)) {
       formation.utilisateurs_rattaches.push(idAsString)
     }
   } else {
     formation.utilisateurs_rattaches = formation.utilisateurs_rattaches.filter(
-      id => id !== idAsString
+      (id) => id !== idAsString
     )
   }
 
@@ -199,22 +178,10 @@ const onToggleAttach = (formationId, userId, val) => {
 }
 
 const saveAllAttachments = async (formationId) => {
-  const formation = formationStore.formations.find(f => f.id === formationId)
+  const formation = formationStore.formations.find((f) => f.id === formationId)
   if (!formation) return
 
   await formationStore.updateUserAttachment(formation)
-}
-
-
-
-const refreshAttachmentState = (composanteId) => {
-  const comp = dataTable.value.find((c) => c.id === composanteId)
-  if (!comp) return
-  if (!isUserAttached.value[composanteId]) isUserAttached.value[composanteId] = {}
-
-  userAccessStore.users.forEach((user) => {
-    isUserAttached.value[composanteId][user.id] = !!comp.users.some((u) => u.id === user.id)
-  })
 }
 
 const initData = async () => {
@@ -236,35 +203,24 @@ const initData = async () => {
   dataTable.value = (formationStore.formations || [])
     .filter((f) => {
       if (
-          role === 'administrateur_technique' ||
-          role === 'administrateur_fonctionnel' ||
-          role === 'observateur'
-        )
-          return true
-        if (me.id === f.owner_user_id) return true
+        role === 'administrateur_technique' ||
+        role === 'administrateur_fonctionnel' ||
+        role === 'observateur'
+      )
+        return true
 
-        if (
-          role === 'agent_scolarite' &&
-          myComposanteIds.length > 0 &&
-          myComposanteIds.includes(f.composante_id)
-        )
-          return true
-        
-        if (
-          role === 'ingenieur_pedagogique' &&
-          myComposanteIds.length > 0 &&
-          myComposanteIds.includes(f.composante_id)
-        )
-          return true
-        
-          if (
-          role === 'directeur_composante' &&
-          myComposanteIds.length > 0 &&
-          myComposanteIds.includes(f.composante_id)
-        )
-          return true
+      if (me.id === f.owner_user_id) return true
 
-        return f.utilisateurs_rattaches?.includes(me.id)
+      if (
+        (role === 'agent_scolarite' ||
+          role === 'ingenieur_pedagogique' ||
+          role === 'directeur_composante') &&
+        myComposanteIds.length > 0 &&
+        myComposanteIds.includes(f.composante_id)
+      )
+        return true
+
+      return f.utilisateurs_rattaches?.includes(me.id)
     })
     .map((f) => {
       const attachedUsers = f.utilisateurs_rattaches || []
@@ -279,34 +235,25 @@ const initData = async () => {
           email: u.email
         }))
 
-        console.log(userAccessStore.users)
-        let owner = (userAccessStore.users || []).find((u) => u.id === f.owner_user_id);
-        if( !owner ) {
-          owner = 'Erreur utilisateur inconnu';
-        } else {
-          owner = owner.username
-        }
+      const ownerUser = (userAccessStore.users || []).find((u) => u.id === f.owner_user_id)
+      const owner = ownerUser ? ownerUser.username : 'Erreur utilisateur inconnu'
+
       return {
         id: f.id,
-        owner: owner,
+        owner,
         name: f.libelle,
         users
       }
     })
 
-  // init isUserAttached
+  // Init isUserAttached
   dataTable.value.forEach((f) => {
     isUserAttached.value[f.id] = {}
     ;(userAccessStore.users || []).forEach((user) => {
       isUserAttached.value[f.id][user.id] = !!f.users.some((u) => u.id === user.id)
     })
   })
-
-  console.log('dataTable initialisé:', dataTable.value)
 }
-
-initData()
-
 
 initData()
 </script>

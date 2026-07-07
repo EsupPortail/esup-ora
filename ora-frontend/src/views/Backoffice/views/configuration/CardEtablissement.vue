@@ -1,5 +1,5 @@
 <template>
-  <v-container>
+  <v-container fluid>
     <v-data-table
       :items="etablissementStore.etablissements"
       item-key="id"
@@ -16,16 +16,22 @@
         </v-toolbar>
       </template>
       <template v-slot:footer.prepend>
-        <v-btn color="primary" @click="addNewEtab">Ajouter un établissement</v-btn>
+        <v-btn color="success" @click="addNewEtab" style="margin-bottom: 16px; margin-top: 16px; margin-right: 50px;">
+          Ajouter un établissement
+        </v-btn>
       </template>
       <template v-slot:item="{ item }">
         <tr v-if="editEtabId === item.id">
+          <td style="padding-top: 20px;">
           <v-text-field
+          
             v-model="item.libelle"
             label="Nom de l'établissement"
             variant="outlined"
             density="compact"
           />
+
+          </td>
           <td>
             <v-select
               v-model="item.parametre_id"

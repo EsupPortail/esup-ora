@@ -57,16 +57,16 @@ const extractProtectedFrontRoutes = (navigation) => {
 }
 
 const protectedFrontRoutes = extractProtectedFrontRoutes(navigationBackOffice)
-router.beforeEach(async (to, from, next) => {
+router.beforeEach(async (to, from) => {
     const connectionStore = useConnectionStore()
     const hasToken = Cookies.get('access_token')
 
     if ([paths.login, paths.logout, paths.authenticationReturn].includes(to.path)) {
-        return next()
+        return true
     }
 
     if (!hasToken) {
-        return next(paths.login)
+        return paths.login
     }
 
     if (!connectionStore.isAuthenticated || !connectionStore.selectedRole) {
@@ -74,7 +74,7 @@ router.beforeEach(async (to, from, next) => {
             await connectionStore.fetchUser()
         } catch (error) {
             Cookies.remove('access_token')
-            return next(paths.login)
+            return paths.login
         }
     }
 
@@ -82,14 +82,13 @@ router.beforeEach(async (to, from, next) => {
 
     if (matchingFrontRoute) {
         const myRole = connectionStore.selectedRole;
-
         const hasAccess = matchingFrontRoute.grants?.includes(myRole.name);
 
         if (!hasAccess) {
-            return next('/403');
+            return '/403'
         }
     }
 
-    next()
+    return true
 })
 export default router

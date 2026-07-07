@@ -1,5 +1,5 @@
 <template>
-  <v-container v-if="etablissementSelectedRef !== null">
+  <v-container v-if="etablissementSelectedRef !== null" fluid>
     <v-data-table
       :items="sortedItems"
       item-key="id"
@@ -37,7 +37,7 @@
         </v-toolbar>
       </template>
       <template v-slot:footer.prepend>
-        <v-btn color="primary" @click="addNewComposante">Ajouter une composante</v-btn>
+        <v-btn color="success" @click="addNewComposante" style="margin-bottom: 16px; margin-top: 16px; margin-right: 50px;">Ajouter une composante</v-btn>
       </template>
       <template v-slot:item="{ item }">
         <tr v-if="editEtabId === item.id">
@@ -126,7 +126,6 @@ const sortedItems = computed(() => {
     list.sort((a, b) => a.libelle.localeCompare(b.libelle));
   } else {
     const editItem = list.find(c => c.id === editEtabId.value);
-    console.log('Item en édition :', editItem);
     if (editItem) {
       list = [editItem, ...list.filter(c => c.id !== editEtabId.value)];
     }
@@ -154,7 +153,6 @@ const headers = [
 ]
 
 const changeEtabSelected = async (etabId) => {
-  console.log('Etab sélectionné :', etabId)
   await composantesStore.fetchComposanteByEtablissement(etabId)
 }
 

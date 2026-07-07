@@ -43,15 +43,15 @@ export default {
       grants: ['observateur', 'administrateur_technique', 'administrateur_fonctionnel', 'ingenieur_pedagogique', 'agent_scolarite', 'directeur_composante'],
     },
     {
-      title: "Imports",
-      icon: "mdi-download",
-      path: '/notfound',
+      title: "Accès aux API",
+      icon: "mdi-console",
+      path: paths.apiAccess,
       grants: ['observateur', 'administrateur_technique', 'administrateur_fonctionnel'],
     },
     {
       title: "Journaux et logs",
       icon: "mdi-volume-high",
-      path: '/notfound',
+      path: paths.listLogs,
       grants: ['observateur', 'administrateur_technique'],
     },
     {

@@ -245,7 +245,6 @@ const register = async () => {
       isAdd.value = false
     }
   } else {
-    console.log('Update ', parametreSelectedId.value, parametreSelected.value)
     const paramToUpdate = {
       id: parametreSelectedId.value,
       libelle: parametreSelected.value.libelle,
@@ -265,7 +264,6 @@ const register = async () => {
       }
     }
     parametreSelectedId.value = null;
-    console.log('Update ', paramToUpdate)
     await parametreStore.updateParametre(paramToUpdate)
   }
   await parametreStore.fetchParametres()

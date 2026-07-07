@@ -1,5 +1,5 @@
 <template>
-  <v-container>
+  <v-container fluid>
     <v-data-table
       :items="[...parametresStore.parametres].sort((a, b) => a.libelle.localeCompare(b.libelle))"
       :headers="headers"
@@ -17,7 +17,7 @@
       </template>
       <template v-slot:footer.prepend>
         <v-row>
-          <v-col cols="2" offset="10" style="margin-bottom: 16px">
+          <v-col cols="7" offset="1" style="margin-bottom: 16px; margin-top: 16px">
             <v-btn color="success" @click="createParametre"
               >Ajouter un paramètre</v-btn
             >
@@ -26,6 +26,7 @@
       </template>
       <template v-slot:item="{ item }">
         <tr>
+          <td>{{ item.id }}</td>
           <td>{{ item.libelle }}</td>
           <td>
             <v-btn color="primary" small @click="() => editParametre(item.id)"
@@ -196,6 +197,7 @@ const newParametreModel = ref({
 })
 
 const headers = [
+  { title: 'Identifiant unique', value: 'id' },
   { title: 'Nom', value: 'name' },
   { title: 'Actions', value: 'actions', sortable: false }
 ]
@@ -243,7 +245,6 @@ const initData = async () => {
   await parametresStore.fetchParametres()
   await typeDiplomeStore.fetchTypeDiplomes()
   await tagStore.fetchAllTags()
-  console.log(parametresStore.parametres)
   parametresAvailable.value = parametresStore.parametres.map((parametre) => ({
     id: parametre.id,
     name: parametre.libelle,

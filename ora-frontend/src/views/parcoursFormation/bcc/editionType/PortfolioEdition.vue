@@ -10,6 +10,8 @@
             v-model="data.libelle"
             variant="outlined"
             label="Libellé"
+                      :disabled="isImportedMutualisation"
+
             density="compact"
             hide-details
             @blur="updateLibelle"
@@ -39,7 +41,7 @@
         <v-btn
           icon="true"
           :color="data.est_mutualisable ? 'success' : 'transparent'"
-          :disabled="data.est_mutualisable"
+          :disabled="data.est_mutualisable || isImportedMutualisation"
           @click="shareElement"
           size="small"
         >
@@ -58,6 +60,8 @@
           v-model="data.parcours"
           :items="parcoursList"
           item-title="libelle"
+                    :disabled="isImportedMutualisation"
+
           @blur="updateData"
           multiple
           @keyup.enter="updateData"
@@ -85,6 +89,7 @@
           type="number"
           variant="outlined"
           density="compact"
+          :disabled="isImportedMutualisation"
           @blur="updateData"
           @keyup.enter="updateData"
           v-model.number="data.volume_horaire_etudiant"
@@ -97,6 +102,7 @@
         <v-text-field
           label="ECTS"
           type="number"
+          :disabled="isImportedMutualisation"
           v-model="data.credits_ects"
           @blur="updateData"
           @keyup.enter="updateData"
@@ -111,6 +117,7 @@
           label="Description"
           variant="outlined"
           @blur="updateData"
+          :disabled="isImportedMutualisation"
           @keyup.enter="updateData"
           density="compact"
           rows="3"
@@ -144,6 +151,8 @@ const emit = defineEmits(['refreshTreeView'])
 const data = ref(props.data)
 const parcoursList = ref(formationStore.formationSelected.parcours)
 const libelleEdition = ref(false)
+const isImportedMutualisation = ref(false)
+
 
 const shareElement = () => {
   data.value.est_mutualisable = true
@@ -169,6 +178,8 @@ const deleteElement = async () => {
 const initData = async () => {
   const idAsNumber = parseInt(data.value.id, 10)
   data.value = ecStore.ecs.find((ec) => ec.id === idAsNumber)
+    isImportedMutualisation.value = props.data.is_imported
+
 }
 initData()
 

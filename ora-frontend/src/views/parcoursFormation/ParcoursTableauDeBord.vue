@@ -12,7 +12,6 @@
     <v-col offset="2" cols="2">
       <ButtonExport pageAsked="Formation" />
     </v-col>
-
   </v-row>
   <v-card>
     <v-card-title class="text-h6"> </v-card-title>
@@ -29,11 +28,19 @@
       <tbody v-if="formationStore.formations.length > 0">
         <!-- Ligne globale -->
         <tr>
-          <td>{{ formationStore.formations.find(f => f.id === formationStore.formationSelected.id).libelle }}</td>
+          <td>
+            {{
+              formationStore.formations.find((f) => f.id === formationStore.formationSelected.id)
+                .libelle
+            }}
+          </td>
           <td>
             <v-progress-linear
               :model-value="refGlobalDataList.data_formation.total_volume_horaire"
-              :max="formationStore.formations.find(f => f.id === formationStore.formationSelected.id).type_diplome.heures"
+              :max="
+                formationStore.formations.find((f) => f.id === formationStore.formationSelected.id)
+                  .type_diplome.heures
+              "
               color="#488123"
               height="20"
               rounded="sm"
@@ -41,7 +48,12 @@
               <template v-slot:default>
                 <span
                   >{{ refGlobalDataList.data_formation.total_volume_horaire }} h /
-                  {{ formationStore.formations.find(f => f.id === formationStore.formationSelected.id).type_diplome.heures }} h</span
+                  {{
+                    formationStore.formations.find(
+                      (f) => f.id === formationStore.formationSelected.id
+                    ).type_diplome.heures
+                  }}
+                  h</span
                 >
               </template>
             </v-progress-linear>
@@ -49,7 +61,10 @@
           <td>
             <v-progress-linear
               :model-value="refGlobalDataList.data_formation.total_ects"
-              :max="formationStore.formations.find(f => f.id === formationStore.formationSelected.id).type_diplome.credits"
+              :max="
+                formationStore.formations.find((f) => f.id === formationStore.formationSelected.id)
+                  .type_diplome.credits
+              "
               color="blue"
               height="20"
               rounded="sm"
@@ -57,7 +72,12 @@
               <template v-slot:default>
                 <span
                   >{{ refGlobalDataList.data_formation.total_ects }} ECTS /
-                  {{ formationStore.formations.find(f => f.id === formationStore.formationSelected.id).type_diplome.credits }} ECTS</span
+                  {{
+                    formationStore.formations.find(
+                      (f) => f.id === formationStore.formationSelected.id
+                    ).type_diplome.credits
+                  }}
+                  ECTS</span
                 >
               </template>
             </v-progress-linear>
@@ -78,7 +98,11 @@
               <template v-slot:default>
                 <span
                   >{{ parcours.total_volume_horaire }}h /
-                  {{ formationStore.formations.find(f => f.id === formationStore.formationSelected.id).type_diplome.heures }}h</span
+                  {{
+                    formationStore.formations.find(
+                      (f) => f.id === formationStore.formationSelected.id
+                    ).type_diplome.heures
+                  }}h</span
                 >
               </template>
             </v-progress-linear>
@@ -94,7 +118,12 @@
               <template v-slot:default>
                 <span
                   >{{ parcours.total_ects }} /
-                  {{ formationStore.formations.find(f => f.id === formationStore.formationSelected.id).type_diplome.credits }} ECTS</span
+                  {{
+                    formationStore.formations.find(
+                      (f) => f.id === formationStore.formationSelected.id
+                    ).type_diplome.credits
+                  }}
+                  ECTS</span
                 >
               </template>
             </v-progress-linear>
@@ -104,36 +133,48 @@
     </v-table>
     <v-row style="padding: 16px;">
       <v-col cols="12">
-    <ul style="list-style: none;">
-      <li v-for="(competence, key) in refGlobalDataList.competences" :key="competence.id">
-        <v-row>
-          <v-col cols="5">
-            <div :style="{ backgroundColor: competence.color_hexadecimal }" class="rounded pa-3">
-              <span style="color: white">{{ competence.competence_contextualisee || competence.libelle }}</span>
-            </div>
-          </v-col>
-          <v-col cols="7">
-            <v-progress-linear
-              :model-value="competence.totalH"
-              height="8"
-              :max="formationStore.formations.find(f => f.id === formationStore.formationSelected.id).type_diplome.heures"
-              color="green"
-              rounded
-            ></v-progress-linear>
+        <ul style="list-style: none;">
+          <li style="margin-bottom: 16px" v-for="(competence, key) in refGlobalDataList.competences" :key="competence.id">
+            <v-row>
+              <v-col cols="5">
+                <div
+                  :style="{ backgroundColor: competence.color_hexadecimal }"
+                  class="rounded pa-3"
+                >
+                  <span style="color: white">{{
+                    competence.competence_contextualisee
+                  }}</span>
+                </div>
+              </v-col>
+              <v-col cols="7">
+                <v-progress-linear
+                  :model-value="competence.totalH"
+                  height="8"
+                  :max="
+                    formationStore.formations.find(
+                      (f) => f.id === formationStore.formationSelected.id
+                    ).type_diplome.heures
+                  "
+                  color="green"
+                  rounded
+                ></v-progress-linear>
 
-            <v-progress-linear
-              style="margin-top: 8px"
-              :max="formationStore.formations.find(f => f.id === formationStore.formationSelected.id).type_diplome.credits"
-              :model-value="competence.totalC"
-              height="8"
-              color="blue"
-              rounded
-            />
-          </v-col>
-        </v-row>
-      </li>
-    </ul>
-
+                <v-progress-linear
+                  style="margin-top: 8px"
+                  :max="
+                    formationStore.formations.find(
+                      (f) => f.id === formationStore.formationSelected.id
+                    ).type_diplome.credits
+                  "
+                  :model-value="competence.totalC"
+                  height="8"
+                  color="blue"
+                  rounded
+                />
+              </v-col>
+            </v-row>
+          </li>
+        </ul>
       </v-col>
     </v-row>
     <v-list two-line>
@@ -144,18 +185,24 @@
       >
         <v-list-item-content>
           <v-list-item-title class="text-h6">
-            {{ competence.libelle }}
+            {{ competence.competence_contextualisee }}
             <v-progress-linear
               :model-value="competence.totalH"
               height="8"
-              :max="formationStore.formations.find(f => f.id === formationStore.formationSelected.id).type_diplome.heures"
+              :max="
+                formationStore.formations.find((f) => f.id === formationStore.formationSelected.id)
+                  .type_diplome.heures
+              "
               color="green"
               rounded
             ></v-progress-linear>
 
             <v-progress-linear
               style="margin-top: 8px"
-              :max="formationStore.formations.find(f => f.id === formationStore.formationSelected.id).type_diplome.credits"
+              :max="
+                formationStore.formations.find((f) => f.id === formationStore.formationSelected.id)
+                  .type_diplome.credits
+              "
               :model-value="competence.totalC"
               height="8"
               color="blue"
@@ -179,14 +226,22 @@
                     <v-progress-linear
                       :model-value="ac.totalh"
                       height="8"
-                      :max="formationStore.formations.find(f => f.id === formationStore.formationSelected.id).type_diplome.heures"
+                      :max="
+                        formationStore.formations.find(
+                          (f) => f.id === formationStore.formationSelected.id
+                        ).type_diplome.heures
+                      "
                       color="blue"
                       rounded
                     ></v-progress-linear>
 
                     <v-progress-linear
                       style="margin-top: 8px"
-                      :max="formationStore.formations.find(f => f.id === formationStore.formationSelected.id).type_diplome.credits"
+                      :max="
+                        formationStore.formations.find(
+                          (f) => f.id === formationStore.formationSelected.id
+                        ).type_diplome.credits
+                      "
                       :model-value="ac.totalC"
                       height="8"
                       color="green"
@@ -396,8 +451,6 @@ const initData = async () => {
       }
     }
   })
-  console.log(refGlobalDataList.value)
-
   // Prévoir le calcul des options
 }
 
